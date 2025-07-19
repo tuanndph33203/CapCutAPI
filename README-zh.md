@@ -114,6 +114,7 @@ response = requests.post("http://localhost:9001/save_draft", json={
 
 print(response.json())
 ```
+也可以用 REST Client 的 ```rest_client_test.http``` 进行http测试，只需要安装对应的IDE插件
 
 ### 复制草稿到剪映/capcut草稿路径
 调用`save_draft`会在服务器当前目录下生成一个`dfd_`开头的文件夹，将他复制到剪映/CapCut草稿目录，即可看到生成的草稿

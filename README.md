@@ -116,6 +116,7 @@ response = requests.post("http://localhost:9001/save_draft", json={
 
 print(response.json())
 ```
+You can also use the ```rest_client_test.http``` file of the REST Client for HTTP testing. Just need to install the corresponding IDE plugin
 
 ### Copying the Draft to CapCut Draft Path
 
