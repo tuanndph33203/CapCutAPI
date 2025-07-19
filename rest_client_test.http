@@ -16,7 +16,7 @@ POST http://localhost:9001/add_video
 Content-Type: application/json
 
 {
-    "video_url": "https://cdn.qikongjian.com/1752788403_5rnfds.mp4",
+    "video_url": "http://example.com/video.mp4",
     "start": 0,
     "end": 10,
     "width": 1080,
