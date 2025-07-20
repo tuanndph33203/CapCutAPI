@@ -96,7 +96,7 @@ response = requests.post("http://localhost:9001/add_text", json={
     "text": "Hello, World!",
     "start": 0,
     "end": 3,
-    "font": "Source Han Sans",
+    "font": "ZY_Courage",
     "font_color": "#FF0000",
     "font_size": 30.0
 })
