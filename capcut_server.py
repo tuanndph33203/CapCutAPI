@@ -412,11 +412,8 @@ def add_text():
         return jsonify(result)
 
     except Exception as e:
-        if is_chinese:
-            error_message = f"Error occurred while processing text: {str(e)}. You can click the link below for help: "
-        else:
-            error_message = f"Error occurred while processing text: {str(e)}. You can click the link below for help: "
-        result["error"] = error_message + purchase_link
+        error_message = f"Error occurred while processing text: {str(e)}. You can click the link below for help: "
+        result["error"] = error_message
         return jsonify(result)
 
 @app.route('/add_image', methods=['POST'])
