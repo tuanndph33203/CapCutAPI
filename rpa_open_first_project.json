@@ -1,0 +1,9 @@
+{
+  "steps": [
+    {
+      "action": "open_first_project",
+      "min_area": 1500,
+      "debug_image": "scratch/open_first_project_debug.png"
+    }
+  ]
+}

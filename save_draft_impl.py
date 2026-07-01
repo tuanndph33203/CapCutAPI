@@ -95,6 +95,42 @@ def save_draft_background(draft_id, draft_folder, task_id):
         template_dir = "template" if IS_CAPCUT_ENV else "template_jianying"
         draft_folder_for_duplicate.duplicate_as_template(template_dir, draft_id)
         
+        # Update draft_meta_info.json with correct draft_id and draft_name to prevent database conflicts in CapCut
+        meta_info_path = os.path.join(current_dir, draft_id, "draft_meta_info.json")
+        if os.path.exists(meta_info_path):
+            try:
+                import json
+                with open(meta_info_path, "r", encoding="utf-8") as f:
+                    meta_data = json.load(f)
+                
+                # Determine draft ID based on root_meta_info.json if editing an existing folder
+                target_draft_id = draft_id
+                if draft_folder:
+                    root_meta_path = os.path.join(draft_folder, "root_meta_info.json")
+                    if os.path.exists(root_meta_path):
+                        try:
+                            with open(root_meta_path, "r", encoding="utf-8") as rf:
+                                root_meta = json.load(rf)
+                            for entry in root_meta.get("all_draft_store", []):
+                                fold_path = entry.get("draft_fold_path", "").replace('\\', '/')
+                                if fold_path.endswith("/" + draft_id) or entry.get("draft_name") == draft_id:
+                                    target_draft_id = entry.get("draft_id", draft_id)
+                                    logger.info(f"Found registered draft_id '{target_draft_id}' for folder '{draft_id}' in root_meta_info.json")
+                                    break
+                        except Exception as rexc:
+                            logger.warning(f"Could not read root_meta_info.json: {str(rexc)}")
+
+                meta_data["draft_id"] = target_draft_id
+                meta_data["draft_name"] = draft_id
+                if draft_folder:
+                    meta_data["draft_fold_path"] = os.path.join(draft_folder, draft_id).replace('\\', '/')
+                    meta_data["draft_root_path"] = draft_folder.replace('\\', '/')
+                with open(meta_info_path, "w", encoding="utf-8") as f:
+                    json.dump(meta_data, f, ensure_ascii=False, indent=4)
+                logger.info(f"Updated draft_meta_info.json for {draft_id} with draft_id={target_draft_id}")
+            except Exception as e:
+                logger.error(f"Failed to update draft_meta_info.json: {str(e)}")
+
         # Update task status
         update_task_field(task_id, "message", "Updating media file metadata")
         update_task_field(task_id, "progress", 5)

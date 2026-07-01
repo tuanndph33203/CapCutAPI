@@ -1,0 +1,46 @@
+{
+  "depth": 0,
+  "name": "CapCut",
+  "control_type": "WindowControl",
+  "class_name": "MainWindow_QMLTYPE_486",
+  "automation_id": "MainWindow",
+  "full_description": "CapCut",
+  "rect": {
+    "left": -1920,
+    "top": 0,
+    "width": 1920,
+    "height": 1040
+  },
+  "children": [
+    {
+      "depth": 1,
+      "name": "CapCut",
+      "control_type": "WindowControl",
+      "class_name": "EditPanel_QMLTYPE_608",
+      "automation_id": "editPanelLoader.editWin",
+      "full_description": "",
+      "rect": {
+        "left": -1317,
+        "top": 79,
+        "width": 755,
+        "height": 489
+      },
+      "children": []
+    },
+    {
+      "depth": 1,
+      "name": "CapCut",
+      "control_type": "WindowControl",
+      "class_name": "QQuickWindow",
+      "automation_id": "",
+      "full_description": "",
+      "rect": {
+        "left": 610,
+        "top": 86,
+        "width": 741,
+        "height": 475
+      },
+      "children": []
+    }
+  ]
+}

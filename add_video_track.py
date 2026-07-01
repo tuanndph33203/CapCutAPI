@@ -128,7 +128,7 @@ def add_video_track(
             # Windows path processing
             windows_drive, windows_path = re.match(r'([a-zA-Z]:)(.*)', draft_folder).groups()
             parts = [p for p in windows_path.split('\\') if p]  # Split path and filter empty parts
-            draft_video_path = os.path.join(windows_drive, *parts, draft_id, "assets", "video", material_name)
+            draft_video_path = os.path.join(windows_drive + "\\", *parts, draft_id, "assets", "video", material_name)
             # Normalize path (ensure consistent separators)
             draft_video_path = draft_video_path.replace('/', '\\')
         else:

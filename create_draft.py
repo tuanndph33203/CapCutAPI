@@ -26,19 +26,23 @@ def create_draft(width=1080, height=1920):
 def get_or_create_draft(draft_id=None, width=1080, height=1920):
     """
     Get or create CapCut draft
-    :param draft_id: Draft ID, if None or corresponding zip file not found, create new draft
+    :param draft_id: Draft ID, if None, create new draft
     :param width: Video width, default 1080
     :param height: Video height, default 1920
-    :return: (draft_name, draft_path, draft_id, draft_dir, script)
+    :return: (draft_id, script)
     """
     global DRAFT_CACHE  # Declare use of global variable
     
-    if draft_id is not None and draft_id in DRAFT_CACHE:
-        # Get existing draft information from cache
-        print(f"Getting draft from cache: {draft_id}")
-        # Update last access time
-        update_cache(draft_id, DRAFT_CACHE[draft_id])
-        return draft_id, DRAFT_CACHE[draft_id]
+    if draft_id is not None:
+        if draft_id in DRAFT_CACHE:
+            print(f"Getting draft from cache: {draft_id}")
+            update_cache(draft_id, DRAFT_CACHE[draft_id])
+            return draft_id, DRAFT_CACHE[draft_id]
+        else:
+            print(f"Creating new draft with specified draft_id: {draft_id}")
+            script = draft.Script_file(width, height)
+            update_cache(draft_id, script)
+            return draft_id, script
 
     # Create new draft logic
     print("Creating new draft")

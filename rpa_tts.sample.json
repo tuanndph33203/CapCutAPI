@@ -1,0 +1,37 @@
+{
+    "steps":  [
+                  {
+                      "template":  "rpa_templates/tts_button.png",
+                      "threshold":  0.82,
+                      "action":  "click_template",
+                      "timeout":  20
+                  },
+                  {
+                      "template":  "rpa_templates/voice_star_button.png",
+                      "threshold":  0.82,
+                      "action":  "click_template",
+                      "timeout":  20
+                  },
+                  {
+                      "template":  "rpa_templates/child_voice.png",
+                      "threshold":  0.82,
+                      "action":  "click_template",
+                      "timeout":  20
+                  },
+                  {
+                      "template":  "rpa_templates/generate_speech_button.png",
+                      "threshold":  0.82,
+                      "action":  "click_template",
+                      "timeout":  20
+                  },
+                  {
+                      "action":  "wait",
+                      "template":  "rpa_templates/generating_speech.png",
+                      "interval":  3,
+                      "require_seen":  true,
+                      "threshold":  0.82,
+                      "mode":  "gone",
+                      "timeout":  600
+                  }
+              ]
+}

@@ -1,0 +1,69 @@
+{
+  "steps": [
+    {
+      "action": "open_first_project",
+      "min_area": 1500,
+      "debug_image": "scratch/open_first_project_debug.png"
+    },
+    {
+      "action": "click_template",
+      "template": "rpa_templates/captions_tab.png",
+      "threshold": 0.82,
+      "timeout": 20
+    },
+    {
+      "action": "click_template",
+      "template": "rpa_templates/generate_button.png",
+      "threshold": 0.82,
+      "timeout": 20
+    },
+    {
+      "action": "wait",
+      "timeout": 6000
+    },
+    {
+      "action": "click_template",
+      "template": "rpa_templates/tts_button.png",
+      "threshold": 0.82,
+      "timeout": 20
+    },
+    {
+      "action": "click_template",
+      "template": "rpa_templates/voice_star_button.png",
+      "threshold": 0.82,
+      "timeout": 20
+    },
+    {
+      "action": "click_template",
+      "template": "rpa_templates/child_voice.png",
+      "threshold": 0.82,
+      "timeout": 20
+    },
+    {
+      "action": "click_template",
+      "template": "rpa_templates/generate_speech_button.png",
+      "threshold": 0.82,
+      "timeout": 20
+    },
+    {
+      "action": "wait",
+        "timeout": 10000
+    },
+    {
+      "action": "click_template",
+      "template": "rpa_templates/export_button.png",
+      "threshold": 0.82,
+      "timeout": 20
+    },
+    {
+      "action": "click_template",
+      "template": "rpa_templates/export_confirm_button.png",
+      "threshold": 0.82,
+      "timeout": 20
+    },
+    {
+      "action": "wait",
+      "timeout": 12000
+    }
+  ]
+}

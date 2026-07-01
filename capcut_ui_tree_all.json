@@ -1,0 +1,15 @@
+{
+  "depth": 0,
+  "name": "CapCut",
+  "control_type": "WindowControl",
+  "class_name": "LVToolTipWindow_QMLTYPE_1809",
+  "automation_id": "",
+  "full_description": "",
+  "rect": {
+    "left": 212,
+    "top": 346,
+    "width": 63,
+    "height": 17
+  },
+  "children": []
+}

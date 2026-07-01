@@ -1,0 +1,25 @@
+{
+    "steps":  [
+                  {
+                      "template":  "rpa_templates/captions_tab.png",
+                      "threshold":  0.82,
+                      "action":  "click_template",
+                      "timeout":  20
+                  },
+                  {
+                      "template":  "rpa_templates/generate_button.png",
+                      "threshold":  0.82,
+                      "action":  "click_template",
+                      "timeout":  20
+                  },
+                  {
+                      "action":  "wait",
+                      "template":  "rpa_templates/generating_caption.png",
+                      "interval":  3,
+                      "require_seen":  true,
+                      "threshold":  0.82,
+                      "mode":  "gone",
+                      "timeout":  600
+                  }
+              ]
+}
