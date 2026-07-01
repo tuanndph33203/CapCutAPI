@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -14,7 +15,10 @@ from save_draft_impl import save_draft_impl
 
 
 DEFAULT_CAPCUT_DRAFTS = Path(
-    r"C:\Users\PC\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft"
+    os.environ.get(
+        "CAPCUT_DRAFTS_DIR",
+        os.path.join(os.environ.get("LOCALAPPDATA", ""), "CapCut", "User Data", "Projects", "com.lveditor.draft"),
+    )
 )
 
 

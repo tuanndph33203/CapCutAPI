@@ -87,6 +87,36 @@ def click_abs(x: int, y: int, dry_run: bool) -> dict[str, Any]:
     return {"x": x, "y": y, "dry_run": dry_run}
 
 
+def select_all_timeline(
+    dry_run: bool,
+    click_x_ratio: float = 0.5,
+    click_y_from_bottom: int = 150,
+    pause_after_click: float = 0.5,
+    pause_after_hotkey: float = 1.0,
+) -> dict[str, Any]:
+    window = find_capcut_window()
+    activate_window(window)
+    x = int(window.left + window.width * click_x_ratio)
+    y = int(window.bottom - click_y_from_bottom)
+
+    if not dry_run:
+        pyautogui.click(x, y)
+        time.sleep(pause_after_click)
+        pyautogui.hotkey("ctrl", "a")
+        time.sleep(pause_after_hotkey)
+
+    return {
+        "action": "select_all_timeline",
+        "window": window.title,
+        "window_rect": [window.left, window.top, window.right, window.bottom],
+        "x": x,
+        "y": y,
+        "click_x_ratio": click_x_ratio,
+        "click_y_from_bottom": click_y_from_bottom,
+        "dry_run": dry_run,
+    }
+
+
 def click_template(
     template_path: Path,
     threshold: float,
@@ -94,6 +124,7 @@ def click_template(
     timeout: float,
     click_offset_x: int = 0,
     click_offset_y: int = 0,
+    search_region: list[float] | None = None,
 ) -> dict[str, Any]:
     start = time.time()
     template = cv2.imread(str(template_path), cv2.IMREAD_COLOR)
@@ -104,18 +135,32 @@ def click_template(
         window = find_capcut_window()
         activate_window(window)
         screen = screenshot_window(window)
-        result = cv2.matchTemplate(screen, template, cv2.TM_CCOEFF_NORMED)
+        crop_left = 0
+        crop_top = 0
+        search_screen = screen
+        if search_region:
+            sh, sw = screen.shape[:2]
+            x1 = max(0, min(sw - 1, int(sw * search_region[0])))
+            y1 = max(0, min(sh - 1, int(sh * search_region[1])))
+            x2 = max(x1 + 1, min(sw, int(sw * search_region[2])))
+            y2 = max(y1 + 1, min(sh, int(sh * search_region[3])))
+            search_screen = screen[y1:y2, x1:x2]
+            crop_left = x1
+            crop_top = y1
+
+        result = cv2.matchTemplate(search_screen, template, cv2.TM_CCOEFF_NORMED)
         _, score, _, max_loc = cv2.minMaxLoc(result)
         if score >= threshold:
             h, w = template.shape[:2]
-            x = window.left + max_loc[0] + w // 2 + click_offset_x
-            y = window.top + max_loc[1] + h // 2 + click_offset_y
+            x = window.left + crop_left + max_loc[0] + w // 2 + click_offset_x
+            y = window.top + crop_top + max_loc[1] + h // 2 + click_offset_y
             clicked = click_abs(x, y, dry_run)
             return {
                 "action": "click_template",
                 "template": str(template_path),
                 "score": float(score),
                 "window": window.title,
+                "search_region": search_region,
                 **clicked,
             }
         if time.time() - start > timeout:
@@ -181,7 +226,7 @@ def wait_action(
                 "seen_once": seen_once,
             }
 
-        if time.time() - start > timeout:
+        if timeout > 0 and time.time() - start > timeout:
             raise TimeoutError(
                 f"wait timeout: mode={mode}, template={template_path}, threshold={threshold}, last score={last_score:.4f}, seen_once={seen_once}"
             )
@@ -280,18 +325,39 @@ def run_workflow(config_path: Path, dry_run: bool) -> dict[str, Any]:
                 dry_run=dry_run,
                 debug_image=Path(step["debug_image"]) if step.get("debug_image") else None,
             )
+        elif action == "select_all_timeline":
+            result = select_all_timeline(
+                dry_run=dry_run,
+                click_x_ratio=float(step.get("click_x_ratio", 0.5)),
+                click_y_from_bottom=int(step.get("click_y_from_bottom", 150)),
+                pause_after_click=float(step.get("pause_after_click", 0.5)),
+                pause_after_hotkey=float(step.get("pause_after_hotkey", 1.0)),
+            )
         elif action == "click_template":
             template = Path(step["template"])
             if not template.is_absolute():
                 template = base / template
-            result = click_template(
-                template,
-                threshold=float(step.get("threshold", 0.82)),
-                dry_run=dry_run,
-                timeout=float(step.get("timeout", 20)),
-                click_offset_x=int(step.get("click_offset_x", 0)),
-                click_offset_y=int(step.get("click_offset_y", 0)),
-            )
+            try:
+                result = click_template(
+                    template,
+                    threshold=float(step.get("threshold", 0.82)),
+                    dry_run=dry_run,
+                    timeout=float(step.get("timeout", 20)),
+                    click_offset_x=int(step.get("click_offset_x", 0)),
+                    click_offset_y=int(step.get("click_offset_y", 0)),
+                    search_region=step.get("search_region"),
+                )
+            except Exception as exc:
+                if not bool(step.get("optional", False)):
+                    raise
+                result = {
+                    "action": "click_template",
+                    "template": str(template),
+                    "optional": True,
+                    "skipped": True,
+                    "error": str(exc),
+                    "dry_run": dry_run,
+                }
         elif action == "wait":
             template = step.get("template")
             template_path = None

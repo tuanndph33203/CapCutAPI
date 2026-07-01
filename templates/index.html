@@ -118,6 +118,78 @@
             border-color: rgba(0, 242, 254, 0.3);
         }
 
+        body.detail-mode .queue-logs-section {
+            display: none !important;
+        }
+
+        body.detail-mode header {
+            margin-bottom: 14px;
+            padding-bottom: 12px;
+        }
+
+        body.detail-mode #project-details-container {
+            padding: 14px 16px;
+            margin-bottom: 0 !important;
+        }
+
+        body.detail-mode #project-details-container > div:first-child {
+            margin-bottom: 12px !important;
+            padding-bottom: 10px !important;
+        }
+
+        body.detail-mode #project-details-container > div:nth-child(2) {
+            display: block !important;
+        }
+
+        body.detail-mode #project-details-container > div:nth-child(2) > div:first-child {
+            display: none !important;
+        }
+
+        body.detail-mode #project-details-container h2 {
+            font-size: 1.05rem !important;
+        }
+
+        body.detail-mode #project-details-container h3 {
+            display: none;
+        }
+
+        body.detail-mode #project-details-container h4 {
+            margin: 12px 0 7px !important;
+            font-size: 0.78rem !important;
+            padding-bottom: 4px !important;
+        }
+
+        body.detail-mode #project-details-container form {
+            max-width: 860px;
+        }
+
+        body.detail-mode #project-details-container .form-group {
+            margin-bottom: 8px;
+        }
+
+        body.detail-mode #project-details-container .form-row {
+            gap: 10px;
+        }
+
+        body.detail-mode #project-details-container label {
+            font-size: 0.72rem;
+            margin-bottom: 4px;
+        }
+
+        body.detail-mode #project-details-container input,
+        body.detail-mode #project-details-container select {
+            height: 32px;
+            padding: 6px 9px;
+            font-size: 0.78rem;
+            border-radius: 6px;
+        }
+
+        body.detail-mode #project-details-container .btn {
+            min-height: 32px;
+            padding: 6px 10px !important;
+            font-size: 0.78rem !important;
+        }
+
         .panel-title {
             font-size: 1.25rem;
             font-weight: 600;
@@ -698,7 +770,7 @@
                     <div class="form-group">
                         <label for="detail-video-path">Đường dẫn Video đầu vào (tuyệt đối)</label>
                         <div style="display: flex; gap: 10px;">
-                            <input type="text" id="detail-video-path" placeholder="C:\Users\PC\Videos\input.mp4">
+                            <textarea id="detail-video-path" rows="4" placeholder="C:\Users\PC\Videos\input1.mp4&#10;C:\Users\PC\Videos\input2.mp4"></textarea>
                             <button class="btn btn-secondary" id="btn-browse-detail-video" type="button" style="width: auto; padding: 0 15px;">📂</button>
                         </div>
                     </div>
@@ -738,6 +810,63 @@
                         <div class="form-group">
                             <label for="detail-font-name">Font chữ</label>
                             <input type="text" id="detail-font-name" value="HarmonyOS_Sans_SC_Regular">
+                        </div>
+                    </div>
+
+                    <h4 style="margin: 20px 0 10px; color: var(--text-muted); font-size: 0.95rem; border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">Dịch phụ đề</h4>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="detail-translation-method">Nguồn dịch</label>
+                            <select id="detail-translation-method">
+                                <option value="google">Google miễn phí</option>
+                                <option value="ai">AI ChatGPT/Gemini</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="detail-ai-provider">AI provider</label>
+                            <select id="detail-ai-provider">
+                                <option value="openai">OpenAI</option>
+                                <option value="gemini">Gemini</option>
+                                <option value="anthropic">Anthropic</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="detail-ai-api-key">AI API key</label>
+                        <input type="password" id="detail-ai-api-key" placeholder="sk-...">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="detail-ai-model">AI model</label>
+                            <input type="text" id="detail-ai-model" value="gpt-4o-mini">
+                        </div>
+                        <div class="form-group">
+                            <label for="detail-ai-base-url">AI base URL</label>
+                            <input type="text" id="detail-ai-base-url" value="https://api.openai.com/v1">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="detail-video-context">Ngữ cảnh dịch</label>
+                        <input type="text" id="detail-video-context" value="Short fantasy game online videos, MMORPG gameplay review, PvP server war">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="detail-source-language">Ngôn ngữ gốc</label>
+                            <input type="text" id="detail-source-language" value="Chinese">
+                        </div>
+                        <div class="form-group">
+                            <label for="detail-target-language">Ngôn ngữ dịch</label>
+                            <input type="text" id="detail-target-language" value="Vietnamese">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="detail-ai-tone">Tone dịch</label>
+                            <input type="text" id="detail-ai-tone" value="natural and fluent">
+                        </div>
+                        <div class="form-group">
+                            <label for="detail-ai-temperature">AI temperature</label>
+                            <input type="number" id="detail-ai-temperature" step="0.1" min="0" max="2" value="0.0">
                         </div>
                     </div>
 
@@ -952,7 +1081,11 @@
             .then(res => res.json())
             .then(data => {
                 if (data.files && data.files.length > 0) {
-                    detailVideoPathInput.value = data.files[0];
+                    const current = detailVideoPathInput.value.split(/\r?\n/).map(v => v.trim()).filter(Boolean);
+                    data.files.forEach(file => {
+                        if (!current.includes(file)) current.push(file);
+                    });
+                    detailVideoPathInput.value = current.join('\n');
                     log(`Đã thay đổi video: ${data.files[0]}`, 'success');
                 }
             });
@@ -962,10 +1095,12 @@
     btnBackToProjects.addEventListener('click', () => {
         projectDetailsContainer.style.display = 'none';
         projectsGridContainer.style.display = 'block';
+        document.body.classList.remove('detail-mode');
     });
 
     // Load and render projects grid
     function loadProjects() {
+        document.body.classList.remove('detail-mode');
         log('Đang tải danh sách dự án CapCut...');
         fetch('/api/projects')
             .then(res => res.json())
@@ -1049,17 +1184,30 @@
                 
                 // Form fields
                 document.getElementById('detail-config-folder').value = folder;
-                detailVideoPathInput.value = config.video_path || '';
+                detailVideoPathInput.value = Array.isArray(config.video_paths)
+                    ? config.video_paths.join('\n')
+                    : (config.video_path || '');
                 document.getElementById('detail-speed').value = config.speed;
                 document.getElementById('detail-volume').value = config.volume_db;
                 document.getElementById('detail-tts-speed').value = config.tts_speed;
                 document.getElementById('detail-font-size').value = config.font_size;
                 document.getElementById('detail-font-color').value = config.font_color;
                 document.getElementById('detail-font-name').value = config.font_name;
+                document.getElementById('detail-translation-method').value = config.translation_method || 'google';
+                document.getElementById('detail-ai-provider').value = config.ai_provider || 'openai';
+                document.getElementById('detail-ai-api-key').value = config.ai_api_key || '';
+                document.getElementById('detail-ai-model').value = config.ai_model || 'gpt-4o-mini';
+                document.getElementById('detail-ai-base-url').value = config.ai_base_url || 'https://api.openai.com/v1';
+                document.getElementById('detail-video-context').value = config.video_context || 'Short fantasy game online videos, MMORPG gameplay review, PvP server war';
+                document.getElementById('detail-source-language').value = config.source_language || 'Chinese';
+                document.getElementById('detail-target-language').value = config.target_language || 'Vietnamese';
+                document.getElementById('detail-ai-tone').value = config.ai_tone || 'natural and fluent';
+                document.getElementById('detail-ai-temperature').value = config.ai_temperature ?? 0.0;
                 
                 // Toggle view
                 projectsGridContainer.style.display = 'none';
                 projectDetailsContainer.style.display = 'block';
+                document.body.classList.add('detail-mode');
                 log(`Đang hiển thị chi tiết dự án: ${name}`, 'info');
             })
             .catch(err => {
@@ -1073,12 +1221,23 @@
         const folder = document.getElementById('detail-config-folder').value;
         const config = {
             video_path: detailVideoPathInput.value,
+            video_paths: detailVideoPathInput.value.split(/\r?\n|;/).map(v => v.trim()).filter(Boolean),
             speed: parseFloat(document.getElementById('detail-speed').value),
             volume_db: parseFloat(document.getElementById('detail-volume').value),
             tts_speed: parseFloat(document.getElementById('detail-tts-speed').value),
             font_size: parseFloat(document.getElementById('detail-font-size').value),
             font_color: document.getElementById('detail-font-color').value,
-            font_name: document.getElementById('detail-font-name').value
+            font_name: document.getElementById('detail-font-name').value,
+            translation_method: document.getElementById('detail-translation-method').value,
+            ai_provider: document.getElementById('detail-ai-provider').value,
+            ai_api_key: document.getElementById('detail-ai-api-key').value,
+            ai_model: document.getElementById('detail-ai-model').value,
+            ai_base_url: document.getElementById('detail-ai-base-url').value,
+            source_language: document.getElementById('detail-source-language').value,
+            target_language: document.getElementById('detail-target-language').value,
+            ai_tone: document.getElementById('detail-ai-tone').value,
+            video_context: document.getElementById('detail-video-context').value,
+            ai_temperature: parseFloat(document.getElementById('detail-ai-temperature').value)
         };
 
         fetch(`/api/projects/${encodeURIComponent(folder)}/config`, {
@@ -1104,12 +1263,23 @@
         // Save first then add
         const config = {
             video_path: detailVideoPathInput.value,
+            video_paths: detailVideoPathInput.value.split(/\r?\n|;/).map(v => v.trim()).filter(Boolean),
             speed: parseFloat(document.getElementById('detail-speed').value),
             volume_db: parseFloat(document.getElementById('detail-volume').value),
             tts_speed: parseFloat(document.getElementById('detail-tts-speed').value),
             font_size: parseFloat(document.getElementById('detail-font-size').value),
             font_color: document.getElementById('detail-font-color').value,
-            font_name: document.getElementById('detail-font-name').value
+            font_name: document.getElementById('detail-font-name').value,
+            translation_method: document.getElementById('detail-translation-method').value,
+            ai_provider: document.getElementById('detail-ai-provider').value,
+            ai_api_key: document.getElementById('detail-ai-api-key').value,
+            ai_model: document.getElementById('detail-ai-model').value,
+            ai_base_url: document.getElementById('detail-ai-base-url').value,
+            source_language: document.getElementById('detail-source-language').value,
+            target_language: document.getElementById('detail-target-language').value,
+            ai_tone: document.getElementById('detail-ai-tone').value,
+            video_context: document.getElementById('detail-video-context').value,
+            ai_temperature: parseFloat(document.getElementById('detail-ai-temperature').value)
         };
 
         fetch(`/api/projects/${encodeURIComponent(folder)}/config`, {
@@ -1123,6 +1293,7 @@
                 // Return to projects grid
                 projectDetailsContainer.style.display = 'none';
                 projectsGridContainer.style.display = 'block';
+                document.body.classList.remove('detail-mode');
                 
                 // Add to queue
                 addProjectToQueue(folder, true);

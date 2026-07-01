@@ -1,0 +1,23 @@
+{
+    "steps": [
+        {
+            "template": "rpa_templates/generate_speech_button.png",
+            "threshold": 0.82,
+            "action": "click_template",
+            "timeout": 20
+        },
+        {
+            "action": "sleep",
+            "seconds": 5
+        },
+        {
+            "action": "wait",
+            "template": "rpa_templates/generating_speech.png",
+            "interval": 3,
+            "require_seen": false,
+            "threshold": 0.82,
+            "mode": "gone",
+            "timeout": 0
+        }
+    ]
+}
