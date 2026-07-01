@@ -1,0 +1,1418 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CapCut Automation Studio</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0b0a10;
+            --card-bg: #141221;
+            --accent-cyan: #00f2fe;
+            --accent-purple: #9b51e0;
+            --accent-yellow: #ffd000;
+            --text-color: #f1ecf9;
+            --text-muted: #8d85a1;
+            --border-color: #272343;
+            --border-glow: rgba(0, 242, 254, 0.15);
+            --success-color: #27ae60;
+            --error-color: #eb5757;
+            --warning-color: #f2994a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            padding: 30px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header design */
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .logo-section h1 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .logo-section p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            margin-top: 4px;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--card-bg);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--text-muted);
+            box-shadow: 0 0 8px var(--text-muted);
+        }
+
+        .status-dot.active {
+            background-color: var(--accent-cyan);
+            box-shadow: 0 0 10px var(--accent-cyan);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.3); opacity: 0.6; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Layout structure */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 420px 1fr;
+            gap: 30px;
+        }
+
+        .panel {
+            background: var(--card-bg);
+            border-radius: 16px;
+            border: 1px solid var(--border-color);
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: border-color 0.3s;
+        }
+
+        .panel:hover {
+            border-color: rgba(0, 242, 254, 0.3);
+        }
+
+        .panel-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: var(--accent-cyan);
+        }
+
+        /* Form elements */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        textarea, input[type="text"], input[type="number"], select {
+            width: 100%;
+            background-color: #08070d;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            color: var(--text-color);
+            padding: 12px;
+            font-family: inherit;
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        textarea:focus, input[type="text"]:focus, input[type="number"]:focus, select:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 8px rgba(0, 242, 254, 0.2);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        /* Buttons styling */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: all 0.3s;
+            font-size: 0.95rem;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-cyan), #00b8ff);
+            color: #0b0a10;
+            box-shadow: 0 4px 15px rgba(0, 242, 254, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 242, 254, 0.5);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent-cyan);
+            background: rgba(0, 242, 254, 0.05);
+        }
+
+        .btn-danger {
+            background: rgba(235, 87, 87, 0.15);
+            border: 1px solid var(--error-color);
+            color: var(--error-color);
+        }
+
+        .btn-danger:hover {
+            background: var(--error-color);
+            color: #fff;
+            box-shadow: 0 4px 15px rgba(235, 87, 87, 0.3);
+        }
+
+        .btn-warning {
+            background: rgba(242, 153, 74, 0.15);
+            border: 1px solid var(--warning-color);
+            color: var(--warning-color);
+        }
+
+        .btn-warning:hover {
+            background: var(--warning-color);
+            color: #fff;
+        }
+
+        .button-group-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        /* Queue section */
+        .main-column {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        .queue-table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            padding: 12px 16px;
+            border-bottom: 2px solid var(--border-color);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.95rem;
+            vertical-align: middle;
+        }
+
+        tr:hover td {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .filename-cell {
+            font-weight: 600;
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .badge-pending {
+            background: rgba(141, 133, 161, 0.15);
+            color: var(--text-muted);
+            border: 1px solid rgba(141, 133, 161, 0.3);
+        }
+
+        .badge-running {
+            background: rgba(0, 242, 254, 0.15);
+            color: var(--accent-cyan);
+            border: 1px solid rgba(0, 242, 254, 0.3);
+        }
+
+        .badge-success {
+            background: rgba(39, 174, 96, 0.15);
+            color: var(--success-color);
+            border: 1px solid rgba(39, 174, 96, 0.3);
+        }
+
+        .badge-failed {
+            background: rgba(235, 87, 87, 0.15);
+            color: var(--error-color);
+            border: 1px solid rgba(235, 87, 87, 0.3);
+        }
+
+        /* Progress bars */
+        .progress-container {
+            width: 100%;
+            background-color: #08070d;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+
+        /* Live Terminal Console */
+        .terminal-panel {
+            background-color: #050408;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.8);
+        }
+
+        .terminal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            border-bottom: 1px solid rgba(39, 35, 67, 0.5);
+            padding-bottom: 8px;
+        }
+
+        .terminal-controls {
+            display: flex;
+            gap: 6px;
+        }
+
+        .term-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .term-dot-red { background-color: var(--error-color); }
+        .term-dot-yellow { background-color: var(--warning-color); }
+        .term-dot-green { background-color: var(--success-color); }
+
+        .terminal-output {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: #d1cbdc;
+            height: 250px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            line-height: 1.5;
+            scroll-behavior: smooth;
+        }
+
+        .log-info { color: #a19bb0; }
+        .log-success { color: var(--success-color); }
+        .log-warning { color: var(--warning-color); }
+        .log-error { color: var(--error-color); font-weight: bold; }
+
+        /* Create Project Banner (Styled exactly like CapCut's Desktop homepage) */
+        .create-project-banner {
+            width: 100%;
+            max-width: 250px;
+            background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            color: #0b0a10;
+            font-size: 1.15rem;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            box-shadow: 0 4px 20px rgba(0, 242, 254, 0.3);
+            border: none;
+            margin-bottom: 25px;
+        }
+
+        .create-project-banner:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 242, 254, 0.4);
+            filter: brightness(1.05);
+        }
+
+        /* Projects Grid Container */
+        .project-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+            margin-bottom: 40px;
+        }
+
+        /* Project Card Styling matching CapCut Desktop grid */
+        .project-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            cursor: pointer;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            aspect-ratio: 16/13;
+        }
+
+        .project-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-cyan);
+            box-shadow: 0 8px 24px rgba(0, 242, 254, 0.2);
+        }
+
+        /* Card Image Cover */
+        .project-cover-container {
+            width: 100%;
+            height: 100px;
+            background: #000;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .project-cover {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s;
+        }
+
+        .project-card:hover .project-cover {
+            transform: scale(1.05);
+        }
+
+        /* Custom Project Placeholder Cover */
+        .project-placeholder-cover {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #141221, #08070d);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 2.2rem;
+            font-weight: bold;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* Card Hover Action Buttons Overlay */
+        .project-card-actions {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(11, 10, 16, 0.8);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+            z-index: 5;
+        }
+
+        .project-card:hover .project-card-actions {
+            opacity: 1;
+        }
+
+        .project-card-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: all 0.25s;
+        }
+
+        .project-card-btn:hover {
+            background: var(--accent-cyan);
+            color: #0b0a10;
+            border-color: var(--accent-cyan);
+            transform: scale(1.1);
+        }
+
+        .project-card-btn-run:hover {
+            background: var(--success-color);
+            color: #fff;
+            border-color: var(--success-color);
+        }
+
+        /* Project Metadata labels under cover */
+        .project-details {
+            padding: 10px 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            flex-grow: 1;
+        }
+
+        .project-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .project-stats {
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            margin-top: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .project-has-config-badge {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            background: rgba(155, 81, 224, 0.85);
+            border: 1px solid rgba(155, 81, 224, 0.5);
+            color: #fff;
+            font-size: 0.65rem;
+            font-weight: 800;
+            padding: 2px 6px;
+            border-radius: 4px;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        /* Modal windows */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(5, 4, 8, 0.85);
+            backdrop-filter: blur(8px);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background-color: var(--card-bg);
+            margin: auto;
+            padding: 30px;
+            border: 1px solid var(--border-color);
+            width: 95%;
+            max-width: 600px;
+            border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            position: relative;
+            animation: modalFadeIn 0.3s ease-out;
+        }
+
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: translateY(-30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .close-modal {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .close-modal:hover {
+            color: var(--accent-cyan);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <div class="logo-section">
+            <h1>CapCut Automation Studio</h1>
+            <p>Hệ thống tự động hóa sản xuất & dịch thuật từng dự án riêng biệt</p>
+        </div>
+        <div class="status-badge">
+            <button class="btn btn-secondary" id="btn-test-ui" type="button" style="padding: 6px 12px; font-size: 0.8rem; width: auto; margin-right: 10px;">🔌 Test connection</button>
+            <span class="status-dot" id="system-status-dot"></span>
+            <span id="system-status-text">Đang kết nối...</span>
+        </div>
+    </header>
+
+    <div id="projects-grid-container">
+        <!-- Create Project Banner (styled exactly like CapCut's Desktop UI) -->
+        <div class="create-project-banner" id="banner-create-project">
+            <span style="font-size: 1.5rem; font-weight: 300; margin-top: -2px;">+</span>
+            <span>Create project</span>
+        </div>
+
+        <!-- Project List Header -->
+        <div style="margin-top: 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+            <h2 style="font-weight: 600; font-size: 1.4rem;">Projects</h2>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn btn-secondary" id="btn-refresh-projects" style="width: auto; padding: 8px 12px; font-size: 0.85rem;">🔄 Làm mới</button>
+            </div>
+        </div>
+
+        <!-- Project Cards Grid -->
+        <div class="project-grid" id="projects-grid">
+            <!-- Will be dynamically populated -->
+        </div>
+    </div>
+
+    <!-- Project Details Screen (Initially Hidden) -->
+    <div id="project-details-container" style="display: none; margin-bottom: 40px;" class="panel">
+        <!-- Back Button -->
+        <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px;">
+            <button class="btn btn-secondary" id="btn-back-to-projects" style="width: auto; padding: 8px 16px; font-size: 0.85rem;">
+                ← Back to Projects
+            </button>
+            <h2 style="font-weight: 600; font-size: 1.4rem; color: var(--accent-cyan);" id="detail-project-title">Chi tiết dự án</h2>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1.3fr; gap: 40px;">
+            <!-- Left Side: Cover Preview & Metadata -->
+            <div>
+                <div style="width: 100%; border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color); background: #000; aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; position: relative;">
+                    <img id="detail-project-cover" style="width: 100%; height: 100%; object-fit: cover;" src="" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                    <div id="detail-project-placeholder" class="project-placeholder-cover" style="height: 100%; display: none;">P</div>
+                </div>
+
+                <div style="margin-top: 25px; display: flex; flex-direction: column; gap: 15px;">
+                    <div style="display: flex; flex-direction: column; gap: 4px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
+                        <span style="color: var(--text-muted); font-size: 0.85rem;">Thư mục dự án:</span>
+                        <span style="font-weight: 600; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-color); word-break: break-all;" id="detail-project-folder">-</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
+                        <span style="color: var(--text-muted); font-size: 0.85rem;">Dung lượng thư mục:</span>
+                        <span style="font-weight: 600; color: var(--text-color);" id="detail-project-size">-</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
+                        <span style="color: var(--text-muted); font-size: 0.85rem;">Độ dài Video:</span>
+                        <span style="font-weight: 600; color: var(--text-color);" id="detail-project-duration">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Pipeline Configuration Form -->
+            <div>
+                <h3 style="font-weight: 600; font-size: 1.15rem; color: #fff; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
+                    Cấu hình Pipeline của Dự án
+                </h3>
+                <form id="form-detail-config">
+                    <input type="hidden" id="detail-config-folder">
+                    
+                    <div class="form-group">
+                        <label for="detail-video-path">Đường dẫn Video đầu vào (tuyệt đối)</label>
+                        <div style="display: flex; gap: 10px;">
+                            <input type="text" id="detail-video-path" placeholder="C:\Users\PC\Videos\input.mp4">
+                            <button class="btn btn-secondary" id="btn-browse-detail-video" type="button" style="width: auto; padding: 0 15px;">📂</button>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="detail-speed">Tốc độ Video (Step 1)</label>
+                            <input type="number" id="detail-speed" step="0.01" value="0.77">
+                        </div>
+                        <div class="form-group">
+                            <label for="detail-volume">Âm lượng (dB) (Step 1)</label>
+                            <input type="number" id="detail-volume" step="0.1" value="-15.5">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="detail-tts-speed">Tốc độ Đọc (Step 7)</label>
+                            <input type="number" id="detail-tts-speed" step="0.01" value="1.17">
+                        </div>
+                        <div class="form-group">
+                            <label for="detail-font-size">Cỡ chữ Sub (Step 5)</label>
+                            <input type="number" id="detail-font-size" step="0.5" value="5.0">
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="detail-font-color">Màu chữ Sub</label>
+                            <select id="detail-font-color">
+                                <option value="#FFFF00">Màu Vàng</option>
+                                <option value="#FFFFFF">Màu Trắng</option>
+                                <option value="#FF0000">Màu Đỏ</option>
+                                <option value="#00FF00">Màu Xanh Lá</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="detail-font-name">Font chữ</label>
+                            <input type="text" id="detail-font-name" value="HarmonyOS_Sans_SC_Regular">
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 15px; margin-top: 30px;">
+                        <button type="submit" class="btn btn-primary" style="flex: 1;">Lưu cấu hình</button>
+                        <button type="button" class="btn btn-warning" id="btn-detail-run" style="background:#f2994a; color:#fff; border:none; flex: 1.2;">
+                            Chạy Pipeline ngay
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Split Queue & Logs Panel -->
+    <div class="queue-logs-section" style="margin-top: 40px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 30px;">
+        <!-- Left: Queue Panel -->
+        <section class="panel">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+                <h2 class="panel-title" style="margin: 0; color: var(--accent-cyan); font-size: 1.2rem; font-weight: 600;">Hàng chờ Automation</h2>
+            </div>
+            <div class="queue-table-container" style="max-height: 350px; overflow: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">STT</th>
+                            <th>Dự án / Video</th>
+                            <th style="width: 110px;">Trạng thái</th>
+                            <th style="width: 140px;">Tiến trình</th>
+                            <th>Chi tiết</th>
+                            <th style="width: 90px; text-align: center;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="queue-tbody">
+                        <tr>
+                            <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                                Hàng chờ trống. Vui lòng bấm "Chạy Pipeline" trên thẻ dự án hoặc bấm "+ Create project" để bắt đầu.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Right: Console Terminal Panel -->
+        <section class="terminal-panel" style="height: 100%;">
+            <div class="terminal-header">
+                <div class="terminal-controls">
+                    <span class="term-dot term-dot-red"></span>
+                    <span class="term-dot term-dot-yellow"></span>
+                    <span class="term-dot term-dot-green"></span>
+                </div>
+                <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Bảng điều khiển Log trực tiếp</span>
+            </div>
+            <div class="terminal-output" id="terminal-out" style="height: 300px;">
+[Hệ thống] Đang đợi kết nối tới máy chủ...
+[Hệ thống] Chào mừng đến với CapCut Automation Studio!
+            </div>
+        </section>
+    </div>
+
+    <!-- Modal 1: Create Project -->
+    <div class="modal" id="modal-create-project">
+        <div class="modal-content">
+            <span class="close-modal" id="close-create-modal">&times;</span>
+            <h3 style="margin-bottom: 20px; font-size: 1.3rem; font-weight: 600; color: var(--accent-cyan);">Tạo dự án mới</h3>
+            <form id="form-create-project">
+                <div class="form-group">
+                    <label for="create-video-path">Đường dẫn Video đầu vào (tuyệt đối)</label>
+                    <div style="display: flex; gap: 10px;">
+                        <input type="text" id="create-video-path" placeholder="C:\Users\PC\Videos\input.mp4" required>
+                        <button class="btn btn-secondary" id="btn-browse-create-video" type="button" style="width: auto; padding: 0 15px;">📂</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="create-project-name">Tên dự án (Không bắt buộc)</label>
+                    <input type="text" id="create-project-name" placeholder="Để trống để lấy tên file">
+                </div>
+                
+                <h4 style="margin: 20px 0 10px; color: var(--text-muted); font-size: 0.95rem; border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">Cấu hình Pipeline</h4>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="create-speed">Tốc độ Video (Step 1)</label>
+                        <input type="number" id="create-speed" step="0.01" value="0.77">
+                    </div>
+                    <div class="form-group">
+                        <label for="create-volume">Âm lượng (dB) (Step 1)</label>
+                        <input type="number" id="create-volume" step="0.1" value="-15.5">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="create-tts-speed">Tốc độ Đọc (Step 7)</label>
+                        <input type="number" id="create-tts-speed" step="0.01" value="1.17">
+                    </div>
+                    <div class="form-group">
+                        <label for="create-font-size">Cỡ chữ Sub (Step 5)</label>
+                        <input type="number" id="create-font-size" step="0.5" value="5.0">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="create-font-color">Màu chữ Sub</label>
+                        <select id="create-font-color">
+                            <option value="#FFFF00" selected>Màu Vàng</option>
+                            <option value="#FFFFFF">Màu Trắng</option>
+                            <option value="#FF0000">Màu Đỏ</option>
+                            <option value="#00FF00">Màu Xanh Lá</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="create-font-name">Font chữ</label>
+                        <input type="text" id="create-font-name" value="HarmonyOS_Sans_SC_Regular">
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 15px; margin-top: 30px;">
+                    <button type="button" class="btn btn-secondary" id="btn-create-only" style="flex: 1;">Chỉ tạo dự án</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1.2;">Tạo & Chạy Pipeline</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+<script>
+    const systemStatusDot = document.getElementById('system-status-dot');
+    const systemStatusText = document.getElementById('system-status-text');
+    const terminalOut = document.getElementById('terminal-out');
+    const queueTbody = document.getElementById('queue-tbody');
+
+    const btnStart = document.getElementById('btn-start');
+    const btnPause = document.getElementById('btn-pause');
+    const btnClear = document.getElementById('btn-clear');
+    const btnTestUI = document.getElementById('btn-test-ui');
+    const btnRefreshProjects = document.getElementById('btn-refresh-projects');
+
+    // Modals & Forms (Create Project)
+    const bannerCreateProject = document.getElementById('banner-create-project');
+    const modalCreateProject = document.getElementById('modal-create-project');
+    const closeCreateModal = document.getElementById('close-create-modal');
+    const formCreateProject = document.getElementById('form-create-project');
+    const btnCreateOnly = document.getElementById('btn-create-only');
+    const btnBrowseCreateVideo = document.getElementById('btn-browse-create-video');
+    const createVideoPathInput = document.getElementById('create-video-path');
+
+    // Details Screen Elements
+    const projectsGridContainer = document.getElementById('projects-grid-container');
+    const projectDetailsContainer = document.getElementById('project-details-container');
+    const btnBackToProjects = document.getElementById('btn-back-to-projects');
+    const detailProjectTitle = document.getElementById('detail-project-title');
+    const detailProjectCover = document.getElementById('detail-project-cover');
+    const detailProjectPlaceholder = document.getElementById('detail-project-placeholder');
+    const detailProjectFolder = document.getElementById('detail-project-folder');
+    const detailProjectSize = document.getElementById('detail-project-size');
+    const detailProjectDuration = document.getElementById('detail-project-duration');
+
+    const formDetailConfig = document.getElementById('form-detail-config');
+    const btnBrowseDetailVideo = document.getElementById('btn-browse-detail-video');
+    const btnDetailRun = document.getElementById('btn-detail-run');
+    const detailVideoPathInput = document.getElementById('detail-video-path');
+
+    const projectsGrid = document.getElementById('projects-grid');
+
+    let isProcessing = false;
+
+    // Modals toggle helper
+    function openModal(modal) {
+        modal.style.display = 'flex';
+    }
+
+    function closeModal(modal) {
+        modal.style.display = 'none';
+    }
+
+    // Event Listeners for Modals
+    bannerCreateProject.addEventListener('click', () => openModal(modalCreateProject));
+    closeCreateModal.addEventListener('click', () => closeModal(modalCreateProject));
+
+    window.addEventListener('click', (e) => {
+        if (e.target === modalCreateProject) closeModal(modalCreateProject);
+    });
+
+    // Logging function
+    function log(message, type = 'info') {
+        const line = document.createElement('div');
+        line.className = `log-line log-${type}`;
+        const time = new Date().toLocaleTimeString();
+        line.innerText = `[${time}] ${message}`;
+        terminalOut.appendChild(line);
+        terminalOut.scrollTop = terminalOut.scrollHeight;
+    }
+
+    // Tkinter Native file dialogs for Absolute Paths
+    btnBrowseCreateVideo.addEventListener('click', () => {
+        log('Đang mở hộp thoại chọn file video cho dự án mới...');
+        fetch('/api/select_files', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.files && data.files.length > 0) {
+                    createVideoPathInput.value = data.files[0];
+                    log(`Đã chọn video: ${data.files[0]}`, 'success');
+                }
+            });
+    });
+
+    btnBrowseDetailVideo.addEventListener('click', () => {
+        log('Đang mở hộp thoại chọn file video...');
+        fetch('/api/select_files', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.files && data.files.length > 0) {
+                    detailVideoPathInput.value = data.files[0];
+                    log(`Đã thay đổi video: ${data.files[0]}`, 'success');
+                }
+            });
+    });
+
+    // Back to projects grid
+    btnBackToProjects.addEventListener('click', () => {
+        projectDetailsContainer.style.display = 'none';
+        projectsGridContainer.style.display = 'block';
+    });
+
+    // Load and render projects grid
+    function loadProjects() {
+        log('Đang tải danh sách dự án CapCut...');
+        fetch('/api/projects')
+            .then(res => res.json())
+            .then(data => {
+                projectsGrid.innerHTML = '';
+                if (!data.projects || data.projects.length === 0) {
+                    projectsGrid.innerHTML = `
+                        <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px;">
+                            Không tìm thấy dự án nào trong thư mục CapCut Drafts. Hãy tạo dự án mới để bắt đầu.
+                        </div>
+                    `;
+                    return;
+                }
+
+                data.projects.forEach(p => {
+                    const card = document.createElement('div');
+                    card.className = 'project-card';
+                    
+                    // Config badge if saved
+                    const badge = p.has_config ? `<div class="project-has-config-badge">Configured</div>` : '';
+                    const firstChar = p.name ? p.name.charAt(0).toUpperCase() : 'P';
+                    
+                    card.innerHTML = `
+                        ${badge}
+                        <div class="project-cover-container">
+                            <img class="project-cover" src="/api/projects/${encodeURIComponent(p.folder)}/cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                            <div class="project-placeholder-cover">${firstChar}</div>
+                            <div class="project-card-actions">
+                                <button class="project-card-btn project-card-btn-run" title="Đưa vào Hàng chờ & Chạy" data-folder="${p.folder}">▶️</button>
+                            </div>
+                        </div>
+                        <div class="project-details">
+                            <div class="project-name" title="${p.name}">${p.name}</div>
+                            <div class="project-stats">
+                                <span>${p.size}</span>
+                                <span>${p.duration}</span>
+                            </div>
+                        </div>
+                    `;
+
+                    // Run button listener
+                    card.querySelector('.project-card-btn-run').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        addProjectToQueue(p.folder, true);
+                    });
+
+                    // Clicking the card itself opens Project Details Screen
+                    card.addEventListener('click', () => {
+                        showProjectDetails(p.folder, p.name, p.size, p.duration);
+                    });
+
+                    projectsGrid.appendChild(card);
+                });
+                log(`Đã tải ${data.projects.length} dự án CapCut thành công.`, 'success');
+            })
+            .catch(err => {
+                log('Lỗi khi tải danh sách dự án: ' + err, 'error');
+            });
+    }
+
+    // Open project details view
+    function showProjectDetails(folder, name, size, duration) {
+        log(`Đang tải cấu hình chi tiết cho dự án: ${name}...`);
+        fetch(`/api/projects/${encodeURIComponent(folder)}/config`)
+            .then(res => res.json())
+            .then(config => {
+                detailProjectTitle.innerText = `Chi tiết dự án: ${name}`;
+                
+                // Load cover path & reset fallbacks
+                detailProjectCover.style.display = 'block';
+                detailProjectCover.src = `/api/projects/${encodeURIComponent(folder)}/cover`;
+                
+                const firstChar = name ? name.charAt(0).toUpperCase() : 'P';
+                detailProjectPlaceholder.innerText = firstChar;
+                detailProjectPlaceholder.style.display = 'none';
+                
+                // Bind metadata fields
+                detailProjectFolder.innerText = folder;
+                detailProjectSize.innerText = size;
+                detailProjectDuration.innerText = duration;
+                
+                // Form fields
+                document.getElementById('detail-config-folder').value = folder;
+                detailVideoPathInput.value = config.video_path || '';
+                document.getElementById('detail-speed').value = config.speed;
+                document.getElementById('detail-volume').value = config.volume_db;
+                document.getElementById('detail-tts-speed').value = config.tts_speed;
+                document.getElementById('detail-font-size').value = config.font_size;
+                document.getElementById('detail-font-color').value = config.font_color;
+                document.getElementById('detail-font-name').value = config.font_name;
+                
+                // Toggle view
+                projectsGridContainer.style.display = 'none';
+                projectDetailsContainer.style.display = 'block';
+                log(`Đang hiển thị chi tiết dự án: ${name}`, 'info');
+            })
+            .catch(err => {
+                log('Lỗi khi tải cấu hình dự án: ' + err, 'error');
+            });
+    }
+
+    // Save project configuration form from details screen
+    formDetailConfig.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const folder = document.getElementById('detail-config-folder').value;
+        const config = {
+            video_path: detailVideoPathInput.value,
+            speed: parseFloat(document.getElementById('detail-speed').value),
+            volume_db: parseFloat(document.getElementById('detail-volume').value),
+            tts_speed: parseFloat(document.getElementById('detail-tts-speed').value),
+            font_size: parseFloat(document.getElementById('detail-font-size').value),
+            font_color: document.getElementById('detail-font-color').value,
+            font_name: document.getElementById('detail-font-name').value
+        };
+
+        fetch(`/api/projects/${encodeURIComponent(folder)}/config`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.ok) {
+                log(`Đã lưu cấu hình pipeline cho dự án thành công.`, 'success');
+                loadProjects();
+            } else {
+                log('Lỗi khi lưu cấu hình: ' + data.error, 'error');
+            }
+        });
+    });
+
+    // Run pipeline from details screen
+    btnDetailRun.addEventListener('click', () => {
+        const folder = document.getElementById('detail-config-folder').value;
+        
+        // Save first then add
+        const config = {
+            video_path: detailVideoPathInput.value,
+            speed: parseFloat(document.getElementById('detail-speed').value),
+            volume_db: parseFloat(document.getElementById('detail-volume').value),
+            tts_speed: parseFloat(document.getElementById('detail-tts-speed').value),
+            font_size: parseFloat(document.getElementById('detail-font-size').value),
+            font_color: document.getElementById('detail-font-color').value,
+            font_name: document.getElementById('detail-font-name').value
+        };
+
+        fetch(`/api/projects/${encodeURIComponent(folder)}/config`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.ok) {
+                // Return to projects grid
+                projectDetailsContainer.style.display = 'none';
+                projectsGridContainer.style.display = 'block';
+                
+                // Add to queue
+                addProjectToQueue(folder, true);
+            } else {
+                log('Lỗi khi lưu cấu hình trước khi chạy: ' + data.error, 'error');
+            }
+        });
+    });
+
+    // Add existing project to background queue
+    function addProjectToQueue(folder, autoStart = false) {
+        log(`Đang đưa dự án "${folder}" vào hàng chờ...`);
+        fetch('/api/queue/add', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ folder: folder })
+        })
+        .then(res => res.json())
+        .then(data => {
+            updateQueueTable(data.queue);
+            log(`Đã thêm dự án "${folder}" vào hàng chờ thành công.`, 'success');
+            
+            if (autoStart && !isProcessing) {
+                startQueueRunner();
+            }
+        })
+        .catch(err => {
+            log('Lỗi khi thêm dự án vào hàng chờ: ' + err, 'error');
+        });
+    }
+
+    // Submit Create Project Form
+    function handleCreateProject(shouldRun) {
+        const video_path = createVideoPathInput.value;
+        const project_name = document.getElementById('create-project-name').value;
+        
+        const config = {
+            video_path: video_path,
+            project_name: project_name,
+            speed: parseFloat(document.getElementById('create-speed').value),
+            volume_db: parseFloat(document.getElementById('create-volume').value),
+            tts_speed: parseFloat(document.getElementById('create-tts-speed').value),
+            font_size: parseFloat(document.getElementById('create-font-size').value),
+            font_color: document.getElementById('create-font-color').value,
+            font_name: document.getElementById('create-font-name').value
+        };
+
+        log('Đang tiến hành khởi tạo thư mục và cấu hình cho dự án mới...');
+        fetch('/api/projects/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(config)
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.ok) {
+                log(`Đã tạo dự án mới: "${data.project.name}" thành công!`, 'success');
+                closeModal(modalCreateProject);
+                loadProjects();
+                
+                // Clear create form
+                createVideoPathInput.value = '';
+                document.getElementById('create-project-name').value = '';
+
+                if (shouldRun) {
+                    addProjectToQueue(data.project.folder, true);
+                }
+            } else {
+                log('Không thể tạo dự án: ' + data.error, 'error');
+            }
+        })
+        .catch(err => {
+            log('Lỗi kết nối khi tạo dự án: ' + err, 'error');
+        });
+    }
+
+    formCreateProject.addEventListener('submit', (e) => {
+        e.preventDefault();
+        handleCreateProject(true); // Create & Run
+    });
+
+    btnCreateOnly.addEventListener('click', () => {
+        if (!createVideoPathInput.value) {
+            alert('Vui lòng điền đường dẫn video đầu vào!');
+            return;
+        }
+        handleCreateProject(false); // Only Create
+    });
+
+    // Refresh Button Clicked
+    btnRefreshProjects.addEventListener('click', () => {
+        loadProjects();
+    });
+
+    // Start Queue Execution
+    function startQueueRunner() {
+        log('Đang bắt đầu khởi chạy quy trình tự động hàng chờ...', 'success');
+        fetch('/api/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.ok) {
+                log('Hàng chờ đã bắt đầu chạy!', 'success');
+            } else {
+                log('Không thể chạy hàng chờ: ' + data.error, 'error');
+            }
+        });
+    }
+
+    if (btnStart) btnStart.addEventListener('click', startQueueRunner);
+
+    // Pause Queue Execution
+    if (btnPause) {
+        btnPause.addEventListener('click', () => {
+            fetch('/api/pause', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                log('Đã gửi yêu cầu dừng hàng chờ sau khi hoàn tất dự án hiện tại.', 'warning');
+            });
+        });
+    }
+
+    // Clear Queue Execution
+    if (btnClear) {
+        btnClear.addEventListener('click', () => {
+            if (confirm('Bạn có chắc chắn muốn xóa toàn bộ hàng chờ?')) {
+                fetch('/api/clear', { method: 'POST' })
+                .then(res => res.json())
+                .then(data => {
+                    queueTbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                                Hàng chờ trống. Vui lòng bấm "Chạy Pipeline" trên thẻ dự án hoặc bấm "+ Create project" để bắt đầu.
+                            </td>
+                        </tr>
+                    `;
+                    log('Đã xóa sạch hàng chờ.');
+                });
+            }
+        });
+    }
+
+    // Connect to Server Status (polling/fetch)
+    function checkServerStatus() {
+        fetch('/api/status')
+            .then(res => res.json())
+            .then(data => {
+                systemStatusDot.className = 'status-dot active';
+                systemStatusText.innerText = 'Máy chủ Hoạt động';
+                isProcessing = data.is_processing;
+                
+                if (isProcessing) {
+                    if (btnStart) btnStart.disabled = true;
+                    if (btnPause) btnPause.style.display = 'block';
+                } else {
+                    if (btnStart) btnStart.disabled = false;
+                    if (btnPause) btnPause.style.display = 'none';
+                }
+                
+                updateQueueTable(data.queue);
+            })
+            .catch(err => {
+                systemStatusDot.className = 'status-dot';
+                systemStatusText.innerText = 'Mất kết nối máy chủ';
+            });
+    }
+
+    // Listen to log output via Server-Sent Events (SSE)
+    const sseSource = new EventSource('/api/logs');
+    sseSource.onmessage = function(event) {
+        const data = JSON.parse(event.data);
+        log(data.message, data.level || 'info');
+    };
+
+    function updateQueueTable(serverQueue) {
+        if (!serverQueue || serverQueue.length === 0) {
+            queueTbody.innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                        Hàng chờ trống. Vui lòng bấm "Chạy Pipeline" trên thẻ dự án hoặc bấm "+ Create project" để bắt đầu.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        queueTbody.innerHTML = '';
+        serverQueue.forEach((item, index) => {
+            const display_name = item.video.split(/[\\/]/).pop();
+            const badgeClass = `badge badge-${item.status}`;
+            const statusLabel = {
+                'pending': 'Chờ xử lý',
+                'running': 'Đang chạy',
+                'success': 'Hoàn thành',
+                'failed': 'Lỗi'
+            }[item.status];
+
+            // Render action button
+            let actionBtn = '';
+            if (item.status === 'running' || item.status === 'pending') {
+                actionBtn = `<button class="btn btn-danger" onclick="cancelQueueItem(${index})" style="padding: 4px 10px; font-size: 0.75rem; width: auto; height: auto;">Hủy</button>`;
+            } else if (item.status === 'failed') {
+                actionBtn = `<button class="btn btn-warning" onclick="retryQueueItem(${index})" style="padding: 4px 10px; font-size: 0.75rem; width: auto; height: auto; background: #f2994a; border: none; color: #fff;">Thử lại</button>`;
+            }
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${index + 1}</td>
+                <td class="filename-cell" title="${item.video}">${display_name}</td>
+                <td><span class="${badgeClass}">${statusLabel}</span></td>
+                <td>
+                    <div class="progress-container">
+                        <div class="progress-bar" style="width: ${item.progress}%"></div>
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; text-align: right;">
+                        ${item.progress}%
+                    </div>
+                </td>
+                <td style="font-size: 0.85rem; color: var(--text-muted); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    ${item.message || ''}
+                </td>
+                <td style="text-align: center;">${actionBtn}</td>
+            `;
+            queueTbody.appendChild(tr);
+        });
+    }
+
+    // Expose queue control actions globally for inline onclick execution
+    window.cancelQueueItem = function(index) {
+        if (!confirm(`Bạn có chắc chắn muốn hủy dự án này?`)) return;
+        log(`Đang yêu cầu hủy dự án thứ ${index + 1}...`);
+        fetch('/api/queue/cancel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ index: index })
+        })
+        .then(res => res.json())
+        .then(data => {
+            updateQueueTable(data.queue);
+            log(`Đã hủy dự án thứ ${index + 1}.`, 'warning');
+        })
+        .catch(err => {
+            log(`Lỗi khi hủy: ${err}`, 'error');
+        });
+    };
+
+    window.retryQueueItem = function(index) {
+        log(`Đang thực hiện lại dự án thứ ${index + 1}...`);
+        fetch('/api/queue/retry', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ index: index })
+        })
+        .then(res => res.json())
+        .then(data => {
+            updateQueueTable(data.queue);
+            log(`Đã chuyển dự án thứ ${index + 1} về trạng thái Chờ xử lý.`, 'success');
+        })
+        .catch(err => {
+            log(`Lỗi khi thực hiện lại: ${err}`, 'error');
+        });
+    };
+
+    // Check UI automation connection
+    btnTestUI.addEventListener('click', () => {
+        log('Đang kiểm tra kết nối với cửa sổ CapCut GUI...');
+        btnTestUI.disabled = true;
+        fetch('/api/test_connection', { method: 'POST' })
+        .then(res => res.json())
+        .then(data => {
+            btnTestUI.disabled = false;
+            if (data.ok) {
+                log(`Kết nối thành công! Tìm thấy cửa sổ: "${data.window}" (Trạng thái: ${data.status})`, 'success');
+            } else {
+                log('Không tìm thấy cửa sổ CapCut! Hãy chắc chắn bạn đã bật ứng dụng CapCut chuyên nghiệp.', 'error');
+            }
+        })
+        .catch(err => {
+            btnTestUI.disabled = false;
+            log('Không kết nối được với API Máy chủ.', 'error');
+        });
+    });
+
+    // Startup Tasks
+    loadProjects();
+    setInterval(checkServerStatus, 2000);
+    checkServerStatus();
+</script>
+</body>
+</html>

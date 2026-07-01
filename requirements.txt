@@ -3,3 +3,8 @@ psutil
 flask
 requests
 oss2
+opencv-python
+Pillow
+pyautogui
+pygetwindow
+pywin32
