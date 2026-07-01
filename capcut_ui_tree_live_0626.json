@@ -1,0 +1,15 @@
+{
+  "depth": 0,
+  "name": "CapCut",
+  "control_type": "WindowControl",
+  "class_name": "HomePageX_QMLTYPE_171",
+  "automation_id": "HomeWindow",
+  "full_description": "CapCut",
+  "rect": {
+    "left": 1920,
+    "top": 0,
+    "width": 1920,
+    "height": 1032
+  },
+  "children": []
+}

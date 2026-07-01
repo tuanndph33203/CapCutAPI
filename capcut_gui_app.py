@@ -7,6 +7,7 @@ import queue
 import logging
 import threading
 import subprocess
+import re
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, Response
 
@@ -19,9 +20,18 @@ import pyautogui
 from pyJianYingDraft.capcut_controller import CapCutController, ExportResolution, ExportFramerate, capcut_process_ids, capcut_main_hwnd_and_rect
 from pyJianYingDraft.exceptions import AutomationError
 
-DEFAULT_CAPCUT_DRAFTS = r"C:\Users\PC\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft"
+DEFAULT_CAPCUT_DRAFTS = os.environ.get(
+    "CAPCUT_DRAFTS_DIR",
+    os.path.join(os.environ.get("LOCALAPPDATA", ""), "CapCut", "User Data", "Projects", "com.lveditor.draft"),
+)
 FIRST_PROJECT_FALLBACK_X = 285
 FIRST_PROJECT_FALLBACK_Y = 583
+CAPCUT_SHORTCUT_CANDIDATES = [
+    os.environ.get("CAPCUT_SHORTCUT", ""),
+    os.path.join(os.environ.get("APPDATA", ""), "Microsoft", "Windows", "Start Menu", "Programs", "CapCut", "CapCut.lnk"),
+    os.path.join(os.environ.get("USERPROFILE", ""), "Desktop", "CapCut.lnk"),
+    r"C:\Users\PC\Desktop\CapCut.lnk",
+]
 
 # Configure logging
 logger = logging.getLogger("flask_video_generator")
@@ -67,6 +77,21 @@ def run_image_workflow(config_name, label):
     workflow_path = Path(__file__).resolve().parent / config_name
     logger.info(f"Chạy workflow nhận diện ảnh: {label} ({workflow_path.name})")
     result = run_workflow(workflow_path, dry_run=False)
+    for step in result.get("steps", []):
+        template_name = os.path.basename(step.get("template", "")) if step.get("template") else ""
+        if step.get("skipped"):
+            logger.warning(
+                f"RPA step {step.get('step')}: {step.get('action')} {template_name} bị bỏ qua: {step.get('error')}"
+            )
+        elif step.get("action") == "click_template":
+            logger.info(
+                f"RPA step {step.get('step')}: clicked {template_name} "
+                f"score={step.get('score'):.4f} at ({step.get('x')}, {step.get('y')})"
+            )
+        elif step.get("action") == "sleep":
+            logger.info(f"RPA step {step.get('step')}: sleep {step.get('seconds')}s")
+        else:
+            logger.info(f"RPA step {step.get('step')}: {step.get('action')}")
     logger.info(json.dumps(result, ensure_ascii=False))
     return result
 
@@ -92,9 +117,16 @@ def launch_capcut():
         logger.info("Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...")
         kill_capcut()
         time.sleep(1)
-        logger.info("Khởi chạy CapCut từ shortcut Desktop...")
-        # Use explorer to run desktop link interactively inside user session
-        subprocess.Popen(["explorer.exe", r"C:\Users\PC\Desktop\CapCut.lnk"])
+        shortcut = next((path for path in CAPCUT_SHORTCUT_CANDIDATES if path and os.path.exists(path)), None)
+        if shortcut:
+            logger.info(f"Khởi chạy CapCut từ shortcut: {shortcut}")
+            subprocess.Popen(["explorer.exe", shortcut])
+        else:
+            logger.info("Không tìm thấy shortcut CapCut. Thử khởi chạy bằng App Execution Alias/URI...")
+            try:
+                subprocess.Popen(["CapCut.exe"])
+            except Exception:
+                subprocess.Popen(["powershell", "-NoProfile", "-Command", "Start-Process 'capcut://'"])
         for _ in range(30):
             time.sleep(0.5)
             if capcut_main_hwnd_and_rect() is not None:
@@ -133,11 +165,29 @@ def open_project_in_gui(controller, project_name):
         controller.app.SetTopmost()
         time.sleep(2)
         
-    logger.info("Clicking first project by fixed coordinate only; skipping OpenCV and UIA...")
-    pyautogui.click(FIRST_PROJECT_FALLBACK_X, FIRST_PROJECT_FALLBACK_Y)
-    logger.info("Waiting 5 seconds after first-project click before continuing pipeline...")
+    try:
+        from capcut_ocr_projects import click_text_above
+
+        logger.info(f"Đang dùng OCR tìm chữ dự án '{project_name}' rồi click lên trên 0.5cm...")
+        click_result = click_text_above(
+            text=str(project_name),
+            min_score=0.35,
+            click_above_cm=0.5,
+            debug_image=Path("scratch/capcut_projects_ocr_crop.png"),
+            full_debug_image=Path("scratch/capcut_projects_ocr_full.png"),
+        )
+        logger.info(
+            f"OCR đã thấy '{click_result['text']}' "
+            f"(score={click_result['score']}) và click tại ({click_result['x']}, {click_result['y']})."
+        )
+    except Exception as e:
+        logger.warning(f"OCR không mở được dự án '{project_name}': {str(e)}. Fallback click tọa độ project đầu tiên.")
+        pyautogui.click(FIRST_PROJECT_FALLBACK_X, FIRST_PROJECT_FALLBACK_Y)
+
+    logger.info("Waiting 5 seconds after project click before continuing pipeline...")
     time.sleep(5)
     return controller
+
     # Wait up to 30 seconds for editor window to open
     logger.info("Đang đợi chế độ chỉnh sửa tải xong...")
     for _ in range(30):
@@ -146,7 +196,7 @@ def open_project_in_gui(controller, project_name):
         export_btn = find_element_by_name(controller.app, "Export") or find_element_by_name(controller.app, "Xuất")
         if export_btn:
             logger.info("Đã mở dự án thành công.")
-            return True
+            return controller
             
     raise Exception("Đợi mở dự án bị quá giờ (Timeout).")
 
@@ -272,26 +322,450 @@ def kill_capcut():
 
 # --- Subtitle JSON processing ---
 
-def translate_google(text: str, source_lang: str = "zh-CN", target_lang: str = "vi") -> str:
-    try:
-        import urllib.parse
-        import requests
-        url = f"https://translate.googleapis.com/translate_a/single?client=gtx&sl={source_lang}&tl={target_lang}&dt=t&q={urllib.parse.quote(text)}"
-        r = requests.get(url, timeout=10)
-        if r.status_code == 200:
-            res = r.json()
-            translated = "".join([sentence[0] for sentence in res[0]])
-            return translated
-    except Exception as e:
-        logger.error(f"Dịch Google thất bại cho đoạn chữ: '{text}': {str(e)}")
-    return text
-
-def patch_subtitles_in_json(draft_path, font_size=5.0, font_color=(1.0, 1.0, 0.0), font_name="HarmonyOS_Sans_SC_Regular"):
+def draft_json_path(draft_path):
     content_path = os.path.join(draft_path, "draft_content.json")
-    if not os.path.exists(content_path):
-        raise FileNotFoundError(f"Không tìm thấy file draft_content.json tại {draft_path}")
-        
-    logger.info("Đang đọc draft_content.json để dịch và cập nhật font/màu sắc...")
+    if os.path.exists(content_path):
+        return content_path
+
+    info_path = os.path.join(draft_path, "draft_info.json")
+    if os.path.exists(info_path):
+        return info_path
+
+    raise FileNotFoundError(f"Không tìm thấy draft_content.json hoặc draft_info.json tại {draft_path}")
+
+
+def draft_json_paths(draft_path):
+    root = Path(draft_path)
+    candidates = []
+    for path in [
+        root / "draft_content.json",
+        *root.glob("template-*.tmp"),
+        *root.glob("Timelines/*/draft_content.json"),
+        *root.glob("Timelines/*/template-*.tmp"),
+    ]:
+        if not path.exists() or not path.is_file():
+            continue
+        try:
+            json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if path not in candidates:
+            candidates.append(path)
+
+    if candidates:
+        return [str(path) for path in candidates]
+
+    return [draft_json_path(draft_path)]
+
+def translate_google(text: str, source_lang: str = "zh-CN", target_lang: str = "vi") -> str:
+    import requests
+
+    url = "https://translate.googleapis.com/translate_a/single"
+    params = {
+        "client": "gtx",
+        "sl": source_lang,
+        "tl": target_lang,
+        "dt": "t",
+        "q": text,
+    }
+    last_error = None
+    for attempt in range(1, 4):
+        try:
+            r = requests.get(url, params=params, timeout=30)
+            r.raise_for_status()
+            res = r.json()
+            translated = "".join(sentence[0] for sentence in res[0] if sentence and sentence[0]).strip()
+            if not translated:
+                raise ValueError("Google trả về bản dịch rỗng")
+            if translated == text or has_source_chars(translated, source_lang):
+                raise ValueError(f"Google trả về bản gốc hoặc còn ký tự nguồn: {translated}")
+            return translated
+        except Exception as e:
+            last_error = e
+            logger.warning(f"Dịch Google lần {attempt}/3 thất bại cho đoạn chữ: '{text}': {str(e)}")
+            time.sleep(1.5 * attempt)
+
+    raise RuntimeError(f"Dịch Google thất bại sau 3 lần cho đoạn chữ: '{text}': {last_error}")
+
+def has_source_chars(text, source_lang="Chinese"):
+    lang = (source_lang or "").lower()
+    if "chinese" in lang or lang in {"zh", "zh-cn", "cn"}:
+        return any("\u3400" <= ch <= "\u9fff" for ch in text)
+    return False
+
+
+def extract_subtitle_text(text_mat):
+    content_str = text_mat.get("content")
+    if not content_str:
+        return None
+    content_json = json.loads(content_str)
+    return content_json.get("text", "")
+
+
+def sync_text_material_fields(text_mat, content_json, translated, font_size=None, font_color=None, font_name=None):
+    content_json["text"] = translated
+
+    if "styles" in content_json and len(content_json["styles"]) > 0:
+        style = content_json["styles"][0]
+        style["range"] = [0, len(translated)]
+        if font_size is not None:
+            style["size"] = font_size
+
+        if font_color is not None:
+            if "fill" not in style:
+                style["fill"] = {}
+            if "content" not in style["fill"]:
+                style["fill"]["content"] = {}
+            style["fill"]["content"]["render_type"] = "solid"
+            style["fill"]["content"]["solid"] = {
+                "alpha": 1.0,
+                "color": list(font_color)
+            }
+
+        if font_name:
+            style["font"] = {
+                "id": "system_font",
+                "path": f"C:/{font_name}.ttf"
+            }
+
+    text_mat["content"] = json.dumps(content_json, ensure_ascii=False)
+    text_mat["recognize_text"] = translated
+
+    base_content_str = text_mat.get("base_content")
+    if base_content_str:
+        try:
+            base_content = json.loads(base_content_str)
+            base_content["text"] = translated
+            if "styles" in base_content and len(base_content["styles"]) > 0:
+                base_style = base_content["styles"][0]
+                base_style["range"] = [0, len(translated)]
+                if font_size is not None:
+                    base_style["size"] = font_size
+                if font_color is not None:
+                    if "fill" not in base_style:
+                        base_style["fill"] = {}
+                    if "content" not in base_style["fill"]:
+                        base_style["fill"]["content"] = {}
+                    base_style["fill"]["content"]["render_type"] = "solid"
+                    base_style["fill"]["content"]["solid"] = {
+                        "alpha": 1.0,
+                        "color": list(font_color)
+                    }
+                if font_name:
+                    base_style["font"] = {
+                        "id": "system_font",
+                        "path": f"C:/{font_name}.ttf"
+                    }
+            text_mat["base_content"] = json.dumps(base_content, ensure_ascii=False, separators=(",", ":"))
+        except Exception as e:
+            logger.warning(f"Không parse được base_content để đồng bộ text: {str(e)}")
+
+    words = text_mat.get("words")
+    if isinstance(words, dict):
+        start_times = words.get("start_time") or [0]
+        end_times = words.get("end_time") or start_times
+        words["start_time"] = [start_times[0]]
+        words["end_time"] = [end_times[-1]]
+        words["text"] = [translated]
+
+
+def collect_source_strings(obj, source_lang="Chinese"):
+    found = []
+    if isinstance(obj, dict):
+        for value in obj.values():
+            found.extend(collect_source_strings(value, source_lang))
+    elif isinstance(obj, list):
+        for value in obj:
+            found.extend(collect_source_strings(value, source_lang))
+    elif isinstance(obj, str) and has_source_chars(obj, source_lang):
+        found.append(obj)
+    return found
+
+
+def sync_subtitle_cache_info(data, translated_texts):
+    fragments = data.get("extra_info", {}).get("subtitle_fragment_info_list", [])
+    text_index = 0
+    updated_count = 0
+
+    for fragment in fragments:
+        cache_str = fragment.get("subtitle_cache_info")
+        if not cache_str:
+            continue
+        try:
+            cache = json.loads(cache_str)
+        except Exception:
+            continue
+
+        sentence_list = cache.get("sentence_list")
+        if not isinstance(sentence_list, list) or not sentence_list:
+            continue
+
+        changed = False
+        for sentence in sentence_list:
+            if text_index >= len(translated_texts):
+                break
+            translated = translated_texts[text_index]
+            if not translated:
+                text_index += 1
+                continue
+
+            sentence["text"] = translated
+            sentence["translation_text"] = translated
+            sentence["language_user_select"] = "vi"
+            sentence["words"] = [{
+                "start_time": sentence.get("start_time", 0),
+                "end_time": sentence.get("end_time", 0),
+                "text": translated,
+            }]
+            text_index += 1
+            changed = True
+
+        if changed:
+            fragment["subtitle_cache_info"] = json.dumps(cache, ensure_ascii=False, separators=(",", ":"))
+            updated_count += 1
+
+    return updated_count
+
+
+def build_ai_translation_config(item_config=None):
+    item_config = item_config or {}
+    method = (
+        item_config.get("translation_method")
+        or item_config.get("translationMethod")
+        or "google"
+    ).lower()
+
+    provider = (
+        item_config.get("ai_provider")
+        or item_config.get("aiProvider")
+        or "openai"
+    ).lower()
+
+    api_key = (
+        item_config.get("ai_api_key")
+        or item_config.get("apiKey")
+    )
+
+    model = (
+        item_config.get("ai_model")
+        or item_config.get("aiModel")
+    )
+    if not model:
+        if provider == "gemini":
+            model = "gemini-1.5-flash"
+        elif provider == "anthropic":
+            model = "claude-3-5-haiku-20241022"
+        else:
+            model = "gpt-4o-mini"
+
+    base_url = (
+        item_config.get("ai_base_url")
+        or item_config.get("aiBaseUrl")
+    )
+    if not base_url:
+        if provider == "gemini":
+            base_url = "https://generativelanguage.googleapis.com/v1beta/openai"
+        elif provider == "anthropic":
+            base_url = "https://api.anthropic.com/v1"
+        else:
+            base_url = "https://api.openai.com/v1"
+
+    return {
+        "enabled": method == "ai" and bool(api_key),
+        "method": method,
+        "provider": provider,
+        "api_key": api_key,
+        "model": model,
+        "base_url": base_url.rstrip("/"),
+        "source_language": item_config.get("source_language") or item_config.get("sourceLanguage") or "Chinese",
+        "target_language": item_config.get("target_language") or item_config.get("targetLanguage") or "Vietnamese",
+        "tone": item_config.get("ai_tone") or item_config.get("aiTone") or "natural and fluent",
+        "topic": item_config.get("video_context") or item_config.get("videoContext") or "Short fantasy game online videos, MMORPG gameplay review, PvP server war",
+        "temperature": float(item_config.get("ai_temperature", item_config.get("aiTemperature", 0.0)) or 0.0),
+    }
+
+
+def build_ai_translation_prompt(config, ultra_short=False):
+    if ultra_short:
+        return (
+            f"Translate given lines from {config['source_language']} to {config['target_language']}.\n"
+            "Rules:\n"
+            '- Output MUST be valid JSON: {"translations": ["translation_1", "translation_2", ...]}\n'
+            "- The array length MUST exactly match the input line count.\n"
+            "- Do not merge, omit, explain, or use markdown."
+        )
+
+    return f"""You are an expert subtitle translator from {config['source_language']} to {config['target_language']}.
+Tone: {config['tone']}. Topic: {config['topic']}.
+
+Task: Translate the given subtitle lines.
+Rules:
+- Output MUST be valid JSON containing an array of strings under key "translations": {{"translations": ["translation_1", "translation_2", ...]}}
+- CRITICAL: The returned array length MUST exactly match the input line count.
+- Keep one-to-one correspondence in the exact same order. Do NOT combine, merge, split, or omit lines.
+- Translate naturally, not word-by-word.
+- For Vietnamese, write pure, grammatical Vietnamese. Do not leave Chinese characters, pinyin, or unrelated English.
+- Preserve names naturally; for Chinese character/location names, use natural Sino-Vietnamese when appropriate.
+- No explanations, no markdown, no extra text.""".strip()
+
+
+def format_ai_translation_user_message(lines, previous_context=None, next_context=None):
+    prev = f"--- PREVIOUS CONTEXT ---\n{chr(10).join(previous_context)}\n\n" if previous_context else ""
+    next_part = f"\n\n--- NEXT CONTEXT ---\n{chr(10).join(next_context)}" if next_context else ""
+    body = "\n".join([f"Line {idx + 1}: {line['text']}" for idx, line in enumerate(lines)])
+    return f"{prev}--- LINES TO TRANSLATE ---\n{body}{next_part}"
+
+
+def parse_ai_translation_response(raw_text, expected_count):
+    text = (raw_text or "").strip()
+    candidates = [text]
+
+    start = text.find("{")
+    end = text.rfind("}")
+    if start >= 0 and end > start:
+        candidates.append(text[start:end + 1])
+
+    start = text.find("[")
+    end = text.rfind("]")
+    if start >= 0 and end > start:
+        candidates.append(text[start:end + 1])
+
+    for candidate in candidates:
+        try:
+            parsed = json.loads(candidate)
+            if isinstance(parsed, dict):
+                arr = parsed.get("translations")
+                if not isinstance(arr, list):
+                    arr = next((v for v in parsed.values() if isinstance(v, list)), None)
+            elif isinstance(parsed, list):
+                arr = parsed
+            else:
+                arr = None
+
+            if isinstance(arr, list):
+                out = []
+                for i in range(expected_count):
+                    if i < len(arr):
+                        item = arr[i]
+                        if isinstance(item, dict):
+                            item = item.get("text", "")
+                        out.append(str(item).strip())
+                    else:
+                        out.append("")
+                return out
+        except Exception:
+            continue
+
+    raise ValueError(f"Không parse được JSON dịch AI: {text[:180]}")
+
+
+def call_ai_translation_once(lines, config, previous_context=None, next_context=None, ultra_short=False):
+    import requests
+
+    system_prompt = build_ai_translation_prompt(config, ultra_short=ultra_short)
+    user_message = format_ai_translation_user_message(lines, previous_context, next_context)
+
+    provider = config["provider"]
+    if provider == "anthropic":
+        url = f"{config['base_url']}/messages"
+        headers = {
+            "content-type": "application/json",
+            "x-api-key": config["api_key"],
+            "anthropic-version": "2023-06-01",
+        }
+        payload = {
+            "model": config["model"],
+            "max_tokens": 8000,
+            "temperature": config["temperature"],
+            "system": system_prompt,
+            "messages": [{"role": "user", "content": user_message}],
+        }
+    else:
+        url = f"{config['base_url']}/chat/completions"
+        headers = {
+            "content-type": "application/json",
+            "authorization": f"Bearer {config['api_key']}",
+        }
+        payload = {
+            "model": config["model"],
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+            "temperature": config["temperature"],
+            "max_tokens": 8000,
+            "stream": False,
+        }
+
+    response = requests.post(url, headers=headers, json=payload, timeout=90)
+    if not response.ok:
+        raise RuntimeError(f"AI translation HTTP {response.status_code}: {response.text[:500]}")
+
+    data = response.json()
+    if provider == "anthropic":
+        raw = "".join(part.get("text", "") for part in data.get("content", []) if isinstance(part, dict))
+    else:
+        raw = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+
+    translations = parse_ai_translation_response(raw, len(lines))
+    for idx, translated in enumerate(translations):
+        if not translated:
+            raise ValueError(f"Dòng {idx + 1} rỗng trong kết quả AI")
+        if has_source_chars(translated, config["source_language"]):
+            raise ValueError(f"Dòng {idx + 1} còn ký tự nguồn: {translated}")
+
+    return translations
+
+
+def translate_ai_batch_recursive(lines, config, previous_context=None, next_context=None):
+    if not lines:
+        return []
+
+    for ultra_short in (False, True):
+        try:
+            return call_ai_translation_once(lines, config, previous_context, next_context, ultra_short=ultra_short)
+        except Exception as e:
+            logger.warning(f"Dịch AI batch {len(lines)} dòng thất bại (ultra_short={ultra_short}): {str(e)}")
+
+    if len(lines) == 1:
+        logger.warning(f"Dịch AI dòng đơn thất bại, fallback Google: {lines[0]['text']}")
+        return [translate_google(lines[0]["text"], "zh-CN", "vi")]
+
+    mid = len(lines) // 2
+    left = translate_ai_batch_recursive(lines[:mid], config, previous_context, next_context)
+    right_context = (previous_context or []) + left
+    right_context = right_context[-5:]
+    right = translate_ai_batch_recursive(lines[mid:], config, right_context, next_context)
+    return left + right
+
+
+def translate_texts_with_ai(raw_texts, item_config=None):
+    config = build_ai_translation_config(item_config)
+    if not config["enabled"]:
+        return None
+
+    logger.info(f"Dịch AI bằng {config['provider']} model {config['model']} theo batch 20 dòng...")
+    batch_size = 20
+    context_window = 5
+    translated = [None] * len(raw_texts)
+
+    for start in range(0, len(raw_texts), batch_size):
+        end = min(len(raw_texts), start + batch_size)
+        batch = [{"id": str(i), "text": raw_texts[i]} for i in range(start, end)]
+        prev_context = raw_texts[max(0, start - context_window):start]
+        next_context = raw_texts[end:min(len(raw_texts), end + context_window)]
+        batch_translations = translate_ai_batch_recursive(batch, config, prev_context, next_context)
+        for offset, value in enumerate(batch_translations):
+            translated[start + offset] = value
+        logger.info(f"Dịch AI batch {start // batch_size + 1}: OK ({len(batch_translations)}/{len(batch)})")
+
+    return translated
+
+
+def patch_subtitles_file(content_path, font_size=5.0, font_color=(1.0, 1.0, 0.0), font_name="HarmonyOS_Sans_SC_Regular", item_config=None, translation_cache=None):
+    translation_cache = translation_cache if translation_cache is not None else {}
+
+    logger.info(f"Đang đọc {content_path} để dịch và cập nhật font/màu sắc...")
     with open(content_path, "r", encoding="utf-8") as f:
         data = json.load(f)
         
@@ -300,9 +774,8 @@ def patch_subtitles_in_json(draft_path, font_size=5.0, font_color=(1.0, 1.0, 0.0
         logger.warning("Không tìm thấy phụ đề nào trong bản nháp.")
         return False
         
-    logger.info(f"Đang dịch {len(texts)} dòng phụ đề từ tiếng Trung sang tiếng Việt...")
-    translation_cache = {}
-    
+    parsed_items = []
+    raw_texts = []
     for text_mat in texts:
         content_str = text_mat.get("content")
         if not content_str:
@@ -312,99 +785,324 @@ def patch_subtitles_in_json(draft_path, font_size=5.0, font_color=(1.0, 1.0, 0.0
             raw_text = content_json.get("text", "")
             if not raw_text:
                 continue
-                
-            if raw_text not in translation_cache:
+            parsed_items.append((text_mat, content_json, raw_text))
+            raw_texts.append(raw_text)
+        except Exception as e:
+            logger.error(f"Lỗi đọc text phụ đề trước khi dịch: {str(e)}")
+
+    source_indices = [index for index, raw_text in enumerate(raw_texts) if has_source_chars(raw_text, "Chinese")]
+    source_raw_texts = [raw_texts[index] for index in source_indices]
+    logger.info(f"Đang dịch {len(source_raw_texts)}/{len(raw_texts)} dòng phụ đề còn tiếng Trung sang tiếng Việt...")
+    ai_translations = None
+    try:
+        source_ai_translations = translate_texts_with_ai(source_raw_texts, item_config=item_config)
+        if source_ai_translations:
+            ai_translations = {}
+            for offset, translated in enumerate(source_ai_translations):
+                ai_translations[source_indices[offset]] = translated
+    except Exception as e:
+        logger.error(f"Dịch AI thất bại, fallback Google từng dòng: {str(e)}")
+
+    failed_translations = []
+    translated_count = 0
+    translated_samples = []
+    translated_texts = []
+    for index, (text_mat, content_json, raw_text) in enumerate(parsed_items):
+        try:
+            if not has_source_chars(raw_text, "Chinese"):
+                translated = raw_text
+            elif ai_translations and index in ai_translations and ai_translations[index]:
+                translated = ai_translations[index]
+            elif raw_text not in translation_cache:
                 translated = translate_google(raw_text, "zh-CN", "vi")
                 translation_cache[raw_text] = translated
             else:
                 translated = translation_cache[raw_text]
-                
-            content_json["text"] = translated
-            
-            # Styles update
-            if "styles" in content_json and len(content_json["styles"]) > 0:
-                style = content_json["styles"][0]
-                style["range"] = [0, len(translated)]
-                style["size"] = font_size
-                
-                # Fill color
-                if "fill" not in style:
-                    style["fill"] = {}
-                if "content" not in style["fill"]:
-                    style["fill"]["content"] = {}
-                style["fill"]["content"]["render_type"] = "solid"
-                style["fill"]["content"]["solid"] = {
-                    "alpha": 1.0,
-                    "color": list(font_color)
-                }
-                
-                # Font path
-                style["font"] = {
-                    "id": "system_font",
-                    "path": f"C:/{font_name}.ttf"
-                }
-                
-            text_mat["content"] = json.dumps(content_json, ensure_ascii=False)
+
+            if has_source_chars(translated, "Chinese"):
+                raise ValueError(f"Bản dịch vẫn còn chữ Trung: {translated}")
+
+            if len(translated_samples) < 3:
+                translated_samples.append((raw_text, translated))
+            translated_count += 1
+            translated_texts.append(translated)
+            sync_text_material_fields(
+                text_mat,
+                content_json,
+                translated,
+                font_size=font_size,
+                font_color=font_color,
+                font_name=font_name,
+            )
         except Exception as e:
             logger.error(f"Lỗi xử lý dịch: {str(e)}")
+            failed_translations.append(raw_text)
+
+    if failed_translations:
+        preview = ", ".join(failed_translations[:3])
+        raise RuntimeError(
+            f"Dừng patch phụ đề vì {len(failed_translations)} dòng chưa dịch được, tránh ghi tiếng gốc vào draft. Ví dụ: {preview}"
+        )
+
+    cache_updated = sync_subtitle_cache_info(data, translated_texts)
+
+    remaining_source = []
+    remaining_source.extend(collect_source_strings(data.get("materials", {}).get("texts", []), "Chinese"))
+    remaining_source.extend(collect_source_strings(data.get("extra_info", {}).get("subtitle_fragment_info_list", []), "Chinese"))
+
+    if remaining_source:
+        preview = ", ".join(remaining_source[:3])
+        raise RuntimeError(
+            f"Dừng patch phụ đề vì draft vẫn còn {len(remaining_source)} dòng tiếng Trung sau dịch. Ví dụ: {preview}"
+        )
             
     with open(content_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
         
-    logger.info("Đã dịch phụ đề và định dạng màu vàng cỡ chữ 5 thành công.")
+    for raw_sample, translated_sample in translated_samples:
+        logger.info(f"Mẫu dịch: '{raw_sample}' -> '{translated_sample}'")
+    logger.info(
+        f"Đã dịch {translated_count}/{len(parsed_items)} dòng phụ đề, "
+        f"đồng bộ {cache_updated} subtitle cache và định dạng màu vàng cỡ chữ 5 thành công."
+    )
     return True
+
+
+def patch_subtitles_in_json(draft_path, font_size=5.0, font_color=(1.0, 1.0, 0.0), font_name="HarmonyOS_Sans_SC_Regular", item_config=None):
+    content_paths = draft_json_paths(draft_path)
+    translation_cache = {}
+    patched_count = 0
+
+    for content_path in content_paths:
+        patched = patch_subtitles_file(
+            content_path,
+            font_size=font_size,
+            font_color=font_color,
+            font_name=font_name,
+            item_config=item_config,
+            translation_cache=translation_cache,
+        )
+        if patched:
+            patched_count += 1
+
+    logger.info(f"Đã patch phụ đề trên {patched_count}/{len(content_paths)} file draft/timeline.")
+    return patched_count > 0
+
+def patch_track_lock_in_json(draft_path, track_types=None, locked=True):
+    content_path = draft_json_path(draft_path)
+
+    if track_types is not None:
+        track_types = set(track_types)
+
+    with open(content_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    updated_count = 0
+    lock_bit = 4
+    for track in data.get("tracks", []):
+        if track_types is not None and track.get("type") not in track_types:
+            continue
+
+        current_attr = int(track.get("attribute", 0) or 0)
+        new_attr = (current_attr | lock_bit) if locked else (current_attr & ~lock_bit)
+        if new_attr != current_attr:
+            track["attribute"] = new_attr
+            updated_count += 1
+
+    with open(content_path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
+
+    action = "khóa" if locked else "mở khóa"
+    target = ", ".join(track_types) if track_types else "tất cả track"
+    logger.info(f"Đã {action} {updated_count} track ({target}) bằng draft_content.json.")
+    return updated_count
 
 # --- Audio JSON speed processing ---
 
+def patch_track_volume_in_json(draft_path, volume_db=-15.5, track_types=None):
+    if track_types is None:
+        track_types = {"video"}
+    else:
+        track_types = set(track_types)
+
+    volume = 10.0 ** (float(volume_db) / 20.0)
+
+    logger.info(f"Đang chỉnh âm lượng track {', '.join(track_types)} về {volume_db} dB ({volume:.4f})...")
+    total_updated = 0
+    patched_files = 0
+
+    for content_path in draft_json_paths(draft_path):
+        with open(content_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        updated_count = 0
+        for track in data.get("tracks", []):
+            if track.get("type") not in track_types:
+                continue
+            for seg in track.get("segments", []):
+                seg["volume"] = volume
+                seg["last_nonzero_volume"] = volume
+                updated_count += 1
+
+        if updated_count:
+            with open(content_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=4)
+            patched_files += 1
+            total_updated += updated_count
+            logger.info(f"Đã chỉnh âm lượng {updated_count} đoạn trong {content_path}.")
+
+    logger.info(f"Đã chỉnh âm lượng tổng {total_updated} đoạn trên {patched_files} file về {volume_db} dB.")
+    return total_updated
+
+
+def count_audio_assets_in_json(draft_path):
+    audio_segments = 0
+    audio_material_ids = set()
+    scanned_files = 0
+
+    for content_path in draft_json_paths(draft_path):
+        with open(content_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        scanned_files += 1
+
+        for track in data.get("tracks", []):
+            if track.get("type") == "audio":
+                audio_segments += len(track.get("segments", []))
+
+        for audio in data.get("materials", {}).get("audios", []):
+            audio_id = audio.get("id") or audio.get("material_id") or json.dumps(audio, ensure_ascii=False, sort_keys=True)
+            audio_material_ids.add(audio_id)
+
+    audio_materials = len(audio_material_ids)
+    return {
+        "segments": audio_segments,
+        "materials": audio_materials,
+        "total": audio_segments + audio_materials,
+        "files": scanned_files,
+    }
+
+
+def wait_for_new_audio_assets(draft_path, before_count, interval=5):
+    last_count = before_count
+
+    while True:
+        current_count = count_audio_assets_in_json(draft_path)
+        last_count = current_count
+        logger.info(
+            f"Kiểm tra audio TTS: audio_segments={current_count['segments']}, "
+            f"audio_materials={current_count['materials']}, files={current_count.get('files', 0)}."
+        )
+        if current_count["total"] > before_count["total"]:
+            return True, current_count
+        time.sleep(interval)
+
+
+def parse_video_paths(value):
+    if not value:
+        return []
+    if isinstance(value, list):
+        raw_items = value
+    else:
+        raw_items = re.split(r"[\r\n;]+", str(value))
+    return [item.strip().strip('"') for item in raw_items if item and item.strip()]
+
+
+def wait_for_draft_files_unlocked(draft_path, timeout=20):
+    root = Path(draft_path)
+    if not root.exists():
+        return True
+
+    deadline = time.time() + timeout
+    probe_files = []
+    for pattern in ("assets/video/*", "draft_content.json", "Timelines/*/draft_content.json"):
+        probe_files.extend([path for path in root.glob(pattern) if path.is_file()])
+
+    while time.time() <= deadline:
+        locked = []
+        for path in probe_files:
+            try:
+                with open(path, "ab"):
+                    pass
+            except OSError as e:
+                if getattr(e, "winerror", None) == 32:
+                    locked.append(path)
+        if not locked:
+            return True
+        logger.info(f"Đang chờ CapCut nhả khóa {len(locked)} file draft...")
+        time.sleep(1)
+
+    return False
+
+
+def run_pipeline_with_file_lock_retry(run_pipeline_func, draft_full_path, max_attempts=3, **kwargs):
+    last_error = None
+    for attempt in range(1, max_attempts + 1):
+        try:
+            kill_capcut()
+            wait_for_draft_files_unlocked(draft_full_path, timeout=20)
+            if attempt > 1:
+                logger.info(f"Thử patch video lại lần {attempt}/{max_attempts} sau khi nhả khóa file...")
+            return run_pipeline_func(**kwargs)
+        except OSError as e:
+            last_error = e
+            if getattr(e, "winerror", None) != 32 or attempt >= max_attempts:
+                raise
+            logger.warning(f"Patch video gặp WinError 32 do file đang bị khóa. Đóng CapCut và thử lại...")
+            kill_capcut()
+            time.sleep(3)
+    raise last_error
+
+
 def patch_audio_speed_in_json(draft_path, target_speed=1.17):
-    content_path = os.path.join(draft_path, "draft_content.json")
-    if not os.path.exists(content_path):
-        raise FileNotFoundError(f"Không tìm thấy file draft_content.json tại {draft_path}")
-        
-    logger.info("Đang đọc draft_content.json để tăng tốc độ âm thanh...")
-    with open(content_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-        
-    tracks = data.get("tracks", [])
-    speeds = data.get("materials", {}).get("speeds", [])
-    
-    updated_count = 0
-    audio_speed_ids = set()
-    
-    for track in tracks:
-        if track.get("type") == "audio":
-            segments = track.get("segments", [])
-            for seg in segments:
+    logger.info(f"Đang tăng tốc độ audio TTS lên {target_speed} trên tất cả file draft/timeline...")
+    total_updated = 0
+    patched_files = 0
+
+    for content_path in draft_json_paths(draft_path):
+        with open(content_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        speeds = data.get("materials", {}).get("speeds", [])
+        updated_count = 0
+        audio_speed_ids = set()
+
+        for track in data.get("tracks", []):
+            if track.get("type") != "audio":
+                continue
+            for seg in track.get("segments", []):
                 seg["speed"] = target_speed
-                
-                # Adjust time-range duration of clip
+
                 target_tr = seg.get("target_timerange", {})
                 source_tr = seg.get("source_timerange", {})
-                
                 orig_duration = source_tr.get("duration", target_tr.get("duration", 0))
-                new_duration = int(orig_duration / target_speed)
-                
-                target_tr["duration"] = new_duration
-                
+                if orig_duration:
+                    target_tr["duration"] = int(orig_duration / target_speed)
+
                 for ref in seg.get("extra_material_refs", []):
                     audio_speed_ids.add(ref)
                 updated_count += 1
-                
-    if updated_count == 0:
-        logger.warning("Không tìm thấy tệp âm thanh nào trong audio track để tăng tốc.")
+
+        updated_speed_objs = 0
+        for speed_obj in speeds:
+            if speed_obj.get("id") in audio_speed_ids:
+                speed_obj["speed"] = target_speed
+                updated_speed_objs += 1
+
+        if updated_count:
+            with open(content_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=4)
+            patched_files += 1
+            total_updated += updated_count
+            logger.info(
+                f"Đã tăng tốc {updated_count} đoạn audio trong {content_path} "
+                f"(speed materials={updated_speed_objs})."
+            )
+
+    if total_updated == 0:
+        logger.warning("Không tìm thấy audio track để tăng tốc trên các file draft/timeline.")
         return False
-        
-    # Update Speed materials
-    updated_speed_objs = 0
-    for speed_obj in speeds:
-        if speed_obj.get("id") in audio_speed_ids:
-            speed_obj["speed"] = target_speed
-            updated_speed_objs += 1
-            
-    with open(content_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
-        
-    logger.info(f"Đã hoàn thành tăng tốc độ giọng đọc TTS lên {target_speed} ({updated_count} đoạn).")
+
+    logger.info(f"Đã hoàn thành tăng tốc audio TTS lên {target_speed}: {total_updated} đoạn trên {patched_files} file.")
     return True
 
 # --- Background Task Queue Thread-safe Processor ---
@@ -482,10 +1180,16 @@ class QueueRunner:
                 
                 try:
                     self._process_item(pending_item)
-                    pending_item["status"] = "success"
-                    pending_item["progress"] = 100
-                    pending_item["message"] = "Hoàn thành!"
+                    if pending_item.get("cancel_requested"):
+                        logger.info(f"Dự án '{pending_item.get('video')}' đã bị hủy, bỏ qua cập nhật trạng thái hoàn thành.")
+                    else:
+                        pending_item["status"] = "success"
+                        pending_item["progress"] = 100
+                        pending_item["message"] = "Hoàn thành!"
                 except Exception as e:
+                    if pending_item.get("cancel_requested"):
+                        logger.info(f"Dự án '{pending_item.get('video')}' đã bị hủy.")
+                        continue
                     logger.error(f"Lỗi khi tự động hóa video '{pending_item['video']}': {str(e)}")
                     pending_item["status"] = "failed"
                     pending_item["message"] = f"Lỗi: {str(e)}"
@@ -548,12 +1252,13 @@ class QueueRunner:
                 draft_id = f"auto_{clean_name[:20]}"
                 item["draft_id"] = draft_id
             
-            volume = 10.0 ** (volume_db / 20.0)
-            
             from capcut_pipeline import run_pipeline
             
             logger.info(f"Chạy pipeline ngầm để tạo draft '{draft_id}'...")
-            run_pipeline(
+            draft_full_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, draft_id)
+            run_pipeline_with_file_lock_retry(
+                run_pipeline,
+                draft_full_path,
                 video=Path(video_path),
                 capcut_drafts=Path(DEFAULT_CAPCUT_DRAFTS),
                 srt=None,
@@ -565,7 +1270,7 @@ class QueueRunner:
                 font_size=font_size,
                 copy_to_capcut=True,
                 draft_id=draft_id,
-                volume=volume
+                volume=1.0
             )
             
             # Save pipeline_config.json inside the newly created project folder
@@ -581,6 +1286,13 @@ class QueueRunner:
         # Step 2: Open CapCut & Open Project
         item["progress"] = 25
         item["message"] = "Bước 2: Mở dự án trong CapCut..."
+        draft_full_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, draft_id)
+        try:
+            patch_track_lock_in_json(draft_full_path, track_types=["video"], locked=True)
+            patch_track_lock_in_json(draft_full_path, track_types=["text", "audio"], locked=False)
+        except Exception as e:
+            logger.warning(f"Không thể chỉnh trạng thái khóa track trước khi mở dự án: {str(e)}")
+
         controller = launch_capcut()
         open_project_in_gui(controller, draft_id)
         
@@ -589,27 +1301,94 @@ class QueueRunner:
         item["message"] = "Bước 3: Đang tự động tạo phụ đề (Auto Captions)..."
         run_image_workflow("rpa_auto_captions.sample.json", "Auto Captions")
         
-        # Step 4 & 5: Translate Chinese -> Vietnamese, style without closing CapCut
+        # Step 4 & 5: Close project, then translate Chinese -> Vietnamese and patch volume on disk
         item["progress"] = 60
-        item["message"] = "Bước 4 & 5: Đang dịch phụ đề sang tiếng Việt, patch thẳng khi CapCut đang mở..."
+        item["message"] = "Bước 4 & 5: Đang đóng CapCut để lưu draft, sau đó dịch phụ đề và chỉnh âm lượng..."
+        kill_capcut()
+        time.sleep(1)
         
-        draft_full_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, draft_id)
         patch_subtitles_in_json(
             draft_full_path,
             font_size=font_size,
             font_color=font_color_rgb,
-            font_name=font_name
+            font_name=font_name,
+            item_config=item_config
         )
+        patch_track_volume_in_json(draft_full_path, volume_db=volume_db, track_types=["video"])
+
+        if item_config.get("stop_after_patch"):
+            item["progress"] = 70
+            item["message"] = "Đã patch bản dịch/âm lượng xong và dừng để kiểm tra draft."
+            item["stopped_after_patch"] = True
+            logger.info(
+                f"Đã dừng pipeline sau bước patch theo cấu hình stop_after_patch=true. "
+                f"Draft: {draft_full_path}"
+            )
+            return
+
+        logger.info("Đợi 1 giây sau khi patch âm lượng trước khi mở lại CapCut...")
+        time.sleep(1)
+
+        item["message"] = "Bước 5.5: Đang mở lại dự án sau khi patch bản dịch và âm lượng..."
+        controller = launch_capcut()
+        open_project_in_gui(controller, draft_id)
         
         # Step 6: Text to speech on the currently open project
         item["progress"] = 75
         item["message"] = "Bước 6: Đang tạo giọng nói (TTS) cho sub trên dự án đang mở..."
-        run_image_workflow("rpa_tts.sample.json", "Text to speech")
+        tts_audio_before = count_audio_assets_in_json(draft_full_path)
+        logger.info(f"Trước TTS: audio_segments={tts_audio_before['segments']}, audio_materials={tts_audio_before['materials']}.")
+
+        max_tts_attempts = int(item_config.get("tts_attempts", 3))
+        tts_ready = False
+        tts_audio_after = tts_audio_before
+
+        for attempt in range(1, max_tts_attempts + 1):
+            item["message"] = f"Bước 6: Đang tạo giọng nói TTS, lần {attempt}/{max_tts_attempts}..."
+            logger.info(f"Chạy TTS lần {attempt}/{max_tts_attempts}...")
+            if attempt == 1:
+                run_image_workflow("rpa_tts.sample.json", "Text to speech")
+            else:
+                run_image_workflow("rpa_tts_retry.sample.json", "Text to speech retry")
+
+            tts_ready, tts_audio_after = wait_for_new_audio_assets(
+                draft_full_path,
+                tts_audio_before,
+                interval=int(item_config.get("tts_audio_wait_interval", 5)),
+            )
+
+            if tts_ready:
+                logger.info("Đã xác nhận draft có audio TTS mới.")
+                break
+
+            if attempt < max_tts_attempts:
+                logger.warning("Chưa thấy audio TTS trong draft. Giữ nguyên dự án đang mở và bấm Generate speech lần nữa...")
+
+        if not tts_ready:
+            logger.warning("Chưa thấy audio khi project đang mở. Đóng CapCut một lần để flush draft rồi kiểm tra lại...")
+            kill_capcut()
+            time.sleep(1)
+            tts_audio_after = count_audio_assets_in_json(draft_full_path)
+            logger.info(
+                f"Sau khi flush draft: audio_segments={tts_audio_after['segments']}, "
+                f"audio_materials={tts_audio_after['materials']}."
+            )
+            if tts_audio_after["total"] > tts_audio_before["total"]:
+                logger.info("Đã xác nhận draft có audio TTS mới sau khi flush.")
+                tts_ready = True
+            else:
+                raise Exception(
+                    f"Không thấy audio TTS sau {max_tts_attempts} lần Generate speech "
+                    f"(trước={tts_audio_before}, sau={tts_audio_after})."
+                )
+        else:
+            logger.info("Đóng CapCut để flush draft sau khi xác nhận TTS...")
+            kill_capcut()
+            time.sleep(1)
         
         # Step 7: Close, Set audio speed
         item["progress"] = 85
         item["message"] = f"Bước 7: Đang tăng tốc độ giọng đọc lên {tts_speed}..."
-        kill_capcut()
         patch_audio_speed_in_json(draft_full_path, target_speed=tts_speed)
         
         # Step 8: Reopen, Export
@@ -818,6 +1597,16 @@ def project_config(folder):
             "font_size": 5.0,
             "font_color": "#FFFF00",
             "font_name": "HarmonyOS_Sans_SC_Regular",
+            "translation_method": "google",
+            "ai_provider": "openai",
+            "ai_api_key": "",
+            "ai_model": "gpt-4o-mini",
+            "ai_base_url": "https://api.openai.com/v1",
+            "source_language": "Chinese",
+            "target_language": "Vietnamese",
+            "ai_tone": "natural and fluent",
+            "video_context": "Short fantasy game online videos, MMORPG gameplay review, PvP server war",
+            "ai_temperature": 0.0,
             "video_path": ""
         }
         if os.path.exists(config_path):
@@ -855,6 +1644,16 @@ def create_project():
             "font_size": float(data.get("font_size", 5.0)),
             "font_color": data.get("font_color", "#FFFF00"),
             "font_name": data.get("font_name", "HarmonyOS_Sans_SC_Regular"),
+            "translation_method": data.get("translation_method", "google"),
+            "ai_provider": data.get("ai_provider", "openai"),
+            "ai_api_key": data.get("ai_api_key", ""),
+            "ai_model": data.get("ai_model", "gpt-4o-mini"),
+            "ai_base_url": data.get("ai_base_url", "https://api.openai.com/v1"),
+            "source_language": data.get("source_language", "Chinese"),
+            "target_language": data.get("target_language", "Vietnamese"),
+            "ai_tone": data.get("ai_tone", "natural and fluent"),
+            "video_context": data.get("video_context", "Short fantasy game online videos, MMORPG gameplay review, PvP server war"),
+            "ai_temperature": float(data.get("ai_temperature", 0.0)),
             "video_path": video_path
         }
         with open(os.path.join(project_folder, "pipeline_config.json"), "w", encoding="utf-8") as f:
@@ -905,22 +1704,31 @@ def add_to_queue():
             with open(config_path, "r", encoding="utf-8") as f:
                 config = json.load(f)
                 
-        item = {
-            "type": "project",
-            "video": name,
-            "draft_id": folder,
-            "project_folder": folder,
-            "config": config,
-            "status": "pending",
-            "progress": 0,
-            "message": "Đang chờ..."
-        }
-        
-        if config.get("video_path"):
-            item["type"] = "video"
-            item["video"] = config.get("video_path")
-            
-        runner.queue.append(item)
+        video_paths = parse_video_paths(config.get("video_paths") or config.get("video_path"))
+        if not video_paths:
+            video_paths = [None]
+
+        for index, video_path in enumerate(video_paths, start=1):
+            item_config = dict(config)
+            if video_path:
+                item_config["video_path"] = video_path
+
+            item = {
+                "type": "project",
+                "video": video_path or name,
+                "draft_id": folder,
+                "project_folder": folder,
+                "config": item_config,
+                "status": "pending",
+                "progress": 0,
+                "message": "Đang chờ..."
+            }
+
+            if len(video_paths) > 1:
+                item["message"] = f"Đang chờ ({index}/{len(video_paths)})..."
+
+            runner.queue.append(item)
+        logger.info(f"Đã thêm {len(video_paths)} job vào hàng chờ cho dự án {folder}.")
         return jsonify(runner.get_state())
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -1006,13 +1814,13 @@ def cancel_queue_item():
         if 0 <= idx < len(runner.queue):
             item = runner.queue[idx]
             if item["status"] == "running":
+                item["cancel_requested"] = True
                 # Kill CapCut to break the active pyautogui RPA process
                 kill_capcut()
-                item["status"] = "failed"
-                item["message"] = "Bị hủy bởi người dùng."
-            elif item["status"] == "pending":
-                item["status"] = "failed"
-                item["message"] = "Đã hủy."
+                runner.pause_requested = True
+                runner.is_processing = False
+                runner.current_index = -1
+            runner.queue.pop(idx)
             return jsonify(runner.get_state())
         return jsonify({"error": "Invalid index"}), 400
     except Exception as e:

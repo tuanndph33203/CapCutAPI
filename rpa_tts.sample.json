@@ -1,6 +1,13 @@
 {
     "steps":  [
                   {
+                      "action":  "select_all_timeline",
+                      "click_x_ratio":  0.5,
+                      "click_y_from_bottom":  150,
+                      "pause_after_click":  0.5,
+                      "pause_after_hotkey":  1
+                  },
+                  {
                       "template":  "rpa_templates/tts_button.png",
                       "threshold":  0.82,
                       "action":  "click_template",
@@ -10,13 +17,19 @@
                       "template":  "rpa_templates/voice_star_button.png",
                       "threshold":  0.82,
                       "action":  "click_template",
-                      "timeout":  20
+                      "timeout":  20,
+                      "search_region":  [0.62, 0.08, 1.0, 0.45]
+                  },
+                  {
+                      "action":  "sleep",
+                      "seconds":  1
                   },
                   {
                       "template":  "rpa_templates/child_voice.png",
-                      "threshold":  0.82,
+                      "threshold":  0.6,
                       "action":  "click_template",
-                      "timeout":  20
+                      "timeout":  8,
+                      "optional":  true
                   },
                   {
                       "template":  "rpa_templates/generate_speech_button.png",
@@ -25,13 +38,17 @@
                       "timeout":  20
                   },
                   {
+                      "action":  "sleep",
+                      "seconds":  5
+                  },
+                  {
                       "action":  "wait",
                       "template":  "rpa_templates/generating_speech.png",
                       "interval":  3,
-                      "require_seen":  true,
+                      "require_seen":  false,
                       "threshold":  0.82,
                       "mode":  "gone",
-                      "timeout":  600
+                      "timeout":  0
                   }
               ]
 }

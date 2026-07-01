@@ -8,3 +8,5 @@ Pillow
 pyautogui
 pygetwindow
 pywin32
+uiautomation
+rapidocr-onnxruntime
