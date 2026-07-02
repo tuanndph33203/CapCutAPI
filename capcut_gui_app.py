@@ -322,6 +322,14 @@ def kill_capcut():
 
 # --- Subtitle JSON processing ---
 
+DEFAULT_SUBTITLE_FONT_PATH = "C:/Users/nguye/AppData/Local/CapCut/Apps/8.9.1.3802/Resources/Font/SystemFont/en.ttf"
+DEFAULT_SUBTITLE_COLOR_HEX = "#f0ff00"
+DEFAULT_SUBTITLE_COLOR_RGB = (0.9411764740943909, 1.0, 0.0)
+DEFAULT_SUBTITLE_STROKE_RGB = (0.0, 0.0, 0.0)
+DEFAULT_SUBTITLE_BORDER_WIDTH = 0.08
+DEFAULT_SUBTITLE_STROKE_WIDTH = 0.05999999865889549
+
+
 def draft_json_path(draft_path):
     content_path = os.path.join(draft_path, "draft_content.json")
     if os.path.exists(content_path):
@@ -339,8 +347,10 @@ def draft_json_paths(draft_path):
     candidates = []
     for path in [
         root / "draft_content.json",
+        root / "draft_info.json",
         *root.glob("template-*.tmp"),
         *root.glob("Timelines/*/draft_content.json"),
+        *root.glob("Timelines/*/draft_info.json"),
         *root.glob("Timelines/*/template-*.tmp"),
     ]:
         if not path.exists() or not path.is_file():
@@ -402,60 +412,78 @@ def extract_subtitle_text(text_mat):
     return content_json.get("text", "")
 
 
+def resolve_font_path(font_name=None):
+    if not font_name:
+        return DEFAULT_SUBTITLE_FONT_PATH
+    font_name = str(font_name).strip()
+    if "/" in font_name or "\\" in font_name or font_name.lower().endswith(".ttf"):
+        return font_name.replace("\\", "/")
+    return DEFAULT_SUBTITLE_FONT_PATH
+
+
+def apply_default_text_style_to_content(content_json, translated, font_size=None, font_color=None, font_name=None):
+    if "styles" not in content_json or not content_json["styles"]:
+        content_json["styles"] = [{}]
+
+    style = content_json["styles"][0]
+    style["range"] = [0, len(translated)]
+    if font_size is not None:
+        style["size"] = font_size
+    style["font"] = {
+        "id": "",
+        "path": resolve_font_path(font_name),
+    }
+
+    fill_color = list(font_color if font_color is not None else DEFAULT_SUBTITLE_COLOR_RGB)
+    style["fill"] = {
+        "alpha": 1.0,
+        "content": {
+            "render_type": "solid",
+            "solid": {
+                "alpha": 1.0,
+                "color": fill_color,
+            },
+        },
+    }
+    style["strokes"] = [{
+        "alpha": 1.0,
+        "content": {
+            "render_type": "solid",
+            "solid": {
+                "alpha": 1.0,
+                "color": list(DEFAULT_SUBTITLE_STROKE_RGB),
+            },
+        },
+        "width": DEFAULT_SUBTITLE_STROKE_WIDTH,
+    }]
+    style["useLetterColor"] = True
+    return content_json
+
+
 def sync_text_material_fields(text_mat, content_json, translated, font_size=None, font_color=None, font_name=None):
     content_json["text"] = translated
-
-    if "styles" in content_json and len(content_json["styles"]) > 0:
-        style = content_json["styles"][0]
-        style["range"] = [0, len(translated)]
-        if font_size is not None:
-            style["size"] = font_size
-
-        if font_color is not None:
-            if "fill" not in style:
-                style["fill"] = {}
-            if "content" not in style["fill"]:
-                style["fill"]["content"] = {}
-            style["fill"]["content"]["render_type"] = "solid"
-            style["fill"]["content"]["solid"] = {
-                "alpha": 1.0,
-                "color": list(font_color)
-            }
-
-        if font_name:
-            style["font"] = {
-                "id": "system_font",
-                "path": f"C:/{font_name}.ttf"
-            }
+    apply_default_text_style_to_content(content_json, translated, font_size, font_color, font_name)
 
     text_mat["content"] = json.dumps(content_json, ensure_ascii=False)
     text_mat["recognize_text"] = translated
+    text_mat["text_color"] = DEFAULT_SUBTITLE_COLOR_HEX
+    text_mat["font_size"] = font_size
+    text_mat["font_path"] = resolve_font_path(font_name)
+    text_mat["font_name"] = ""
+    text_mat["border_color"] = "#000000" 
+    text_mat["border_alpha"] = 1.0
+    text_mat["border_width"] = DEFAULT_SUBTITLE_BORDER_WIDTH
+    text_mat["border_mode"] = 0
+    text_mat["has_shadow"] = False
+    text_mat["background_color"] = "#000000"
+    text_mat["background_style"] = 0
 
     base_content_str = text_mat.get("base_content")
     if base_content_str:
         try:
             base_content = json.loads(base_content_str)
             base_content["text"] = translated
-            if "styles" in base_content and len(base_content["styles"]) > 0:
-                base_style = base_content["styles"][0]
-                base_style["range"] = [0, len(translated)]
-                if font_size is not None:
-                    base_style["size"] = font_size
-                if font_color is not None:
-                    if "fill" not in base_style:
-                        base_style["fill"] = {}
-                    if "content" not in base_style["fill"]:
-                        base_style["fill"]["content"] = {}
-                    base_style["fill"]["content"]["render_type"] = "solid"
-                    base_style["fill"]["content"]["solid"] = {
-                        "alpha": 1.0,
-                        "color": list(font_color)
-                    }
-                if font_name:
-                    base_style["font"] = {
-                        "id": "system_font",
-                        "path": f"C:/{font_name}.ttf"
-                    }
+            apply_default_text_style_to_content(base_content, translated, font_size, font_color, font_name)
             text_mat["base_content"] = json.dumps(base_content, ensure_ascii=False, separators=(",", ":"))
         except Exception as e:
             logger.warning(f"Không parse được base_content để đồng bộ text: {str(e)}")
@@ -527,6 +555,15 @@ def sync_subtitle_cache_info(data, translated_texts):
     return updated_count
 
 
+def normalize_ai_base_url(base_url):
+    base_url = (base_url or "").strip().rstrip("/")
+    if base_url.endswith("/chat/completions"):
+        base_url = base_url[: -len("/chat/completions")]
+    if base_url.endswith("/messages"):
+        base_url = base_url[: -len("/messages")]
+    return base_url
+
+
 def build_ai_translation_config(item_config=None):
     item_config = item_config or {}
     method = (
@@ -569,6 +606,30 @@ def build_ai_translation_config(item_config=None):
             base_url = "https://api.anthropic.com/v1"
         else:
             base_url = "https://api.openai.com/v1"
+    base_url = normalize_ai_base_url(base_url)
+
+    glossary = item_config.get("ai_glossary") or item_config.get("glossary") or {}
+    if isinstance(glossary, str):
+        parsed_glossary = {}
+        for line in glossary.splitlines():
+            if "=>" in line:
+                key, value = line.split("=>", 1)
+            elif ":" in line:
+                key, value = line.split(":", 1)
+            else:
+                continue
+            key = key.strip().strip('"')
+            value = value.strip().strip('"')
+            if key and value:
+                parsed_glossary[key] = value
+        glossary = parsed_glossary
+    if not isinstance(glossary, dict):
+        glossary = {}
+
+    is_mimo = (
+        "xiaomimimo.com" in (base_url or "").lower()
+        or "mimo" in (model or "").lower()
+    )
 
     return {
         "enabled": method == "ai" and bool(api_key),
@@ -576,44 +637,73 @@ def build_ai_translation_config(item_config=None):
         "provider": provider,
         "api_key": api_key,
         "model": model,
-        "base_url": base_url.rstrip("/"),
+        "base_url": base_url,
+        "is_mimo": is_mimo,
         "source_language": item_config.get("source_language") or item_config.get("sourceLanguage") or "Chinese",
         "target_language": item_config.get("target_language") or item_config.get("targetLanguage") or "Vietnamese",
         "tone": item_config.get("ai_tone") or item_config.get("aiTone") or "natural and fluent",
         "topic": item_config.get("video_context") or item_config.get("videoContext") or "Short fantasy game online videos, MMORPG gameplay review, PvP server war",
         "temperature": float(item_config.get("ai_temperature", item_config.get("aiTemperature", 0.0)) or 0.0),
+        "glossary": glossary,
+        "translation_branch": item_config.get("translation_branch") or item_config.get("translationBranch"),
     }
 
 
 def build_ai_translation_prompt(config, ultra_short=False):
     if ultra_short:
         return (
-            f"Translate given lines from {config['source_language']} to {config['target_language']}.\n"
-            "Rules:\n"
-            '- Output MUST be valid JSON: {"translations": ["translation_1", "translation_2", ...]}\n'
-            "- The array length MUST exactly match the input line count.\n"
-            "- Do not merge, omit, explain, or use markdown."
+            f"Translate the normalized subtitle lines from {config['source_language']} to {config['target_language']}.\n"
+            'Return only valid JSON in the form {"translations":["translation_1","translation_2"]}.\n'
+            "The translations array length must exactly match the input lines length.\n"
+            "Never merge, omit, split, move, or reorder lines."
         )
 
-    return f"""You are an expert subtitle translator from {config['source_language']} to {config['target_language']}.
-Tone: {config['tone']}. Topic: {config['topic']}.
+    topic_header = f"\nContext: {config['topic']}" if config.get("topic") and config["topic"] != "N/A" else ""
+    glossary_rule = ""
+    if config.get("glossary"):
+        glossary_rule = "\nUser glossary mappings take absolute priority."
 
-Task: Translate the given subtitle lines.
-Rules:
-- Output MUST be valid JSON containing an array of strings under key "translations": {{"translations": ["translation_1", "translation_2", ...]}}
-- CRITICAL: The returned array length MUST exactly match the input line count.
-- Keep one-to-one correspondence in the exact same order. Do NOT combine, merge, split, or omit lines.
-- Translate naturally, not word-by-word.
-- For Vietnamese, write pure, grammatical Vietnamese. Do not leave Chinese characters, pinyin, or unrelated English.
-- Preserve names naturally; for Chinese character/location names, use natural Sino-Vietnamese when appropriate.
-- No explanations, no markdown, no extra text.""".strip()
+    return f"""You are an expert {config['source_language']}-to-{config['target_language']} subtitle translator.{topic_header}
+
+Task: Translate the normalized subtitle lines into natural {config['target_language']}.
+
+Strict rules:
+1. Return only a valid JSON object in this format: {{"translations":["translation_1","translation_2"]}}.
+2. The translations array must have exactly the same number of elements as the input lines.
+3. Preserve the exact order and one-to-one index correspondence.
+4. Never merge, omit, split, move, or reorder lines.
+5. Treat the normalized source lines as authoritative. Do not perform another speculative ASR reconstruction.
+6. Use surrounding context only to understand pronouns, sentence fragments, tone, and terminology.
+7. Do not invent skill names, materials, actions, relationships, or story details absent from the source.
+8. Translate names consistently. Use natural Sino-Vietnamese readings when appropriate.
+9. Do not leave Chinese characters or pinyin in the Vietnamese output.
+10. A subtitle fragment may remain a natural fragment with an ellipsis. Do not borrow meaning from a context-only line merely to make the current line grammatically complete.
+11. No markdown, explanation, comments, or additional keys.{glossary_rule}""".strip()
 
 
-def format_ai_translation_user_message(lines, previous_context=None, next_context=None):
-    prev = f"--- PREVIOUS CONTEXT ---\n{chr(10).join(previous_context)}\n\n" if previous_context else ""
-    next_part = f"\n\n--- NEXT CONTEXT ---\n{chr(10).join(next_context)}" if next_context else ""
-    body = "\n".join([f"Line {idx + 1}: {line['text']}" for idx, line in enumerate(lines)])
-    return f"{prev}--- LINES TO TRANSLATE ---\n{body}{next_part}"
+def build_ai_batch_payload(config, lines, previous_context=None, next_context=None):
+    return {
+        "source_language": config["source_language"],
+        "target_language": config["target_language"],
+        "tone": config.get("tone") or "natural and fluent",
+        "video_context": config.get("topic") or "N/A",
+        "glossary": config.get("glossary") or None,
+        "previous_context": previous_context or None,
+        "lines": [line["text"] for line in lines],
+        "next_context": next_context or None,
+        "translation_branch": config.get("translation_branch"),
+    }
+
+
+def repair_with_glossary(text, glossary=None):
+    if not glossary:
+        return text
+    repaired = text
+    for key in sorted(glossary.keys(), key=len, reverse=True):
+        value = glossary.get(key)
+        if key and value:
+            repaired = re.sub(re.escape(key), str(value), repaired, flags=re.IGNORECASE)
+    return repaired
 
 
 def parse_ai_translation_response(raw_text, expected_count):
@@ -659,11 +749,129 @@ def parse_ai_translation_response(raw_text, expected_count):
     raise ValueError(f"Không parse được JSON dịch AI: {text[:180]}")
 
 
-def call_ai_translation_once(lines, config, previous_context=None, next_context=None, ultra_short=False):
-    import requests
+def validate_ai_translation_result(lines, translations, source_language):
+    if len(translations) != len(lines):
+        raise ValueError(f"Count mismatch: expected {len(lines)}, got {len(translations)}")
+    for idx, (line, translated) in enumerate(zip(lines, translations), start=1):
+        translated = (translated or "").strip()
+        if not translated:
+            raise ValueError(f"Dòng {idx} rỗng trong kết quả AI")
+        if has_source_chars(translated, source_language):
+            raise ValueError(f"Dòng {idx} còn ký tự nguồn: {translated}")
+        if translated == line["text"].strip() and has_source_chars(line["text"], source_language):
+            raise ValueError(f"Dòng {idx} giống nguyên văn nguồn: {translated}")
 
-    system_prompt = build_ai_translation_prompt(config, ultra_short=ultra_short)
-    user_message = format_ai_translation_user_message(lines, previous_context, next_context)
+
+def build_ai_request_payload(config, user_payload, system_prompt, line_count):
+    provider = config["provider"]
+    model = config["model"]
+    is_reasoning = model.startswith(("o1", "o3")) or config.get("is_mimo")
+    temperature = 0.0 if is_reasoning else max(0.0, float(config.get("temperature") or 0.0))
+    max_tokens_key = "max_completion_tokens" if is_reasoning else "max_tokens"
+    max_tokens = 4000 if is_reasoning else max(1600, min(8000, line_count * 120))
+    user_content = json.dumps(user_payload, ensure_ascii=False)
+
+    if provider == "anthropic":
+        return {
+            "model": model,
+            "max_tokens": max_tokens,
+            "temperature": temperature,
+            "system": system_prompt,
+            "messages": [{"role": "user", "content": user_content}],
+            "stream": False,
+        }
+
+    payload = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_content},
+        ],
+        "temperature": temperature,
+        "top_p": 1,
+        "stream": False,
+        max_tokens_key: max_tokens,
+    }
+    if not is_reasoning:
+        payload["response_format"] = {"type": "json_object"}
+    else:
+        payload["reasoning_effort"] = "low"
+    return payload
+
+
+ASR_FIX_REVIEW_PROMPT = """你是一名严格的中文ASR纠错结果审核员。
+
+你将收到：
+1. 完整的原始字幕；
+2. 视频语境摘要；
+3. 上一个模型生成的 suggested_fixes。
+
+你的任务不是寻找新的错误，也不是重新纠正全部字幕。
+你的唯一任务是逐条审核 suggested_fixes，并只保留自然、明确、有充分依据的修正。
+
+审核每条建议时，依次检查：
+
+1. raw_lines 是否与完整字幕中相同 ids 的原文完全一致。
+2. suggested_lines 是否与 raw_lines 不同。
+3. 修正后的句子是否为自然、常见、语法正确且语义明确的中文。
+4. 修正结果是否符合前后文和整段视频的剧情。
+5. 修正词是否与原始ASR文本在普通话读音上相近。
+6. 是否能被相邻字幕、全文重复词语、固定搭配或明确剧情验证。
+7. 是否只是把一个无意义的词替换成另一个仍然无意义的近音词。
+8. 是否在没有证据的情况下猜测人物名、称号、技能名、材料名或地名。
+9. 是否仅因为全文出现过某个词，就强行使用该词替换可疑内容。
+10. 是否仅添加、删除或修改标点符号。
+
+保留规则：
+
+只有同时满足以下全部条件的建议才能保留：
+- 修正后是自然、明确的中文；
+- 符合前后文；
+- 至少有语音相似、固定搭配、全文互证三项中的两项支持；
+- 不依赖猜测专有名词；
+- 不需要额外解释才能成立。
+
+删除规则：
+
+出现以下任一情况，必须删除：
+- 修正后仍然语义不通或语法不自然；
+- 只是另一个没有明确含义的近音词；
+- 涉及未经全文验证的专有名词；
+- 仅靠删除原文部分字符形成；
+- 仅修改标点；
+- 缺乏足够上下文或语音依据。
+
+修正规则：
+
+如果原建议方向明确正确，但表达不完整，可以补全自然固定搭配。
+
+例如：
+“遇到这种巨物只有爆竿的”
+应补全为：
+“遇到这种巨物只有爆竿的份”
+
+不要寻找 suggested_fixes 之外的新错误。
+不要输出审核原因、评分、confidence 或其他字段。
+只输出通过审核后的结果。
+
+输出格式：
+
+{
+  "video_context": "原样保留输入中的video_context",
+  "suggested_fixes": [
+    {
+      "ids": 2,
+      "raw_lines": "遇到这种巨物只有报班的",
+      "suggested_lines": "遇到这种巨物只有爆竿的份"
+    }
+  ]
+}
+
+只输出合法JSON，不要输出Markdown、解释或额外文字。"""
+
+
+def call_ai_json_object(config, system_prompt, user_payload, line_count=20):
+    import requests
 
     provider = config["provider"]
     if provider == "anthropic":
@@ -673,12 +881,122 @@ def call_ai_translation_once(lines, config, previous_context=None, next_context=
             "x-api-key": config["api_key"],
             "anthropic-version": "2023-06-01",
         }
-        payload = {
-            "model": config["model"],
-            "max_tokens": 8000,
-            "temperature": config["temperature"],
-            "system": system_prompt,
-            "messages": [{"role": "user", "content": user_message}],
+    else:
+        url = f"{config['base_url']}/chat/completions"
+        headers = {
+            "content-type": "application/json",
+            "authorization": f"Bearer {config['api_key']}",
+        }
+
+    payload = build_ai_request_payload(config, user_payload, system_prompt, line_count)
+    response = requests.post(url, headers=headers, json=payload, timeout=120)
+    if not response.ok:
+        raise RuntimeError(f"AI JSON call HTTP {response.status_code}: {response.text[:500]}")
+
+    data = response.json()
+    if provider == "anthropic":
+        raw = "".join(part.get("text", "") for part in data.get("content", []) if isinstance(part, dict))
+    else:
+        raw = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+
+    text = (raw or "").strip()
+    candidates = [text]
+    start = text.find("{")
+    end = text.rfind("}")
+    if start >= 0 and end > start:
+        candidates.append(text[start:end + 1])
+
+    for candidate in candidates:
+        try:
+            parsed = json.loads(candidate)
+            if isinstance(parsed, dict):
+                return parsed
+        except Exception:
+            continue
+    raise ValueError(f"Không parse được JSON object từ AI: {text[:180]}")
+
+
+def normalize_full_subtitles(raw_texts):
+    return [{"id": index + 1, "text": text} for index, text in enumerate(raw_texts)]
+
+
+def review_asr_suggested_fixes(full_subtitles, video_context, suggested_fixes, item_config=None):
+    config = build_ai_translation_config(item_config)
+    if not config["enabled"]:
+        raise ValueError("ASR review cần bật translation_method='ai' và ai_api_key trong config.")
+
+    payload = {
+        "full_subtitles": full_subtitles,
+        "video_context": video_context,
+        "suggested_fixes": suggested_fixes or [],
+    }
+    result = call_ai_json_object(config, ASR_FIX_REVIEW_PROMPT, payload, line_count=len(suggested_fixes or []))
+    fixes = result.get("suggested_fixes", [])
+    if not isinstance(fixes, list):
+        fixes = []
+    return {
+        "video_context": result.get("video_context", video_context),
+        "suggested_fixes": fixes,
+    }
+
+
+def as_list(value):
+    if isinstance(value, list):
+        return value
+    return [value]
+
+
+def apply_reviewed_asr_fixes_to_items(parsed_items, reviewed_fixes):
+    if not reviewed_fixes:
+        return 0
+
+    updated = 0
+    for fix in reviewed_fixes:
+        if not isinstance(fix, dict):
+            continue
+        ids = as_list(fix.get("ids"))
+        try:
+            ids = [int(item) for item in ids]
+        except Exception:
+            continue
+
+        raw_lines = [str(item) for item in as_list(fix.get("raw_lines", ""))]
+        suggested_lines = [str(item) for item in as_list(fix.get("suggested_lines", ""))]
+        if len(ids) != len(raw_lines) or len(ids) != len(suggested_lines):
+            continue
+
+        indices = [item - 1 for item in ids]
+        can_apply = True
+        for idx, raw_line in zip(indices, raw_lines):
+            if idx < 0 or idx >= len(parsed_items) or parsed_items[idx][2] != raw_line:
+                can_apply = False
+                break
+        if not can_apply:
+            continue
+
+        for idx, suggested_line in zip(indices, suggested_lines):
+            text_mat, content_json, _ = parsed_items[idx]
+            content_json["text"] = suggested_line
+            text_mat["content"] = json.dumps(content_json, ensure_ascii=False)
+            parsed_items[idx] = (text_mat, content_json, suggested_line)
+            updated += 1
+
+    return updated
+
+
+def call_ai_translation_once(lines, config, previous_context=None, next_context=None, ultra_short=False):
+    import requests
+
+    system_prompt = build_ai_translation_prompt(config, ultra_short=ultra_short)
+    user_payload = build_ai_batch_payload(config, lines, previous_context, next_context)
+
+    provider = config["provider"]
+    if provider == "anthropic":
+        url = f"{config['base_url']}/messages"
+        headers = {
+            "content-type": "application/json",
+            "x-api-key": config["api_key"],
+            "anthropic-version": "2023-06-01",
         }
     else:
         url = f"{config['base_url']}/chat/completions"
@@ -686,16 +1004,7 @@ def call_ai_translation_once(lines, config, previous_context=None, next_context=
             "content-type": "application/json",
             "authorization": f"Bearer {config['api_key']}",
         }
-        payload = {
-            "model": config["model"],
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_message},
-            ],
-            "temperature": config["temperature"],
-            "max_tokens": 8000,
-            "stream": False,
-        }
+    payload = build_ai_request_payload(config, user_payload, system_prompt, len(lines))
 
     response = requests.post(url, headers=headers, json=payload, timeout=90)
     if not response.ok:
@@ -708,12 +1017,7 @@ def call_ai_translation_once(lines, config, previous_context=None, next_context=
         raw = data.get("choices", [{}])[0].get("message", {}).get("content", "")
 
     translations = parse_ai_translation_response(raw, len(lines))
-    for idx, translated in enumerate(translations):
-        if not translated:
-            raise ValueError(f"Dòng {idx + 1} rỗng trong kết quả AI")
-        if has_source_chars(translated, config["source_language"]):
-            raise ValueError(f"Dòng {idx + 1} còn ký tự nguồn: {translated}")
-
+    validate_ai_translation_result(lines, translations, config["source_language"])
     return translations
 
 
@@ -728,8 +1032,8 @@ def translate_ai_batch_recursive(lines, config, previous_context=None, next_cont
             logger.warning(f"Dịch AI batch {len(lines)} dòng thất bại (ultra_short={ultra_short}): {str(e)}")
 
     if len(lines) == 1:
-        logger.warning(f"Dịch AI dòng đơn thất bại, fallback Google: {lines[0]['text']}")
-        return [translate_google(lines[0]["text"], "zh-CN", "vi")]
+        logger.warning(f"Dịch AI dòng đơn thất bại hoàn toàn, dùng glossary repair: {lines[0]['text']}")
+        return [repair_with_glossary(lines[0]["text"], config.get("glossary"))]
 
     mid = len(lines) // 2
     left = translate_ai_batch_recursive(lines[:mid], config, previous_context, next_context)
@@ -746,7 +1050,7 @@ def translate_texts_with_ai(raw_texts, item_config=None):
 
     logger.info(f"Dịch AI bằng {config['provider']} model {config['model']} theo batch 20 dòng...")
     batch_size = 20
-    context_window = 5
+    context_window = 2
     translated = [None] * len(raw_texts)
 
     for start in range(0, len(raw_texts), batch_size):
@@ -762,7 +1066,7 @@ def translate_texts_with_ai(raw_texts, item_config=None):
     return translated
 
 
-def patch_subtitles_file(content_path, font_size=5.0, font_color=(1.0, 1.0, 0.0), font_name="HarmonyOS_Sans_SC_Regular", item_config=None, translation_cache=None):
+def patch_subtitles_file(content_path, font_size=5.0, font_color=DEFAULT_SUBTITLE_COLOR_RGB, font_name=DEFAULT_SUBTITLE_FONT_PATH, item_config=None, translation_cache=None):
     translation_cache = translation_cache if translation_cache is not None else {}
 
     logger.info(f"Đang đọc {content_path} để dịch và cập nhật font/màu sắc...")
@@ -790,16 +1094,48 @@ def patch_subtitles_file(content_path, font_size=5.0, font_color=(1.0, 1.0, 0.0)
         except Exception as e:
             logger.error(f"Lỗi đọc text phụ đề trước khi dịch: {str(e)}")
 
+    suggested_fixes = item_config.get("asr_suggested_fixes") if item_config else None
+    if suggested_fixes:
+        try:
+            logger.info(f"Đang review {len(suggested_fixes)} suggested_fixes ASR trước khi dịch...")
+            full_subtitles = normalize_full_subtitles(raw_texts)
+            reviewed = review_asr_suggested_fixes(
+                full_subtitles=full_subtitles,
+                video_context=(item_config or {}).get("video_context", ""),
+                suggested_fixes=suggested_fixes,
+                item_config=item_config,
+            )
+            applied_count = apply_reviewed_asr_fixes_to_items(parsed_items, reviewed.get("suggested_fixes", []))
+            raw_texts = [item[2] for item in parsed_items]
+            logger.info(
+                f"ASR review giữ lại {len(reviewed.get('suggested_fixes', []))}/{len(suggested_fixes)} fix, "
+                f"đã áp dụng {applied_count} dòng."
+            )
+        except Exception as e:
+            logger.error(f"Review suggested_fixes ASR thất bại, bỏ qua bước review: {str(e)}")
+
     source_indices = [index for index, raw_text in enumerate(raw_texts) if has_source_chars(raw_text, "Chinese")]
     source_raw_texts = [raw_texts[index] for index in source_indices]
-    logger.info(f"Đang dịch {len(source_raw_texts)}/{len(raw_texts)} dòng phụ đề còn tiếng Trung sang tiếng Việt...")
-    ai_translations = None
+    missing_source_texts = []
+    seen_missing = set()
+    for raw_text in source_raw_texts:
+        if raw_text in translation_cache or raw_text in seen_missing:
+            continue
+        missing_source_texts.append(raw_text)
+        seen_missing.add(raw_text)
+
+    cached_count = len(source_raw_texts) - len(missing_source_texts)
+    logger.info(
+        f"Đang dịch {len(missing_source_texts)}/{len(source_raw_texts)} dòng phụ đề tiếng Trung chưa có cache "
+        f"(dùng lại cache {cached_count} dòng) sang tiếng Việt..."
+    )
     try:
-        source_ai_translations = translate_texts_with_ai(source_raw_texts, item_config=item_config)
+        source_ai_translations = translate_texts_with_ai(missing_source_texts, item_config=item_config)
         if source_ai_translations:
-            ai_translations = {}
             for offset, translated in enumerate(source_ai_translations):
-                ai_translations[source_indices[offset]] = translated
+                raw_text = missing_source_texts[offset]
+                if translated:
+                    translation_cache[raw_text] = translated
     except Exception as e:
         logger.error(f"Dịch AI thất bại, fallback Google từng dòng: {str(e)}")
 
@@ -811,13 +1147,11 @@ def patch_subtitles_file(content_path, font_size=5.0, font_color=(1.0, 1.0, 0.0)
         try:
             if not has_source_chars(raw_text, "Chinese"):
                 translated = raw_text
-            elif ai_translations and index in ai_translations and ai_translations[index]:
-                translated = ai_translations[index]
-            elif raw_text not in translation_cache:
+            elif raw_text in translation_cache:
+                translated = translation_cache[raw_text]
+            else:
                 translated = translate_google(raw_text, "zh-CN", "vi")
                 translation_cache[raw_text] = translated
-            else:
-                translated = translation_cache[raw_text]
 
             if has_source_chars(translated, "Chinese"):
                 raise ValueError(f"Bản dịch vẫn còn chữ Trung: {translated}")
@@ -868,7 +1202,7 @@ def patch_subtitles_file(content_path, font_size=5.0, font_color=(1.0, 1.0, 0.0)
     return True
 
 
-def patch_subtitles_in_json(draft_path, font_size=5.0, font_color=(1.0, 1.0, 0.0), font_name="HarmonyOS_Sans_SC_Regular", item_config=None):
+def patch_subtitles_in_json(draft_path, font_size=5.0, font_color=DEFAULT_SUBTITLE_COLOR_RGB, font_name=DEFAULT_SUBTITLE_FONT_PATH, item_config=None):
     content_paths = draft_json_paths(draft_path)
     translation_cache = {}
     patched_count = 0
@@ -889,33 +1223,106 @@ def patch_subtitles_in_json(draft_path, font_size=5.0, font_color=(1.0, 1.0, 0.0
     return patched_count > 0
 
 def patch_track_lock_in_json(draft_path, track_types=None, locked=True):
-    content_path = draft_json_path(draft_path)
-
     if track_types is not None:
         track_types = set(track_types)
 
-    with open(content_path, "r", encoding="utf-8") as f:
-        data = json.load(f)
-
-    updated_count = 0
+    total_updated = 0
+    patched_files = 0
     lock_bit = 4
-    for track in data.get("tracks", []):
-        if track_types is not None and track.get("type") not in track_types:
-            continue
+    for content_path in draft_json_paths(draft_path):
+        with open(content_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
 
-        current_attr = int(track.get("attribute", 0) or 0)
-        new_attr = (current_attr | lock_bit) if locked else (current_attr & ~lock_bit)
-        if new_attr != current_attr:
-            track["attribute"] = new_attr
-            updated_count += 1
+        updated_count = 0
+        for track in data.get("tracks", []):
+            if track_types is not None and track.get("type") not in track_types:
+                continue
 
-    with open(content_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
+            current_attr = int(track.get("attribute", 0) or 0)
+            new_attr = (current_attr | lock_bit) if locked else (current_attr & ~lock_bit)
+            if new_attr != current_attr:
+                track["attribute"] = new_attr
+                updated_count += 1
+
+            for segment in track.get("segments", []):
+                current_seg_attr = int(segment.get("track_attribute", 0) or 0)
+                new_seg_attr = (current_seg_attr | lock_bit) if locked else (current_seg_attr & ~lock_bit)
+                if new_seg_attr != current_seg_attr:
+                    segment["track_attribute"] = new_seg_attr
+                    updated_count += 1
+
+        if updated_count:
+            with open(content_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=4)
+            patched_files += 1
+            total_updated += updated_count
 
     action = "khóa" if locked else "mở khóa"
     target = ", ".join(track_types) if track_types else "tất cả track"
-    logger.info(f"Đã {action} {updated_count} track ({target}) bằng draft_content.json.")
-    return updated_count
+    logger.info(f"Đã {action} {total_updated} track/segment ({target}) trên {patched_files} file draft.")
+    return total_updated
+
+
+def patch_canvas_config_in_json(draft_path, ratio="16:9", width=1920, height=1080):
+    target_canvas = {
+        "ratio": ratio,
+        "width": int(width),
+        "height": int(height),
+        "background": None,
+    }
+    patched_files = 0
+
+    for content_path in draft_json_paths(draft_path):
+        with open(content_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        current = data.get("canvas_config") or {}
+        new_canvas = dict(current)
+        new_canvas.update(target_canvas)
+        if new_canvas == current:
+            continue
+
+        data["canvas_config"] = new_canvas
+        with open(content_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+        patched_files += 1
+
+    logger.info(f"Đã chỉnh canvas {ratio} ({width}x{height}) trên {patched_files} file draft.")
+    return patched_files
+
+
+def patch_video_mirror_in_json(draft_path, mirror_horizontal=True):
+    patched_segments = 0
+    patched_files = 0
+
+    for content_path in draft_json_paths(draft_path):
+        with open(content_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        updated_count = 0
+        for track in data.get("tracks", []):
+            if track.get("type") != "video":
+                continue
+            for segment in track.get("segments", []):
+                clip = segment.setdefault("clip", {})
+                flip = clip.setdefault("flip", {})
+                current = bool(flip.get("horizontal", False))
+                if current != bool(mirror_horizontal):
+                    flip["horizontal"] = bool(mirror_horizontal)
+                    updated_count += 1
+                if "vertical" not in flip:
+                    flip["vertical"] = False
+
+        if updated_count:
+            with open(content_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=4)
+            patched_files += 1
+            patched_segments += updated_count
+
+    state = "bật" if mirror_horizontal else "tắt"
+    logger.info(f"Đã {state} mirror ngang video trên {patched_segments} segment / {patched_files} file draft.")
+    return patched_segments
+
 
 # --- Audio JSON speed processing ---
 
@@ -1210,8 +1617,8 @@ class QueueRunner:
         volume_db = float(item_config.get("volume_db", -15.5))
         tts_speed = float(item_config.get("tts_speed", 1.17))
         font_size = float(item_config.get("font_size", 5.0))
-        font_color_hex = item_config.get("font_color", "#FFFF00")
-        font_name = item_config.get("font_name", "HarmonyOS_Sans_SC_Regular")
+        font_color_hex = item_config.get("font_color", DEFAULT_SUBTITLE_COLOR_HEX)
+        font_name = item_config.get("font_name", DEFAULT_SUBTITLE_FONT_PATH)
 
         configured_video_path = item_config.get("video_path")
         if configured_video_path:
@@ -1227,7 +1634,7 @@ class QueueRunner:
             b = int(hex_val[4:6], 16) / 255.0
             font_color_rgb = (r, g, b)
         except Exception:
-            font_color_rgb = (1.0, 1.0, 0.0) # default yellow
+            font_color_rgb = DEFAULT_SUBTITLE_COLOR_RGB
             
         if is_existing_project:
             video_name = item["video"]
@@ -1270,7 +1677,8 @@ class QueueRunner:
                 font_size=font_size,
                 copy_to_capcut=True,
                 draft_id=draft_id,
-                volume=1.0
+                volume=1.0,
+                preserve_blur_effect=bool(item_config.get("preserve_blur_effect", True)),
             )
             
             # Save pipeline_config.json inside the newly created project folder
@@ -1288,7 +1696,17 @@ class QueueRunner:
         item["message"] = "Bước 2: Mở dự án trong CapCut..."
         draft_full_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, draft_id)
         try:
-            patch_track_lock_in_json(draft_full_path, track_types=["video"], locked=True)
+            patch_canvas_config_in_json(
+                draft_full_path,
+                ratio=item_config.get("canvas_ratio", "16:9"),
+                width=int(item_config.get("canvas_width", 1920)),
+                height=int(item_config.get("canvas_height", 1080)),
+            )
+            patch_video_mirror_in_json(
+                draft_full_path,
+                mirror_horizontal=bool(item_config.get("mirror_video", True)),
+            )
+            patch_track_lock_in_json(draft_full_path, track_types=["video", "effect"], locked=True)
             patch_track_lock_in_json(draft_full_path, track_types=["text", "audio"], locked=False)
         except Exception as e:
             logger.warning(f"Không thể chỉnh trạng thái khóa track trước khi mở dự án: {str(e)}")
@@ -1583,6 +2001,8 @@ def project_config(folder):
     if request.method == 'POST':
         try:
             data = request.get_json() or {}
+            if data.get("ai_base_url"):
+                data["ai_base_url"] = normalize_ai_base_url(data.get("ai_base_url"))
             # Keep values clean
             with open(config_path, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=4)
@@ -1595,8 +2015,9 @@ def project_config(folder):
             "volume_db": -15.5,
             "tts_speed": 1.17,
             "font_size": 5.0,
-            "font_color": "#FFFF00",
-            "font_name": "HarmonyOS_Sans_SC_Regular",
+            "font_color": DEFAULT_SUBTITLE_COLOR_HEX,
+            "font_name": DEFAULT_SUBTITLE_FONT_PATH,
+            "mirror_video": True,
             "translation_method": "google",
             "ai_provider": "openai",
             "ai_api_key": "",
@@ -1607,6 +2028,9 @@ def project_config(folder):
             "ai_tone": "natural and fluent",
             "video_context": "Short fantasy game online videos, MMORPG gameplay review, PvP server war",
             "ai_temperature": 0.0,
+            "ai_glossary": {},
+            "translation_branch": "A",
+            "asr_suggested_fixes": [],
             "video_path": ""
         }
         if os.path.exists(config_path):
@@ -1642,18 +2066,22 @@ def create_project():
             "volume_db": float(data.get("volume_db", -15.5)),
             "tts_speed": float(data.get("tts_speed", 1.17)),
             "font_size": float(data.get("font_size", 5.0)),
-            "font_color": data.get("font_color", "#FFFF00"),
-            "font_name": data.get("font_name", "HarmonyOS_Sans_SC_Regular"),
+            "font_color": data.get("font_color", DEFAULT_SUBTITLE_COLOR_HEX),
+            "font_name": data.get("font_name", DEFAULT_SUBTITLE_FONT_PATH),
+            "mirror_video": bool(data.get("mirror_video", True)),
             "translation_method": data.get("translation_method", "google"),
             "ai_provider": data.get("ai_provider", "openai"),
             "ai_api_key": data.get("ai_api_key", ""),
             "ai_model": data.get("ai_model", "gpt-4o-mini"),
-            "ai_base_url": data.get("ai_base_url", "https://api.openai.com/v1"),
+            "ai_base_url": normalize_ai_base_url(data.get("ai_base_url", "https://api.openai.com/v1")),
             "source_language": data.get("source_language", "Chinese"),
             "target_language": data.get("target_language", "Vietnamese"),
             "ai_tone": data.get("ai_tone", "natural and fluent"),
             "video_context": data.get("video_context", "Short fantasy game online videos, MMORPG gameplay review, PvP server war"),
             "ai_temperature": float(data.get("ai_temperature", 0.0)),
+            "ai_glossary": data.get("ai_glossary", {}),
+            "translation_branch": data.get("translation_branch", "A"),
+            "asr_suggested_fixes": data.get("asr_suggested_fixes", []),
             "video_path": video_path
         }
         with open(os.path.join(project_folder, "pipeline_config.json"), "w", encoding="utf-8") as f:
@@ -1680,6 +2108,32 @@ def create_project():
         }})
     except Exception as e:
         logger.error(f"Failed to create project: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/asr/review', methods=['POST'])
+def api_asr_review():
+    try:
+        data = request.get_json() or {}
+        item_config = data.get("config") or data
+        full_subtitles = data.get("full_subtitles") or data.get("subtitles") or []
+        video_context = data.get("video_context") or item_config.get("video_context") or ""
+        suggested_fixes = data.get("suggested_fixes") or []
+
+        if not isinstance(full_subtitles, list):
+            return jsonify({"error": "full_subtitles must be a list"}), 400
+        if not isinstance(suggested_fixes, list):
+            return jsonify({"error": "suggested_fixes must be a list"}), 400
+
+        result = review_asr_suggested_fixes(
+            full_subtitles=full_subtitles,
+            video_context=video_context,
+            suggested_fixes=suggested_fixes,
+            item_config=item_config,
+        )
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"ASR review failed: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/queue/add', methods=['POST'])
