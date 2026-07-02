@@ -1861,7 +1861,7 @@ def generate_speech_impl(texts, draft_id=None, audio_track_name=None, language="
                         speaker_id="爽快思思/Skye",azure_speaker_id=None, speed_ratio=1.0, start_offset=0.0,
                         end_padding=0.0, interval_time=0.5, volume=1.0, width=1080, height=1920,
                         add_subtitle=True, text_track_name=None, font="文轩体", 
-                        font_color="#ffffff", font_size=8.0, transform_y=-0.8, transform_x=0,
+                        font_color="#ffffff", font_size=5.0, transform_y=-0.8, transform_x=0,
                         vertical=False, font_alpha=1.0, border_alpha=1.0, border_color="#000000",
                         border_width=0.0, background_color="#000000", background_style=1,
                         background_alpha=0.0, bubble_effect_id=None, bubble_resource_id=None,

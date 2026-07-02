@@ -323,7 +323,7 @@ def add_text():
     transform_x = data.get('transform_x', 0)
     font = data.get('font', "文轩体")
     font_color = data.get('font_color', "#FF0000")
-    font_size = data.get('font_size', 8.0)
+    font_size = data.get('font_size', 5.0)
     track_name = data.get('track_name', "text_main")
     vertical = data.get('vertical', False)
     font_alpha = data.get('font_alpha', 1.0)  

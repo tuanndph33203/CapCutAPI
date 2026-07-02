@@ -789,11 +789,22 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="detail-tts-speed">Tốc độ Đọc (Step 7)</label>
+                            <label for="detail-mirror-video">Mirror video mặc định</label>
+                            <label style="display:flex;align-items:center;gap:8px;height:38px;">
+                                <input type="checkbox" id="detail-mirror-video" checked>
+                                <span>Lật ngang video khi patch</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="detail-tts-speed">Tốc độ Đọc (Step 7)</label>
                             <input type="number" id="detail-tts-speed" step="0.01" value="1.17">
                         </div>
                         <div class="form-group">
                             <label for="detail-font-size">Cỡ chữ Sub (Step 5)</label>
-                            <input type="number" id="detail-font-size" step="0.5" value="5.0">
+                            <input type="number" id="detail-font-size" step="0.5" value="15.0">
                         </div>
                     </div>
 
@@ -801,6 +812,7 @@
                         <div class="form-group">
                             <label for="detail-font-color">Màu chữ Sub</label>
                             <select id="detail-font-color">
+                                <option value="#f0ff00">Màu Vàng preset</option>
                                 <option value="#FFFF00">Màu Vàng</option>
                                 <option value="#FFFFFF">Màu Trắng</option>
                                 <option value="#FF0000">Màu Đỏ</option>
@@ -809,7 +821,7 @@
                         </div>
                         <div class="form-group">
                             <label for="detail-font-name">Font chữ</label>
-                            <input type="text" id="detail-font-name" value="HarmonyOS_Sans_SC_Regular">
+                            <input type="text" id="detail-font-name" value="C:/Users/nguye/AppData/Local/CapCut/Apps/8.9.1.3802/Resources/Font/SystemFont/en.ttf">
                         </div>
                     </div>
 
@@ -962,11 +974,22 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label for="create-tts-speed">Tốc độ Đọc (Step 7)</label>
+                        <label for="create-mirror-video">Mirror video mặc định</label>
+                        <label style="display:flex;align-items:center;gap:8px;height:38px;">
+                            <input type="checkbox" id="create-mirror-video" checked>
+                            <span>Lật ngang video khi patch</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="create-tts-speed">Tốc độ Đọc (Step 7)</label>
                         <input type="number" id="create-tts-speed" step="0.01" value="1.17">
                     </div>
                     <div class="form-group">
                         <label for="create-font-size">Cỡ chữ Sub (Step 5)</label>
-                        <input type="number" id="create-font-size" step="0.5" value="5.0">
+                        <input type="number" id="create-font-size" step="0.5" value="15.0">
                     </div>
                 </div>
 
@@ -974,7 +997,8 @@
                     <div class="form-group">
                         <label for="create-font-color">Màu chữ Sub</label>
                         <select id="create-font-color">
-                            <option value="#FFFF00" selected>Màu Vàng</option>
+                            <option value="#f0ff00" selected>Màu Vàng preset</option>
+                            <option value="#FFFF00">Màu Vàng</option>
                             <option value="#FFFFFF">Màu Trắng</option>
                             <option value="#FF0000">Màu Đỏ</option>
                             <option value="#00FF00">Màu Xanh Lá</option>
@@ -982,7 +1006,7 @@
                     </div>
                     <div class="form-group">
                         <label for="create-font-name">Font chữ</label>
-                        <input type="text" id="create-font-name" value="HarmonyOS_Sans_SC_Regular">
+                        <input type="text" id="create-font-name" value="C:/Users/nguye/AppData/Local/CapCut/Apps/8.9.1.3802/Resources/Font/SystemFont/en.ttf">
                     </div>
                 </div>
 
