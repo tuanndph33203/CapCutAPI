@@ -33,7 +33,7 @@
     },
     "cover": null,
     "create_time": 0,
-    "duration": 29916666,
+    "duration": 611458333,
     "extra_info": null,
     "fps": 30,
     "free_render_index_mode_on": false,
@@ -96,7 +96,7 @@
         "speeds": [
             {
                 "curve_speed": null,
-                "id": "84fbdc419cb442eba78b29eb7ccbd4b0",
+                "id": "bb20d267b1074dc3a69f9a8861389bad",
                 "mode": 0,
                 "speed": 0.8,
                 "type": "speed"
@@ -118,7 +118,7 @@
                 "sub_type": 0,
                 "bind_segment_id": "",
                 "transparent_params": "",
-                "path": "C:/Users/nguye/AppData/Local/CapCut/User Data/Cache/effect/11326141/949f7b952a59c3bf0c9069cda2a4fb7f",
+                "path": "C:/Users/nguye/AppData/Local/CapCut/User Data/Cache/effect/752625/2db7bf49d9349e308ef0f46c39b14abf",
                 "value": 1.0,
                 "category_id": "",
                 "category_name": "",
@@ -218,15 +218,15 @@
                 },
                 "crop_ratio": "free",
                 "crop_scale": 1.0,
-                "duration": 23933333,
+                "duration": 489166667,
                 "height": 1080,
-                "id": "5d46f72a86d737b39c70a747d06d6028",
+                "id": "a29de325ddbb3210836fb4b4f1f7889f",
                 "local_material_id": "",
-                "material_id": "5d46f72a86d737b39c70a747d06d6028",
-                "material_name": "video_0d7a9c05f3054bdd.mp4",
+                "material_id": "a29de325ddbb3210836fb4b4f1f7889f",
+                "material_name": "video_879006cf1b789e1a.mp4",
                 "media_path": "",
-                "path": "C:\\Users\\nguye\\AppData\\Local\\CapCut\\User Data\\Projects\\com.lveditor.draft\\0626\\assets\\video\\video_0d7a9c05f3054bdd.mp4",
-                "remote_url": "C:\\Users\\nguye\\Downloads\\想要看超前的宝子们可以点击右下角进行观看后续会持续免费更新感谢大家支持#沙雕动画 #超前点播.mp4",
+                "path": "C:\\Users\\nguye\\AppData\\Local\\CapCut\\User Data\\Projects\\com.lveditor.draft\\0626\\assets\\video\\video_879006cf1b789e1a.mp4",
+                "remote_url": "C:\\Users\\nguye\\Downloads\\第一集 我刚学会五雷正法就遇到打假主播扮僵尸深夜上门打假#原创动画 #希望能火 #沙雕动画 #轻漫计划.mp4",
                 "type": "video",
                 "width": 1920
             }
@@ -248,7 +248,7 @@
         {
             "attribute": 0,
             "flag": 0,
-            "id": "56b9fca6772541d0b4bff4b6968832df",
+            "id": "f9a1aa7e0cd94e0f82cc1fd7fb16102d",
             "is_default_name": false,
             "name": "video",
             "segments": [],
@@ -257,7 +257,7 @@
         {
             "attribute": 0,
             "flag": 0,
-            "id": "a29b22c33b2c4344b357be1b3e96d115",
+            "id": "ecf8d5bfc9c64c639cedd97e554a09d4",
             "is_default_name": false,
             "name": "main",
             "segments": [
@@ -274,22 +274,22 @@
                     "track_attribute": 0,
                     "track_render_index": 0,
                     "visible": true,
-                    "id": "38d06c12c1e5414bb74fd8b0d469926d",
-                    "material_id": "5d46f72a86d737b39c70a747d06d6028",
+                    "id": "00aaf75347a6413688103f97d4aac921",
+                    "material_id": "a29de325ddbb3210836fb4b4f1f7889f",
                     "target_timerange": {
                         "start": 0,
-                        "duration": 29916666
+                        "duration": 611458333
                     },
                     "common_keyframes": [],
                     "keyframe_refs": [],
                     "source_timerange": {
                         "start": 0,
-                        "duration": 23933333
+                        "duration": 489166667
                     },
                     "speed": 0.8,
                     "volume": 1.0,
                     "extra_material_refs": [
-                        "84fbdc419cb442eba78b29eb7ccbd4b0"
+                        "bb20d267b1074dc3a69f9a8861389bad"
                     ],
                     "clip": {
                         "alpha": 1.0,
@@ -330,7 +330,7 @@
                     "source_timerange": null,
                     "target_timerange": {
                         "start": 0,
-                        "duration": 29916666
+                        "duration": 611458333
                     },
                     "render_timerange": {
                         "start": 0,
