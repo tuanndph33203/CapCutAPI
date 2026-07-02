@@ -13,7 +13,7 @@ def add_subtitle_impl(
     time_offset: float = 0,
     # Font style parameters
     font: str = None,
-    font_size: float = 8.0,
+    font_size: float = 5.0,
     bold: bool = False,
     italic: bool = False,
     underline: bool = False,

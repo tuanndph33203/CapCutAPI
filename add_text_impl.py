@@ -16,7 +16,7 @@ def add_text_impl(
     transform_x: float = 0,
     font: str = "文轩体",  # Wenxuan Font
     font_color: str = "#ffffff",
-    font_size: float = 8.0,
+    font_size: float = 5.0,
     track_name: str = "text_main",
     vertical: bool = False,  # Whether to display vertically
     font_alpha: float = 1.0,  # Transparency, range 0.0-1.0
