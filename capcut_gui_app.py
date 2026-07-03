@@ -24,6 +24,7 @@ DEFAULT_CAPCUT_DRAFTS = os.environ.get(
     "CAPCUT_DRAFTS_DIR",
     os.path.join(os.environ.get("LOCALAPPDATA", ""), "CapCut", "User Data", "Projects", "com.lveditor.draft"),
 )
+QUEUE_CACHE_PATH = Path(__file__).with_name("queue_cache.json")
 FIRST_PROJECT_FALLBACK_X = 285
 FIRST_PROJECT_FALLBACK_Y = 583
 CAPCUT_SHORTCUT_CANDIDATES = [
@@ -94,6 +95,151 @@ def run_image_workflow(config_name, label):
             logger.info(f"RPA step {step.get('step')}: {step.get('action')}")
     logger.info(json.dumps(result, ensure_ascii=False))
     return result
+
+VIDEO_EXPORT_EXTENSIONS = {".mp4", ".mov", ".mkv", ".avi", ".m4v"}
+
+def get_export_scan_dirs(video_path=None, item_config=None):
+    """Return likely folders where CapCut may write exported videos."""
+    dirs = []
+    item_config = item_config or {}
+
+    for configured in [
+        item_config.get("export_scan_dir"),
+        item_config.get("export_dir"),
+        os.environ.get("CAPCUT_EXPORT_SCAN_DIRS", ""),
+    ]:
+        if not configured:
+            continue
+        for part in str(configured).split(";"):
+            if part.strip():
+                dirs.append(Path(part.strip()))
+
+    if video_path:
+        try:
+            dirs.append(Path(video_path).expanduser().resolve().parent)
+        except Exception:
+            pass
+
+    user_profile = Path(os.environ.get("USERPROFILE", str(Path.home())))
+    local_app_data = Path(os.environ.get("LOCALAPPDATA", ""))
+    dirs.extend([
+        local_app_data / "CapCut" / "Videos",
+        user_profile / "Videos",
+        user_profile / "Downloads",
+        user_profile / "Desktop",
+    ])
+
+    seen = set()
+    result = []
+    for d in dirs:
+        try:
+            resolved = d.expanduser().resolve()
+        except Exception:
+            continue
+        if resolved in seen or not resolved.exists() or not resolved.is_dir():
+            continue
+        seen.add(resolved)
+        result.append(resolved)
+    return result
+
+def snapshot_video_files(scan_dirs):
+    snapshot = {}
+    for folder in scan_dirs:
+        try:
+            candidates = list(folder.iterdir())
+        except Exception:
+            continue
+        for path in candidates:
+            if not path.is_file() or path.suffix.lower() not in VIDEO_EXPORT_EXTENSIONS:
+                continue
+            try:
+                stat = path.stat()
+            except OSError:
+                continue
+            snapshot[str(path.resolve()).lower()] = (stat.st_mtime, stat.st_size)
+    return snapshot
+
+def wait_until_file_stable(path, stable_checks=3, interval=2, timeout=120):
+    deadline = time.time() + timeout
+    last_size = None
+    stable_count = 0
+    while time.time() < deadline:
+        try:
+            size = path.stat().st_size
+        except OSError:
+            time.sleep(interval)
+            continue
+        if size > 0 and size == last_size:
+            stable_count += 1
+            if stable_count >= stable_checks:
+                return True
+        else:
+            stable_count = 0
+            last_size = size
+        time.sleep(interval)
+    return False
+
+def unique_output_path(folder, stem, suffix=".mp4"):
+    candidate = folder / f"{stem}{suffix}"
+    counter = 1
+    while candidate.exists():
+        candidate = folder / f"{stem}_{counter}{suffix}"
+        counter += 1
+    return candidate
+
+def move_latest_export_to_source_folder(video_path, before_snapshot, item_config=None, timeout=180):
+    if not video_path:
+        logger.warning("Không có video_path nên không thể xác định folder xuất theo video gốc.")
+        return None
+
+    source_video = Path(video_path)
+    output_dir = Path(item_config.get("export_dir") or source_video.parent)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    scan_dirs = get_export_scan_dirs(video_path, item_config)
+    deadline = time.time() + timeout
+    newest = None
+
+    while time.time() < deadline:
+        after_snapshot = snapshot_video_files(scan_dirs)
+        changed = []
+        for key, value in after_snapshot.items():
+            old = before_snapshot.get(key)
+            if old is None or old != value:
+                changed.append((key, value))
+
+        if changed:
+            newest_key, _ = max(changed, key=lambda item: item[1][0])
+            newest = Path(newest_key)
+            break
+        time.sleep(2)
+
+    if not newest:
+        logger.warning("Không tìm thấy file video export mới để chuyển về folder video gốc.")
+        return None
+
+    if not wait_until_file_stable(newest):
+        logger.warning(f"File export chưa ổn định kích thước sau khi chờ: {newest}")
+        return None
+
+    suffix = newest.suffix.lower() if newest.suffix.lower() in VIDEO_EXPORT_EXTENSIONS else ".mp4"
+    template = str(item_config.get("export_filename_template") or "{source_stem}_vi")
+    stem = template.format(
+        source_stem=source_video.stem,
+        project=item_config.get("project_name") or source_video.stem,
+        date=time.strftime("%Y%m%d"),
+        time=time.strftime("%H%M%S"),
+    )
+    stem = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", stem).strip(" .") or f"{source_video.stem}_vi"
+    target = unique_output_path(output_dir, stem, suffix)
+
+    if newest.resolve() == target.resolve():
+        logger.info(f"File export đã nằm đúng vị trí: {target}")
+        return str(target)
+
+    os.replace(str(newest), str(target))
+    logger.info(f"Đã chuyển file export về folder video gốc: {target}")
+    return str(target)
 
 def find_element_by_name(root, target_name, depth=0, max_depth=10):
     if not root or depth > max_depth:
@@ -1522,6 +1668,41 @@ class QueueRunner:
         self.pause_requested = False
         self.thread = None
         self.config = {}
+        self.load_cache()
+
+    def load_cache(self):
+        if not QUEUE_CACHE_PATH.exists():
+            return
+        try:
+            data = json.loads(QUEUE_CACHE_PATH.read_text(encoding="utf-8"))
+            cached_queue = data.get("queue", [])
+            if isinstance(cached_queue, list):
+                self.queue = cached_queue
+                for item in self.queue:
+                    if item.get("status") == "running":
+                        item["status"] = "pending"
+                        item["progress"] = 0
+                        item["message"] = "Đang chờ sau khi khôi phục cache..."
+                    item.pop("cancel_requested", None)
+            cached_config = data.get("config", {})
+            if isinstance(cached_config, dict):
+                self.config = cached_config
+            logger.info(f"Đã khôi phục {len(self.queue)} item hàng chờ từ cache.")
+        except Exception as e:
+            logger.warning(f"Không thể đọc queue cache: {str(e)}")
+
+    def save_cache(self):
+        try:
+            payload = {
+                "queue": self.queue,
+                "config": self.config,
+                "saved_at": int(time.time()),
+            }
+            tmp_path = QUEUE_CACHE_PATH.with_suffix(".json.tmp")
+            tmp_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+            tmp_path.replace(QUEUE_CACHE_PATH)
+        except Exception as e:
+            logger.warning(f"Không thể lưu queue cache: {str(e)}")
 
     def get_state(self):
         return {
@@ -1534,18 +1715,22 @@ class QueueRunner:
         if self.is_processing:
             return
         self.queue = [{"video": v, "status": "pending", "progress": 0, "message": "Đang chờ..."} for v in videos]
+        self.save_cache()
 
     def start(self, config):
         if self.is_processing:
             return
-        self.config = config
+        self.config = dict(config or {})
+        self.config.setdefault("auto_shutdown", False)
         for item in self.queue:
             if item["status"] != "success":
                 item["status"] = "pending"
                 item["progress"] = 0
                 item["message"] = "Đang chờ..."
+                item.pop("cancel_requested", None)
         self.pause_requested = False
         self.is_processing = True
+        self.save_cache()
         self.thread = threading.Thread(target=self._run_loop, daemon=True)
         self.thread.start()
 
@@ -1557,6 +1742,7 @@ class QueueRunner:
             return
         self.queue = []
         self.current_index = -1
+        self.save_cache()
 
     def _run_loop(self):
         import ctypes
@@ -1578,12 +1764,18 @@ class QueueRunner:
                         break
                 
                 if pending_item is None:
+                    if self.config.get("auto_shutdown"):
+                        logger.info("Tất cả video trong hàng chờ đã xử lý xong. Hệ thống sẽ tự động tắt máy sau 10 giây (lệnh: shutdown /s /f /t 10)...")
+                        os.system("shutdown /s /f /t 10")
+                    else:
+                        logger.info("Tất cả video trong hàng chờ đã xử lý xong. Không tắt máy vì người dùng không bật tùy chọn tự tắt.")
                     break
                     
                 self.current_index = pending_idx
                 pending_item["status"] = "running"
                 pending_item["progress"] = 5
                 pending_item["message"] = "Đang xử lý..."
+                self.save_cache()
                 
                 try:
                     self._process_item(pending_item)
@@ -1593,16 +1785,20 @@ class QueueRunner:
                         pending_item["status"] = "success"
                         pending_item["progress"] = 100
                         pending_item["message"] = "Hoàn thành!"
+                        self.save_cache()
                 except Exception as e:
                     if pending_item.get("cancel_requested"):
                         logger.info(f"Dự án '{pending_item.get('video')}' đã bị hủy.")
+                        self.save_cache()
                         continue
                     logger.error(f"Lỗi khi tự động hóa video '{pending_item['video']}': {str(e)}")
                     pending_item["status"] = "failed"
                     pending_item["message"] = f"Lỗi: {str(e)}"
+                    self.save_cache()
         finally:
             self.is_processing = False
             self.current_index = -1
+            self.save_cache()
             ctypes.windll.ole32.CoUninitialize()
             logger.info("Quá trình chạy hàng chờ hoàn tất.")
 
@@ -1812,9 +2008,24 @@ class QueueRunner:
         # Step 8: Reopen, Export
         item["progress"] = 90
         item["message"] = "Bước 8: Đang xuất video thành phẩm..."
+        export_source_video = item_config.get("video_path") or item.get("video")
+        export_scan_dirs = get_export_scan_dirs(export_source_video, item_config)
+        export_before_snapshot = snapshot_video_files(export_scan_dirs)
+        logger.info(
+            "Theo dõi file export trong các thư mục: "
+            + ", ".join(str(path) for path in export_scan_dirs)
+        )
         controller = launch_capcut()
         open_project_in_gui(controller, draft_id)
         run_image_workflow("rpa_export.sample.json", "Export")
+        exported_path = move_latest_export_to_source_folder(
+            export_source_video,
+            export_before_snapshot,
+            item_config=item_config,
+            timeout=int(item_config.get("export_detect_timeout", 180)),
+        )
+        if exported_path:
+            item["exported_path"] = exported_path
         
         # Step 9: Close CapCut / Done
         item["progress"] = 98
@@ -2182,6 +2393,7 @@ def add_to_queue():
                 item["message"] = f"Đang chờ ({index}/{len(video_paths)})..."
 
             runner.queue.append(item)
+        runner.save_cache()
         logger.info(f"Đã thêm {len(video_paths)} job vào hàng chờ cho dự án {folder}.")
         return jsonify(runner.get_state())
     except Exception as e:
@@ -2275,6 +2487,7 @@ def cancel_queue_item():
                 runner.is_processing = False
                 runner.current_index = -1
             runner.queue.pop(idx)
+            runner.save_cache()
             return jsonify(runner.get_state())
         return jsonify({"error": "Invalid index"}), 400
     except Exception as e:
@@ -2292,10 +2505,30 @@ def retry_queue_item():
             item["status"] = "pending"
             item["progress"] = 0
             item["message"] = "Đang chờ..."
+            item.pop("cancel_requested", None)
+            runner.save_cache()
             
             # Start queue runner if it's currently idle
             if not runner.is_processing:
                 runner.start(data)
+            return jsonify(runner.get_state())
+        return jsonify({"error": "Invalid index"}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/queue/delete', methods=['POST'])
+def delete_queue_item():
+    try:
+        data = request.get_json() or {}
+        idx = data.get("index")
+        if idx is None:
+            return jsonify({"error": "Index is required"}), 400
+        if 0 <= idx < len(runner.queue):
+            item = runner.queue[idx]
+            if item.get("status") == "running":
+                return jsonify({"error": "Không thể xóa item đang chạy. Hãy bấm Hủy trước."}), 400
+            runner.queue.pop(idx)
+            runner.save_cache()
             return jsonify(runner.get_state())
         return jsonify({"error": "Invalid index"}), 400
     except Exception as e:
