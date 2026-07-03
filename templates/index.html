@@ -32,12 +32,12 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             min-height: 100vh;
-            padding: 30px;
+            padding: 18px;
             overflow-x: hidden;
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1320px;
             margin: 0 auto;
         }
 
@@ -46,13 +46,13 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
+            margin-bottom: 20px;
+            padding-bottom: 14px;
             border-bottom: 1px solid var(--border-color);
         }
 
         .logo-section h1 {
-            font-size: 2.2rem;
+            font-size: 1.8rem;
             font-weight: 800;
             background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
             -webkit-background-clip: text;
@@ -62,8 +62,8 @@
 
         .logo-section p {
             color: var(--text-muted);
-            font-size: 0.95rem;
-            margin-top: 4px;
+            font-size: 0.84rem;
+            margin-top: 2px;
         }
 
         .status-badge {
@@ -71,10 +71,10 @@
             align-items: center;
             gap: 8px;
             background: var(--card-bg);
-            padding: 8px 16px;
+            padding: 6px 12px;
             border-radius: 20px;
             border: 1px solid var(--border-color);
-            font-size: 0.9rem;
+            font-size: 0.82rem;
             font-weight: 600;
         }
 
@@ -102,14 +102,14 @@
         .dashboard-grid {
             display: grid;
             grid-template-columns: 420px 1fr;
-            gap: 30px;
+            gap: 18px;
         }
 
         .panel {
             background: var(--card-bg);
             border-radius: 16px;
             border: 1px solid var(--border-color);
-            padding: 24px;
+            padding: 18px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             transition: border-color 0.3s;
         }
@@ -191,9 +191,9 @@
         }
 
         .panel-title {
-            font-size: 1.25rem;
+            font-size: 1.05rem;
             font-weight: 600;
-            margin-bottom: 20px;
+            margin-bottom: 14px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -202,44 +202,44 @@
 
         /* Form elements */
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 12px;
         }
 
         .form-group label {
             display: block;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             color: var(--text-muted);
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             font-weight: 500;
         }
 
-        textarea, input[type="text"], input[type="number"], select {
+        textarea, input[type="text"], input[type="number"], input[type="password"], select {
             width: 100%;
             background-color: #08070d;
             border: 1px solid var(--border-color);
             border-radius: 8px;
             color: var(--text-color);
-            padding: 12px;
+            padding: 9px 10px;
             font-family: inherit;
-            font-size: 0.95rem;
+            font-size: 0.86rem;
             outline: none;
             transition: all 0.3s;
         }
 
-        textarea:focus, input[type="text"]:focus, input[type="number"]:focus, select:focus {
+        textarea:focus, input[type="text"]:focus, input[type="number"]:focus, input[type="password"]:focus, select:focus {
             border-color: var(--accent-cyan);
             box-shadow: 0 0 8px rgba(0, 242, 254, 0.2);
         }
 
         textarea {
             resize: vertical;
-            min-height: 120px;
+            min-height: 88px;
         }
 
         .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 15px;
+            gap: 12px;
         }
 
         /* Buttons styling */
@@ -248,13 +248,13 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
-            padding: 12px 24px;
+            padding: 9px 16px;
             border-radius: 8px;
             font-weight: 600;
             cursor: pointer;
             border: none;
             transition: all 0.3s;
-            font-size: 0.95rem;
+            font-size: 0.86rem;
             width: 100%;
         }
 
@@ -441,12 +441,12 @@
 
         .terminal-output {
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.85rem;
+            font-size: 0.78rem;
             color: #d1cbdc;
-            height: 250px;
+            height: 220px;
             overflow-y: auto;
             white-space: pre-wrap;
-            line-height: 1.5;
+            line-height: 1.4;
             scroll-behavior: smooth;
         }
 
@@ -458,22 +458,22 @@
         /* Create Project Banner (Styled exactly like CapCut's Desktop homepage) */
         .create-project-banner {
             width: 100%;
-            max-width: 250px;
+            max-width: 220px;
             background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
-            height: 60px;
+            height: 52px;
             border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 10px;
+            gap: 8px;
             color: #0b0a10;
-            font-size: 1.15rem;
+            font-size: 1rem;
             font-weight: 800;
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
             box-shadow: 0 4px 20px rgba(0, 242, 254, 0.3);
             border: none;
-            margin-bottom: 25px;
+            margin-bottom: 18px;
         }
 
         .create-project-banner:hover {
@@ -486,9 +486,9 @@
         .project-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-            gap: 20px;
-            margin-top: 20px;
-            margin-bottom: 40px;
+            gap: 14px;
+            margin-top: 14px;
+            margin-bottom: 24px;
         }
 
         /* Project Card Styling matching CapCut Desktop grid */
@@ -649,6 +649,7 @@
             width: 100%;
             height: 100%;
             overflow: auto;
+            padding: 18px 0;
             background-color: rgba(5, 4, 8, 0.85);
             backdrop-filter: blur(8px);
             align-items: center;
@@ -658,10 +659,12 @@
         .modal-content {
             background-color: var(--card-bg);
             margin: auto;
-            padding: 30px;
+            padding: 20px;
             border: 1px solid var(--border-color);
             width: 95%;
             max-width: 600px;
+            max-height: calc(100vh - 36px);
+            overflow-y: auto;
             border-radius: 16px;
             box-shadow: 0 20px 50px rgba(0,0,0,0.5);
             position: relative;
@@ -687,6 +690,113 @@
         .close-modal:hover {
             color: var(--accent-cyan);
         }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .profile-list {
+            display: grid;
+            gap: 10px;
+        }
+
+        .settings-table {
+            width: 100%;
+            border-collapse: collapse;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .settings-table th,
+        .settings-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+            font-size: 0.82rem;
+            vertical-align: middle;
+        }
+
+        .settings-table th {
+            color: var(--text-muted);
+            font-weight: 600;
+            background: rgba(255,255,255,0.03);
+        }
+
+        .settings-table tbody tr:hover {
+            background: rgba(255,255,255,0.02);
+        }
+
+        .settings-table td:last-child {
+            white-space: nowrap;
+        }
+
+        .settings-inline-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+            align-items: center;
+        }
+
+        .profile-card {
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 12px;
+            background: rgba(255,255,255,0.02);
+        }
+
+        .profile-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .profile-card-title {
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--text-light);
+        }
+
+        .profile-summary {
+            color: var(--text-muted);
+            font-size: 0.76rem;
+            margin-top: 4px;
+            line-height: 1.35;
+        }
+
+        @media (max-width: 960px) {
+            body {
+                padding: 12px;
+            }
+
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .header-actions {
+                width: 100%;
+                justify-content: space-between;
+                flex-wrap: wrap;
+            }
+
+            .form-row,
+            .dashboard-grid,
+            .queue-logs-section {
+                grid-template-columns: 1fr !important;
+            }
+
+            .modal-content {
+                width: calc(100% - 16px);
+                padding: 16px;
+                max-height: calc(100vh - 16px);
+            }
+        }
     </style>
 </head>
 <body>
@@ -697,10 +807,13 @@
             <h1>CapCut Automation Studio</h1>
             <p>Hệ thống tự động hóa sản xuất & dịch thuật từng dự án riêng biệt</p>
         </div>
+        <div class="header-actions">
+        <button class="btn btn-secondary" id="btn-open-settings" type="button" style="padding: 6px 12px; font-size: 0.8rem; width: auto;">Setting</button>
         <div class="status-badge">
             <button class="btn btn-secondary" id="btn-test-ui" type="button" style="padding: 6px 12px; font-size: 0.8rem; width: auto; margin-right: 10px;">🔌 Test connection</button>
             <span class="status-dot" id="system-status-dot"></span>
             <span id="system-status-text">Đang kết nối...</span>
+        </div>
         </div>
     </header>
 
@@ -835,26 +948,16 @@
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="detail-ai-provider">AI provider</label>
-                            <select id="detail-ai-provider">
-                                <option value="openai">OpenAI</option>
-                                <option value="gemini">Gemini</option>
-                                <option value="anthropic">Anthropic</option>
-                            </select>
+                            <label for="detail-translation-ai-profile">AI cho dá»‹ch</label>
+                            <select id="detail-translation-ai-profile"></select>
+                            <div class="profile-summary" id="detail-translation-ai-summary"></div>
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="detail-ai-api-key">AI API key</label>
-                        <input type="password" id="detail-ai-api-key" placeholder="sk-...">
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="detail-ai-model">AI model</label>
-                            <input type="text" id="detail-ai-model" value="gpt-4o-mini">
-                        </div>
-                        <div class="form-group">
-                            <label for="detail-ai-base-url">AI base URL</label>
-                            <input type="text" id="detail-ai-base-url" value="https://api.openai.com/v1">
+                            <label for="detail-context-ai-profile">AI cho context / ASR</label>
+                            <select id="detail-context-ai-profile"></select>
+                            <div class="profile-summary" id="detail-context-ai-summary"></div>
                         </div>
                     </div>
                     <div class="form-group">
@@ -899,6 +1002,12 @@
         <section class="panel">
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
                 <h2 class="panel-title" style="margin: 0; color: var(--accent-cyan); font-size: 1.2rem; font-weight: 600;">Hàng chờ Automation</h2>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <button class="btn btn-secondary" id="btn-start" style="width:auto; padding:8px 12px;">Chạy</button>
+                    <button class="btn btn-secondary" id="btn-pause" style="width:auto; padding:8px 12px; display:none;">Tạm dừng</button>
+                    <button class="btn btn-secondary" id="btn-resume" style="width:auto; padding:8px 12px; display:none;">Tiếp tục</button>
+                    <button class="btn btn-secondary" id="btn-clear" style="width:auto; padding:8px 12px;">Xóa hàng chờ</button>
+                </div>
             </div>
             <div class="queue-table-container" style="max-height: 350px; overflow: auto;">
                 <table>
@@ -1018,6 +1127,46 @@
         </div>
     </div>
 
+    <div class="modal" id="modal-settings">
+        <div class="modal-content" style="max-width: 720px;">
+            <span class="close-modal" id="close-settings-modal">&times;</span>
+            <h3 style="margin-bottom: 10px; font-size: 1.3rem; font-weight: 600; color: var(--accent-cyan);">Global Settings</h3>
+            <p style="color: var(--text-muted); margin-bottom: 20px; line-height: 1.5;">
+                Tham khảo dự án <strong>openreel-video</strong>: gom khóa API và khóa tham chiếu vào một màn settings riêng.
+            </p>
+            <form id="form-settings">
+                <h4 style="margin: 0 0 10px; color: var(--text-muted); font-size: 0.95rem; border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">AI profiles</h4>
+                <div class="profile-list" id="settings-ai-profiles"></div>
+                <div style="display: flex; justify-content: flex-end; margin-top: 12px;">
+                    <button type="button" class="btn btn-secondary" id="btn-add-ai-profile" style="width: auto; padding: 10px 14px;">+ Thêm AI</button>
+                </div>
+                <div class="form-row" style="margin-top: 18px;">
+                    <div class="form-group">
+                        <label for="settings-default-translation-ai">AI mặc định cho dịch</label>
+                        <select id="settings-default-translation-ai"></select>
+                    </div>
+                    <div class="form-group">
+                        <label for="settings-default-context-ai">AI mặc định cho context / ASR</label>
+                        <select id="settings-default-context-ai"></select>
+                    </div>
+                </div>
+                <h4 style="margin: 20px 0 10px; color: var(--text-muted); font-size: 0.95rem; border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">OpenReel</h4>
+                <div class="form-group">
+                    <label for="settings-openreel-api-key">OpenReel API key</label>
+                    <input type="password" id="settings-openreel-api-key" placeholder="OpenReel key">
+                </div>
+                <div class="form-group">
+                    <label for="settings-openreel-reference-keys">OpenReel reference keys</label>
+                    <textarea id="settings-openreel-reference-keys" rows="5" placeholder="Mỗi dòng một key hoặc ghi chú tham chiếu"></textarea>
+                </div>
+                <div style="display: flex; gap: 15px; margin-top: 30px;">
+                    <button type="button" class="btn btn-secondary" id="btn-settings-cancel" style="flex: 1;">Đóng</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1.2;">Lưu settings</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 <script>
     const systemStatusDot = document.getElementById('system-status-dot');
     const systemStatusText = document.getElementById('system-status-text');
@@ -1026,9 +1175,11 @@
 
     const btnStart = document.getElementById('btn-start');
     const btnPause = document.getElementById('btn-pause');
+    const btnResume = document.getElementById('btn-resume');
     const btnClear = document.getElementById('btn-clear');
     const btnTestUI = document.getElementById('btn-test-ui');
     const btnRefreshProjects = document.getElementById('btn-refresh-projects');
+    const btnOpenSettings = document.getElementById('btn-open-settings');
 
     // Modals & Forms (Create Project)
     const bannerCreateProject = document.getElementById('banner-create-project');
@@ -1038,6 +1189,16 @@
     const btnCreateOnly = document.getElementById('btn-create-only');
     const btnBrowseCreateVideo = document.getElementById('btn-browse-create-video');
     const createVideoPathInput = document.getElementById('create-video-path');
+    const modalSettings = document.getElementById('modal-settings');
+    const closeSettingsModal = document.getElementById('close-settings-modal');
+    const formSettings = document.getElementById('form-settings');
+    const btnSettingsCancel = document.getElementById('btn-settings-cancel');
+    const btnAddAiProfile = document.getElementById('btn-add-ai-profile');
+    const settingsAiProfiles = document.getElementById('settings-ai-profiles');
+    const settingsDefaultTranslationAi = document.getElementById('settings-default-translation-ai');
+    const settingsDefaultContextAi = document.getElementById('settings-default-context-ai');
+    const settingsOpenreelApiKey = document.getElementById('settings-openreel-api-key');
+    const settingsOpenreelReferenceKeys = document.getElementById('settings-openreel-reference-keys');
 
     // Details Screen Elements
     const projectsGridContainer = document.getElementById('projects-grid-container');
@@ -1058,6 +1219,14 @@
     const projectsGrid = document.getElementById('projects-grid');
 
     let isProcessing = false;
+    let cachedGlobalSettings = null;
+    let settingsProfilesDraft = [];
+    let aiProfileEditingIndex = -1;
+    let modalAiProfileEditor = null;
+    let closeAiProfileModal = null;
+    let formAiProfile = null;
+    let btnAiProfileCancel = null;
+    const queueLogSnapshots = new Map();
 
     // Modals toggle helper
     function openModal(modal) {
@@ -1071,19 +1240,441 @@
     // Event Listeners for Modals
     bannerCreateProject.addEventListener('click', () => openModal(modalCreateProject));
     closeCreateModal.addEventListener('click', () => closeModal(modalCreateProject));
+    if (btnOpenSettings) {
+        btnOpenSettings.addEventListener('click', () => {
+            loadGlobalSettings();
+            openModal(modalSettings);
+        });
+    }
+    if (closeSettingsModal) closeSettingsModal.addEventListener('click', () => closeModal(modalSettings));
+    if (btnSettingsCancel) btnSettingsCancel.addEventListener('click', () => closeModal(modalSettings));
 
     window.addEventListener('click', (e) => {
         if (e.target === modalCreateProject) closeModal(modalCreateProject);
+        if (e.target === modalSettings) closeModal(modalSettings);
+        if (modalAiProfileEditor && e.target === modalAiProfileEditor) closeModal(modalAiProfileEditor);
+    });
+
+    if (btnAddAiProfile) {
+        btnAddAiProfile.addEventListener('click', () => {
+            openAiProfileEditor();
+        });
+    }
+
+    if (settingsAiProfiles) {
+        settingsAiProfiles.addEventListener('click', (e) => {
+            const editButton = e.target.closest('[data-edit-ai-profile]');
+            if (editButton) {
+                openAiProfileEditor(parseInt(editButton.dataset.index, 10));
+                return;
+            }
+            const deleteButton = e.target.closest('[data-delete-ai-profile]');
+            if (!deleteButton) return;
+            const index = parseInt(deleteButton.dataset.index, 10);
+            if (Number.isNaN(index)) return;
+            settingsProfilesDraft = settingsProfilesDraft.filter((_, itemIndex) => itemIndex !== index);
+            renderAiProfileList(settingsProfilesDraft);
+        });
+    }
+
+    ['detail-translation-ai-profile', 'detail-context-ai-profile'].forEach((id) => {
+        const select = document.getElementById(id);
+        if (!select) return;
+        select.addEventListener('change', () => {
+            const profiles = (cachedGlobalSettings && cachedGlobalSettings.ai_profiles) || [];
+            updateDetailAiSummary('detail-translation-ai-profile', 'detail-translation-ai-summary', profiles);
+            updateDetailAiSummary('detail-context-ai-profile', 'detail-context-ai-summary', profiles);
+        });
     });
 
     // Logging function
     function log(message, type = 'info') {
         const line = document.createElement('div');
         line.className = `log-line log-${type}`;
+        const text = String(message || '').trim();
+        const hasBackendTimestamp = /^\d{2}:\d{2}:\d{2}\s+-\s+/.test(text);
         const time = new Date().toLocaleTimeString();
-        line.innerText = `[${time}] ${message}`;
+        line.innerText = hasBackendTimestamp ? text : `[${time}] ${text}`;
         terminalOut.appendChild(line);
         terminalOut.scrollTop = terminalOut.scrollHeight;
+    }
+
+    function getQueueLogKey(item, index) {
+        return `${item.video || 'item'}::${index}`;
+    }
+
+    function getQueueLogLevel(item) {
+        if (item.status === 'failed') return 'error';
+        if (item.status === 'paused') return 'warning';
+        if (item.status === 'success') return 'success';
+        return 'info';
+    }
+
+    function formatQueueLogMessage(item, index) {
+        const displayName = String(item.video || `Mục ${index + 1}`).split(/[\\/]/).pop();
+        const message = String(item.message || '').trim();
+        const progress = Number.isFinite(Number(item.progress)) ? ` (${Math.round(Number(item.progress))}%)` : '';
+        if (item.status === 'running') return `[${displayName}] ${message}${progress}`;
+        if (item.status === 'paused') return `[${displayName}] ${message || 'Đã tạm dừng pipeline.'}`;
+        if (item.status === 'success') return `[${displayName}] Hoàn thành.`;
+        if (item.status === 'failed') return `[${displayName}] ${message || 'Pipeline thất bại.'}`;
+        return `[${displayName}] ${message}`;
+    }
+
+    function syncQueueStepLogs(serverQueue) {
+        const activeKeys = new Set();
+        (serverQueue || []).forEach((item, index) => {
+            const key = getQueueLogKey(item, index);
+            activeKeys.add(key);
+
+            const snapshot = JSON.stringify({
+                status: item.status || '',
+                message: item.message || ''
+            });
+            const previous = queueLogSnapshots.get(key);
+            queueLogSnapshots.set(key, snapshot);
+
+            const shouldLog =
+                previous !== snapshot &&
+                item &&
+                item.message &&
+                item.status &&
+                item.status !== 'pending';
+
+            if (shouldLog) {
+                log(formatQueueLogMessage(item, index), getQueueLogLevel(item));
+            }
+        });
+
+        Array.from(queueLogSnapshots.keys()).forEach((key) => {
+            if (!activeKeys.has(key)) {
+                queueLogSnapshots.delete(key);
+            }
+        });
+    }
+
+    function escapeHtml(value) {
+        return String(value || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function getEmptyAiProfile() {
+        return {
+            id: '',
+            label: '',
+            provider: 'openai',
+            api_key: '',
+            model: '',
+            base_url: ''
+        };
+    }
+
+    function slugifyProfileId(value) {
+        return String(value || '')
+            .trim()
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+    }
+
+    function ensureAiProfileEditorModal() {
+        if (modalAiProfileEditor) return;
+        const wrapper = document.createElement('div');
+        wrapper.innerHTML = `
+            <div class="modal" id="modal-ai-profile-editor">
+                <div class="modal-content" style="max-width: 620px;">
+                    <span class="close-modal" id="close-ai-profile-modal">&times;</span>
+                    <h3 id="ai-profile-modal-title" style="margin-bottom: 14px; font-size: 1.15rem; font-weight: 600; color: var(--accent-cyan);">AI Profile</h3>
+                    <form id="form-ai-profile">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="ai-profile-label">Tên hiển thị</label>
+                                <input type="text" id="ai-profile-label" placeholder="GLM Context">
+                            </div>
+                            <div class="form-group">
+                                <label for="ai-profile-id">Profile ID</label>
+                                <input type="text" id="ai-profile-id" placeholder="glm-context">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="ai-profile-provider">Provider</label>
+                                <select id="ai-profile-provider">
+                                    <option value="openai">OpenAI Compatible</option>
+                                    <option value="gemini">Gemini</option>
+                                    <option value="anthropic">Anthropic</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="ai-profile-model">Model</label>
+                                <input type="text" id="ai-profile-model" placeholder="gpt-4o-mini / glm-5.2 / gemma-3">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="ai-profile-api-key">API key</label>
+                            <input type="password" id="ai-profile-api-key" placeholder="sk-...">
+                        </div>
+                        <div class="form-group">
+                            <label for="ai-profile-base-url">Base URL</label>
+                            <input type="text" id="ai-profile-base-url" placeholder="https://api.openai.com/v1">
+                        </div>
+                        <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 16px;">
+                            <button type="button" class="btn btn-secondary" id="btn-ai-profile-cancel" style="width: auto; padding: 8px 14px;">Hủy</button>
+                            <button type="submit" class="btn btn-primary" style="width: auto; padding: 8px 14px;">Lưu AI</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(wrapper.firstElementChild);
+        modalAiProfileEditor = document.getElementById('modal-ai-profile-editor');
+        closeAiProfileModal = document.getElementById('close-ai-profile-modal');
+        formAiProfile = document.getElementById('form-ai-profile');
+        btnAiProfileCancel = document.getElementById('btn-ai-profile-cancel');
+        closeAiProfileModal.addEventListener('click', () => closeModal(modalAiProfileEditor));
+        btnAiProfileCancel.addEventListener('click', () => closeModal(modalAiProfileEditor));
+        formAiProfile.addEventListener('submit', saveAiProfileFromEditor);
+    }
+
+    function initializeSettingsLayout() {
+        ensureAiProfileEditorModal();
+        const intro = modalSettings ? modalSettings.querySelector('p') : null;
+        if (intro) intro.style.display = 'none';
+        if (settingsDefaultTranslationAi?.closest('.form-row')) {
+            settingsDefaultTranslationAi.closest('.form-row').style.display = 'none';
+        }
+        if (settingsOpenreelApiKey?.closest('.form-group')) {
+            const openreelHeading = settingsOpenreelApiKey.closest('.form-group').previousElementSibling;
+            if (openreelHeading) openreelHeading.style.display = 'none';
+            settingsOpenreelApiKey.closest('.form-group').style.display = 'none';
+        }
+        if (settingsOpenreelReferenceKeys?.closest('.form-group')) {
+            settingsOpenreelReferenceKeys.closest('.form-group').style.display = 'none';
+        }
+        settingsAiProfiles.classList.remove('profile-list');
+    }
+
+    function renderAiProfilesTable(profiles) {
+        settingsProfilesDraft = Array.isArray(profiles) ? [...profiles] : [];
+        if (!settingsProfilesDraft.length) {
+            settingsAiProfiles.innerHTML = `
+                <div style="padding: 12px; border: 1px solid var(--border-color); border-radius: 10px; color: var(--text-muted); font-size: 0.82rem;">
+                    Chưa có AI profile. Bấm <strong>+ Thêm AI</strong> để tạo mới.
+                </div>
+            `;
+            return;
+        }
+
+        const rows = settingsProfilesDraft.map((profile, index) => `
+            <tr>
+                <td>${escapeHtml(profile.label || profile.id || `AI ${index + 1}`)}</td>
+                <td>${escapeHtml(profile.provider || 'openai')}</td>
+                <td>${escapeHtml(profile.model || '')}</td>
+                <td>${escapeHtml(profile.base_url || '')}</td>
+                <td>
+                    <div class="settings-inline-actions">
+                        <button type="button" class="btn btn-secondary" data-edit-ai-profile data-index="${index}" style="width: auto; padding: 6px 10px;">Sửa</button>
+                        <button type="button" class="btn btn-secondary" data-delete-ai-profile data-index="${index}" style="width: auto; padding: 6px 10px;">Xóa</button>
+                    </div>
+                </td>
+            </tr>
+        `).join('');
+
+        settingsAiProfiles.innerHTML = `
+            <table class="settings-table">
+                <thead>
+                    <tr>
+                        <th style="width: 24%;">Tên</th>
+                        <th style="width: 16%;">Provider</th>
+                        <th style="width: 24%;">Model</th>
+                        <th>Base URL</th>
+                        <th style="width: 120px; text-align: right;">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>${rows}</tbody>
+            </table>
+        `;
+    }
+
+    function openAiProfileEditor(index = -1) {
+        ensureAiProfileEditorModal();
+        aiProfileEditingIndex = Number.isInteger(index) ? index : -1;
+        const profile = aiProfileEditingIndex >= 0 ? settingsProfilesDraft[aiProfileEditingIndex] : getEmptyAiProfile();
+        document.getElementById('ai-profile-modal-title').textContent = aiProfileEditingIndex >= 0 ? 'Sửa AI Profile' : 'Thêm AI Profile';
+        document.getElementById('ai-profile-label').value = profile?.label || '';
+        document.getElementById('ai-profile-id').value = profile?.id || '';
+        document.getElementById('ai-profile-provider').value = profile?.provider || 'openai';
+        document.getElementById('ai-profile-model').value = profile?.model || '';
+        document.getElementById('ai-profile-api-key').value = profile?.api_key || '';
+        document.getElementById('ai-profile-base-url').value = profile?.base_url || '';
+        openModal(modalAiProfileEditor);
+    }
+
+    function saveAiProfileFromEditor(e) {
+        e.preventDefault();
+        const label = document.getElementById('ai-profile-label').value.trim();
+        const manualId = document.getElementById('ai-profile-id').value.trim();
+        const profile = {
+            id: manualId || slugifyProfileId(label) || `custom-ai-${settingsProfilesDraft.length + 1}`,
+            label: label || manualId || `AI ${settingsProfilesDraft.length + 1}`,
+            provider: document.getElementById('ai-profile-provider').value,
+            model: document.getElementById('ai-profile-model').value.trim(),
+            api_key: document.getElementById('ai-profile-api-key').value.trim(),
+            base_url: document.getElementById('ai-profile-base-url').value.trim()
+        };
+
+        if (aiProfileEditingIndex >= 0) {
+            settingsProfilesDraft[aiProfileEditingIndex] = profile;
+        } else {
+            settingsProfilesDraft.push(profile);
+        }
+
+        renderAiProfilesTable(settingsProfilesDraft);
+        closeModal(modalAiProfileEditor);
+    }
+
+    function buildAiProfileCard(profile = {}, index = 0) {
+        const item = { ...getEmptyAiProfile(), ...profile };
+        return `
+            <div class="profile-card" data-profile-row>
+                <div class="profile-card-header">
+                    <div class="profile-card-title">AI Profile ${index + 1}</div>
+                    <button type="button" class="btn btn-secondary" data-remove-ai-profile style="width: auto; padding: 6px 10px;">Xóa</button>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Label</label>
+                        <input type="text" data-profile-label value="${escapeHtml(item.label)}" placeholder="GLM Context">
+                    </div>
+                    <div class="form-group">
+                        <label>Profile ID</label>
+                        <input type="text" data-profile-id value="${escapeHtml(item.id)}" placeholder="glm-context">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Provider</label>
+                        <select data-profile-provider>
+                            <option value="openai" ${item.provider === 'openai' ? 'selected' : ''}>OpenAI Compatible</option>
+                            <option value="gemini" ${item.provider === 'gemini' ? 'selected' : ''}>Gemini</option>
+                            <option value="anthropic" ${item.provider === 'anthropic' ? 'selected' : ''}>Anthropic</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Model</label>
+                        <input type="text" data-profile-model value="${escapeHtml(item.model)}" placeholder="gpt-4o-mini / glm-5.2 / gemma-3">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>API key</label>
+                    <input type="password" data-profile-api-key value="${escapeHtml(item.api_key)}" placeholder="sk-...">
+                </div>
+                <div class="form-group">
+                    <label>Base URL</label>
+                    <input type="text" data-profile-base-url value="${escapeHtml(item.base_url)}" placeholder="https://api.openai.com/v1">
+                </div>
+            </div>
+        `;
+    }
+
+    function getAiProfilesFromSettingsForm() {
+        const rows = Array.from(document.querySelectorAll('[data-profile-row]'));
+        const profiles = rows.map(row => ({
+            id: row.querySelector('[data-profile-id]').value.trim(),
+            label: row.querySelector('[data-profile-label]').value.trim(),
+            provider: row.querySelector('[data-profile-provider]').value,
+            model: row.querySelector('[data-profile-model]').value.trim(),
+            api_key: row.querySelector('[data-profile-api-key]').value.trim(),
+            base_url: row.querySelector('[data-profile-base-url]').value.trim()
+        })).filter(profile =>
+            profile.id || profile.label || profile.model || profile.api_key || profile.base_url
+        );
+
+        return profiles.length ? profiles : [{ ...getEmptyAiProfile(), id: 'openai-default', label: 'OpenAI Default' }];
+    }
+
+    function fillProfileSelect(select, profiles, selectedValue) {
+        if (!select) return;
+        const options = profiles.map(profile => {
+            const label = profile.label || profile.id || 'Unnamed AI';
+            const meta = [profile.provider, profile.model].filter(Boolean).join(' / ');
+            return `<option value="${escapeHtml(profile.id)}">${escapeHtml(meta ? `${label} (${meta})` : label)}</option>`;
+        }).join('');
+        select.innerHTML = options;
+        const validIds = profiles.map(profile => profile.id);
+        const finalValue = validIds.includes(selectedValue) ? selectedValue : (validIds[0] || '');
+        select.value = finalValue;
+    }
+
+    function updateDetailAiSummary(selectId, summaryId, profiles) {
+        const select = document.getElementById(selectId);
+        const summary = document.getElementById(summaryId);
+        if (!select || !summary) return;
+        const selected = (profiles || []).find(profile => profile.id === select.value);
+        summary.textContent = selected
+            ? `${selected.provider || 'openai'} • ${selected.model || ''} • ${selected.base_url || ''}`
+            : 'Chưa có AI profile khả dụng trong Global Settings.';
+    }
+
+    function renderDetailAiProfileSelects(profiles, translationId, contextId, defaultTranslationId, defaultContextId) {
+        const normalizedProfiles = Array.isArray(profiles) && profiles.length ? profiles : [{
+            id: 'openai-default',
+            label: 'OpenAI Default',
+            provider: 'openai',
+            model: 'gpt-4o-mini',
+            base_url: 'https://api.openai.com/v1'
+        }];
+        fillProfileSelect(
+            document.getElementById('detail-translation-ai-profile'),
+            normalizedProfiles,
+            translationId || defaultTranslationId || normalizedProfiles[0].id
+        );
+        fillProfileSelect(
+            document.getElementById('detail-context-ai-profile'),
+            normalizedProfiles,
+            contextId || defaultContextId || normalizedProfiles[0].id
+        );
+        updateDetailAiSummary('detail-translation-ai-profile', 'detail-translation-ai-summary', normalizedProfiles);
+        updateDetailAiSummary('detail-context-ai-profile', 'detail-context-ai-summary', normalizedProfiles);
+    }
+
+    function refreshSettingsDefaultProfileSelects(selectedTranslationId, selectedContextId) {
+        const profiles = settingsProfilesDraft.length ? settingsProfilesDraft : [getEmptyAiProfile()];
+        if (settingsDefaultTranslationAi) {
+            fillProfileSelect(settingsDefaultTranslationAi, profiles, selectedTranslationId || settingsDefaultTranslationAi.value);
+        }
+        if (settingsDefaultContextAi) {
+            fillProfileSelect(settingsDefaultContextAi, profiles, selectedContextId || settingsDefaultContextAi.value);
+        }
+    }
+
+    function renderAiProfileList(profiles) {
+        renderAiProfilesTable(profiles);
+    }
+
+    function loadGlobalSettings() {
+        return fetch('/api/settings/global')
+            .then(res => res.json())
+            .then(data => {
+                cachedGlobalSettings = data;
+                initializeSettingsLayout();
+                renderAiProfileList(data.ai_profiles || []);
+                refreshSettingsDefaultProfileSelects(
+                    data.default_translation_ai_profile_id,
+                    data.default_context_ai_profile_id
+                );
+                if (settingsOpenreelApiKey) settingsOpenreelApiKey.value = data.openreel_api_key || '';
+                if (settingsOpenreelReferenceKeys) settingsOpenreelReferenceKeys.value = data.openreel_reference_keys || '';
+                return data;
+            })
+            .catch(err => {
+                log('Lỗi khi tải global settings: ' + err, 'error');
+                throw err;
+            });
     }
 
     // Tkinter Native file dialogs for Absolute Paths
@@ -1218,10 +1809,13 @@
                 document.getElementById('detail-font-color').value = config.font_color;
                 document.getElementById('detail-font-name').value = config.font_name;
                 document.getElementById('detail-translation-method').value = config.translation_method || 'google';
-                document.getElementById('detail-ai-provider').value = config.ai_provider || 'openai';
-                document.getElementById('detail-ai-api-key').value = config.ai_api_key || '';
-                document.getElementById('detail-ai-model').value = config.ai_model || 'gpt-4o-mini';
-                document.getElementById('detail-ai-base-url').value = config.ai_base_url || 'https://api.openai.com/v1';
+                renderDetailAiProfileSelects(
+                    config.available_ai_profiles || [],
+                    config.translation_ai_profile_id,
+                    config.context_ai_profile_id,
+                    config.default_translation_ai_profile_id,
+                    config.default_context_ai_profile_id
+                );
                 document.getElementById('detail-video-context').value = config.video_context || 'Short fantasy game online videos, MMORPG gameplay review, PvP server war';
                 document.getElementById('detail-source-language').value = config.source_language || 'Chinese';
                 document.getElementById('detail-target-language').value = config.target_language || 'Vietnamese';
@@ -1239,11 +1833,8 @@
             });
     }
 
-    // Save project configuration form from details screen
-    formDetailConfig.addEventListener('submit', (e) => {
-        e.preventDefault();
-        const folder = document.getElementById('detail-config-folder').value;
-        const config = {
+    function getDetailProjectConfigPayload() {
+        return {
             video_path: detailVideoPathInput.value,
             video_paths: detailVideoPathInput.value.split(/\r?\n|;/).map(v => v.trim()).filter(Boolean),
             speed: parseFloat(document.getElementById('detail-speed').value),
@@ -1253,16 +1844,21 @@
             font_color: document.getElementById('detail-font-color').value,
             font_name: document.getElementById('detail-font-name').value,
             translation_method: document.getElementById('detail-translation-method').value,
-            ai_provider: document.getElementById('detail-ai-provider').value,
-            ai_api_key: document.getElementById('detail-ai-api-key').value,
-            ai_model: document.getElementById('detail-ai-model').value,
-            ai_base_url: document.getElementById('detail-ai-base-url').value,
+            translation_ai_profile_id: document.getElementById('detail-translation-ai-profile').value,
+            context_ai_profile_id: document.getElementById('detail-context-ai-profile').value,
             source_language: document.getElementById('detail-source-language').value,
             target_language: document.getElementById('detail-target-language').value,
             ai_tone: document.getElementById('detail-ai-tone').value,
             video_context: document.getElementById('detail-video-context').value,
             ai_temperature: parseFloat(document.getElementById('detail-ai-temperature').value)
         };
+    }
+
+    // Save project configuration form from details screen
+    formDetailConfig.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const folder = document.getElementById('detail-config-folder').value;
+        const config = getDetailProjectConfigPayload();
 
         fetch(`/api/projects/${encodeURIComponent(folder)}/config`, {
             method: 'POST',
@@ -1285,26 +1881,7 @@
         const folder = document.getElementById('detail-config-folder').value;
         
         // Save first then add
-        const config = {
-            video_path: detailVideoPathInput.value,
-            video_paths: detailVideoPathInput.value.split(/\r?\n|;/).map(v => v.trim()).filter(Boolean),
-            speed: parseFloat(document.getElementById('detail-speed').value),
-            volume_db: parseFloat(document.getElementById('detail-volume').value),
-            tts_speed: parseFloat(document.getElementById('detail-tts-speed').value),
-            font_size: parseFloat(document.getElementById('detail-font-size').value),
-            font_color: document.getElementById('detail-font-color').value,
-            font_name: document.getElementById('detail-font-name').value,
-            translation_method: document.getElementById('detail-translation-method').value,
-            ai_provider: document.getElementById('detail-ai-provider').value,
-            ai_api_key: document.getElementById('detail-ai-api-key').value,
-            ai_model: document.getElementById('detail-ai-model').value,
-            ai_base_url: document.getElementById('detail-ai-base-url').value,
-            source_language: document.getElementById('detail-source-language').value,
-            target_language: document.getElementById('detail-target-language').value,
-            ai_tone: document.getElementById('detail-ai-tone').value,
-            video_context: document.getElementById('detail-video-context').value,
-            ai_temperature: parseFloat(document.getElementById('detail-ai-temperature').value)
-        };
+        const config = getDetailProjectConfigPayload();
 
         fetch(`/api/projects/${encodeURIComponent(folder)}/config`, {
             method: 'POST',
@@ -1394,6 +1971,58 @@
         });
     }
 
+    if (formSettings) {
+        formSettings.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const ai_profiles = settingsProfilesDraft;
+            if (!ai_profiles.length) {
+                log('Cần ít nhất một AI profile trong Global Settings.', 'error');
+                return;
+            }
+            const validIds = ai_profiles.map(profile => profile.id);
+            const defaultTranslationId = validIds.includes(cachedGlobalSettings?.default_translation_ai_profile_id)
+                ? cachedGlobalSettings.default_translation_ai_profile_id
+                : ai_profiles[0].id;
+            const defaultContextId = validIds.includes(cachedGlobalSettings?.default_context_ai_profile_id)
+                ? cachedGlobalSettings.default_context_ai_profile_id
+                : defaultTranslationId;
+            const payload = {
+                ai_profiles: ai_profiles,
+                default_translation_ai_profile_id: defaultTranslationId,
+                default_context_ai_profile_id: defaultContextId,
+                openreel_api_key: settingsOpenreelApiKey ? settingsOpenreelApiKey.value : (cachedGlobalSettings?.openreel_api_key || ''),
+                openreel_reference_keys: settingsOpenreelReferenceKeys ? settingsOpenreelReferenceKeys.value : (cachedGlobalSettings?.openreel_reference_keys || '')
+            };
+
+            fetch('/api/settings/global', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.ok) {
+                    cachedGlobalSettings = data.settings;
+                    renderAiProfileList(data.settings.ai_profiles || []);
+                    renderDetailAiProfileSelects(
+                        data.settings.ai_profiles || [],
+                        document.getElementById('detail-translation-ai-profile')?.value || data.settings.default_translation_ai_profile_id,
+                        document.getElementById('detail-context-ai-profile')?.value || data.settings.default_context_ai_profile_id,
+                        data.settings.default_translation_ai_profile_id,
+                        data.settings.default_context_ai_profile_id
+                    );
+                    log('Đã lưu global settings thành công.', 'success');
+                    closeModal(modalSettings);
+                } else {
+                    log('Lỗi khi lưu global settings: ' + data.error, 'error');
+                }
+            })
+            .catch(err => {
+                log('Lỗi kết nối khi lưu global settings: ' + err, 'error');
+            });
+        });
+    }
+
     formCreateProject.addEventListener('submit', (e) => {
         e.preventDefault();
         handleCreateProject(true); // Create & Run
@@ -1438,7 +2067,23 @@
             fetch('/api/pause', { method: 'POST' })
             .then(res => res.json())
             .then(data => {
-                log('Đã gửi yêu cầu dừng hàng chờ sau khi hoàn tất dự án hiện tại.', 'warning');
+                updateQueueTable(data.queue || []);
+                log('Đã gửi yêu cầu tạm dừng pipeline tại checkpoint an toàn gần nhất.', 'warning');
+            });
+        });
+    }
+
+    if (btnResume) {
+        btnResume.addEventListener('click', () => {
+            fetch('/api/resume', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({})
+            })
+            .then(res => res.json())
+            .then(data => {
+                updateQueueTable(data.queue || []);
+                log('Đã gửi yêu cầu tiếp tục pipeline từ bước đang tạm dừng.', 'success');
             });
         });
     }
@@ -1471,15 +2116,19 @@
                 systemStatusDot.className = 'status-dot active';
                 systemStatusText.innerText = 'Máy chủ Hoạt động';
                 isProcessing = data.is_processing;
+                const isPaused = !!data.is_paused;
                 
                 if (isProcessing) {
                     if (btnStart) btnStart.disabled = true;
                     if (btnPause) btnPause.style.display = 'block';
+                    if (btnResume) btnResume.style.display = 'none';
                 } else {
                     if (btnStart) btnStart.disabled = false;
                     if (btnPause) btnPause.style.display = 'none';
+                    if (btnResume) btnResume.style.display = isPaused ? 'block' : 'none';
                 }
-                
+
+                syncQueueStepLogs(data.queue || []);
                 updateQueueTable(data.queue);
             })
             .catch(err => {
@@ -1492,7 +2141,10 @@
     const sseSource = new EventSource('/api/logs');
     sseSource.onmessage = function(event) {
         const data = JSON.parse(event.data);
-        log(data.message, data.level || 'info');
+        const level = data.level || 'info';
+        if (level === 'warning' || level === 'error' || level === 'success') {
+            log(data.message, level);
+        }
     };
 
     function updateQueueTable(serverQueue) {
@@ -1514,6 +2166,7 @@
             const statusLabel = {
                 'pending': 'Chờ xử lý',
                 'running': 'Đang chạy',
+                'paused': 'Tạm dừng',
                 'success': 'Hoàn thành',
                 'failed': 'Lỗi'
             }[item.status];
@@ -1605,6 +2258,7 @@
     });
 
     // Startup Tasks
+    loadGlobalSettings();
     loadProjects();
     setInterval(checkServerStatus, 2000);
     checkServerStatus();

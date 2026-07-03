@@ -1,0 +1,1139 @@
+{
+  "window": {
+    "hwnd": 2032662,
+    "title": "CapCut",
+    "rect": [
+      -1920,
+      0,
+      -1,
+      1039
+    ],
+    "width": 1919,
+    "height": 1039
+  },
+  "crop_rect": {
+    "left": 191,
+    "top": 374,
+    "right": 1842,
+    "bottom": 914,
+    "width": 1651,
+    "height": 540
+  },
+  "target_text": "0420 (1)",
+  "clicked": {
+    "text": "0420 (1)",
+    "score": 0.9982,
+    "x": -1651,
+    "y": 625,
+    "offset_px": 18,
+    "dry_run": false,
+    "window_title": "CapCut",
+    "window_rect": [
+      -1920,
+      0,
+      -1,
+      1039
+    ],
+    "crop_rect": {
+      "left": 191,
+      "top": 374,
+      "right": 1842,
+      "bottom": 914,
+      "width": 1651,
+      "height": 540
+    },
+    "texts": [
+      {
+        "text": "HD",
+        "score": 0.9901,
+        "box": {
+          "left": 1021,
+          "top": 21,
+          "right": 1038,
+          "bottom": 32
+        },
+        "abs_box": {
+          "left": 1212,
+          "top": 395,
+          "right": 1229,
+          "bottom": 406
+        }
+      },
+      {
+        "text": "Alvideo",
+        "score": 0.9849,
+        "box": {
+          "left": 212,
+          "top": 56,
+          "right": 263,
+          "bottom": 74
+        },
+        "abs_box": {
+          "left": 403,
+          "top": 430,
+          "right": 454,
+          "bottom": 448
+        }
+      },
+      {
+        "text": "Alimage",
+        "score": 0.9765,
+        "box": {
+          "left": 342,
+          "top": 56,
+          "right": 396,
+          "bottom": 74
+        },
+        "abs_box": {
+          "left": 533,
+          "top": 430,
+          "right": 587,
+          "bottom": 448
+        }
+      },
+      {
+        "text": "Video translator",
+        "score": 0.9995,
+        "box": {
+          "left": 454,
+          "top": 56,
+          "right": 548,
+          "bottom": 74
+        },
+        "abs_box": {
+          "left": 645,
+          "top": 430,
+          "right": 739,
+          "bottom": 448
+        }
+      },
+      {
+        "text": "Enhance quality",
+        "score": 0.9874,
+        "box": {
+          "left": 982,
+          "top": 56,
+          "right": 1075,
+          "bottom": 73
+        },
+        "abs_box": {
+          "left": 1173,
+          "top": 430,
+          "right": 1266,
+          "bottom": 447
+        }
+      },
+      {
+        "text": "Long video to",
+        "score": 0.9992,
+        "box": {
+          "left": 66,
+          "top": 57,
+          "right": 146,
+          "bottom": 74
+        },
+        "abs_box": {
+          "left": 257,
+          "top": 431,
+          "right": 337,
+          "bottom": 448
+        }
+      },
+      {
+        "text": "Al dialogue scene",
+        "score": 0.9797,
+        "box": {
+          "left": 582,
+          "top": 57,
+          "right": 685,
+          "bottom": 73
+        },
+        "abs_box": {
+          "left": 773,
+          "top": 431,
+          "right": 876,
+          "bottom": 447
+        }
+      },
+      {
+        "text": "Al fashion model",
+        "score": 0.9856,
+        "box": {
+          "left": 718,
+          "top": 57,
+          "right": 813,
+          "bottom": 72
+        },
+        "abs_box": {
+          "left": 909,
+          "top": 431,
+          "right": 1004,
+          "bottom": 446
+        }
+      },
+      {
+        "text": "Text to speech",
+        "score": 0.9954,
+        "box": {
+          "left": 854,
+          "top": 57,
+          "right": 942,
+          "bottom": 74
+        },
+        "abs_box": {
+          "left": 1045,
+          "top": 431,
+          "right": 1133,
+          "bottom": 448
+        }
+      },
+      {
+        "text": "Auto cutout",
+        "score": 0.9979,
+        "box": {
+          "left": 1127,
+          "top": 58,
+          "right": 1196,
+          "bottom": 73
+        },
+        "abs_box": {
+          "left": 1318,
+          "top": 432,
+          "right": 1387,
+          "bottom": 447
+        }
+      },
+      {
+        "text": "shorts",
+        "score": 0.9959,
+        "box": {
+          "left": 84,
+          "top": 70,
+          "right": 127,
+          "bottom": 88
+        },
+        "abs_box": {
+          "left": 275,
+          "top": 444,
+          "right": 318,
+          "bottom": 462
+        }
+      },
+      {
+        "text": "Projects",
+        "score": 0.9994,
+        "box": {
+          "left": 46,
+          "top": 114,
+          "right": 108,
+          "bottom": 134
+        },
+        "abs_box": {
+          "left": 237,
+          "top": 488,
+          "right": 299,
+          "bottom": 508
+        }
+      },
+      {
+        "text": "Trash",
+        "score": 0.9308,
+        "box": {
+          "left": 1522,
+          "top": 116,
+          "right": 1574,
+          "bottom": 134
+        },
+        "abs_box": {
+          "left": 1713,
+          "top": 490,
+          "right": 1765,
+          "bottom": 508
+        }
+      },
+      {
+        "text": "Project",
+        "score": 0.937,
+        "box": {
+          "left": 1596,
+          "top": 117,
+          "right": 1650,
+          "bottom": 132
+        },
+        "abs_box": {
+          "left": 1787,
+          "top": 491,
+          "right": 1841,
+          "bottom": 506
+        }
+      },
+      {
+        "text": "0420 (1)",
+        "score": 0.9982,
+        "box": {
+          "left": 52,
+          "top": 260,
+          "right": 104,
+          "bottom": 278
+        },
+        "abs_box": {
+          "left": 243,
+          "top": 634,
+          "right": 295,
+          "bottom": 652
+        }
+      },
+      {
+        "text": "0525 (1)",
+        "score": 0.9912,
+        "box": {
+          "left": 580,
+          "top": 260,
+          "right": 630,
+          "bottom": 278
+        },
+        "abs_box": {
+          "left": 771,
+          "top": 634,
+          "right": 821,
+          "bottom": 652
+        }
+      },
+      {
+        "text": "0602 (1)",
+        "score": 0.9775,
+        "box": {
+          "left": 976,
+          "top": 260,
+          "right": 1027,
+          "bottom": 278
+        },
+        "abs_box": {
+          "left": 1167,
+          "top": 634,
+          "right": 1218,
+          "bottom": 652
+        }
+      },
+      {
+        "text": "0703",
+        "score": 0.9995,
+        "box": {
+          "left": 185,
+          "top": 261,
+          "right": 218,
+          "bottom": 277
+        },
+        "abs_box": {
+          "left": 376,
+          "top": 635,
+          "right": 409,
+          "bottom": 651
+        }
+      },
+      {
+        "text": "0424",
+        "score": 0.9997,
+        "box": {
+          "left": 316,
+          "top": 261,
+          "right": 352,
+          "bottom": 277
+        },
+        "abs_box": {
+          "left": 507,
+          "top": 635,
+          "right": 543,
+          "bottom": 651
+        }
+      },
+      {
+        "text": "0701",
+        "score": 0.9993,
+        "box": {
+          "left": 448,
+          "top": 261,
+          "right": 480,
+          "bottom": 277
+        },
+        "abs_box": {
+          "left": 639,
+          "top": 635,
+          "right": 671,
+          "bottom": 651
+        }
+      },
+      {
+        "text": "0504",
+        "score": 0.9999,
+        "box": {
+          "left": 713,
+          "top": 261,
+          "right": 748,
+          "bottom": 277
+        },
+        "abs_box": {
+          "left": 904,
+          "top": 635,
+          "right": 939,
+          "bottom": 651
+        }
+      },
+      {
+        "text": "0602",
+        "score": 0.9996,
+        "box": {
+          "left": 845,
+          "top": 261,
+          "right": 879,
+          "bottom": 277
+        },
+        "abs_box": {
+          "left": 1036,
+          "top": 635,
+          "right": 1070,
+          "bottom": 651
+        }
+      },
+      {
+        "text": "0420",
+        "score": 0.9997,
+        "box": {
+          "left": 1109,
+          "top": 261,
+          "right": 1144,
+          "bottom": 277
+        },
+        "abs_box": {
+          "left": 1300,
+          "top": 635,
+          "right": 1335,
+          "bottom": 651
+        }
+      },
+      {
+        "text": "0525",
+        "score": 0.9996,
+        "box": {
+          "left": 1240,
+          "top": 261,
+          "right": 1274,
+          "bottom": 277
+        },
+        "abs_box": {
+          "left": 1431,
+          "top": 635,
+          "right": 1465,
+          "bottom": 651
+        }
+      },
+      {
+        "text": "69.1K|00:00",
+        "score": 0.9613,
+        "box": {
+          "left": 447,
+          "top": 275,
+          "right": 526,
+          "bottom": 292
+        },
+        "abs_box": {
+          "left": 638,
+          "top": 649,
+          "right": 717,
+          "bottom": 666
+        }
+      },
+      {
+        "text": "53.2M|05:16",
+        "score": 0.9372,
+        "box": {
+          "left": 712,
+          "top": 275,
+          "right": 792,
+          "bottom": 290
+        },
+        "abs_box": {
+          "left": 903,
+          "top": 649,
+          "right": 983,
+          "bottom": 664
+        }
+      },
+      {
+        "text": "2.7K|00:00",
+        "score": 0.9856,
+        "box": {
+          "left": 844,
+          "top": 275,
+          "right": 918,
+          "bottom": 292
+        },
+        "abs_box": {
+          "left": 1035,
+          "top": 649,
+          "right": 1109,
+          "bottom": 666
+        }
+      },
+      {
+        "text": "69.1K|00:00",
+        "score": 0.9449,
+        "box": {
+          "left": 976,
+          "top": 275,
+          "right": 1053,
+          "bottom": 292
+        },
+        "abs_box": {
+          "left": 1167,
+          "top": 649,
+          "right": 1244,
+          "bottom": 666
+        }
+      },
+      {
+        "text": "8.7M133:58",
+        "score": 0.9807,
+        "box": {
+          "left": 1108,
+          "top": 275,
+          "right": 1181,
+          "bottom": 292
+        },
+        "abs_box": {
+          "left": 1299,
+          "top": 649,
+          "right": 1372,
+          "bottom": 666
+        }
+      },
+      {
+        "text": "150.0M|07:08",
+        "score": 0.9773,
+        "box": {
+          "left": 52,
+          "top": 276,
+          "right": 138,
+          "bottom": 291
+        },
+        "abs_box": {
+          "left": 243,
+          "top": 650,
+          "right": 329,
+          "bottom": 665
+        }
+      },
+      {
+        "text": "150.2M|05:30",
+        "score": 0.9553,
+        "box": {
+          "left": 184,
+          "top": 276,
+          "right": 270,
+          "bottom": 291
+        },
+        "abs_box": {
+          "left": 375,
+          "top": 650,
+          "right": 461,
+          "bottom": 665
+        }
+      },
+      {
+        "text": "150.8M| 05:30",
+        "score": 0.9375,
+        "box": {
+          "left": 317,
+          "top": 276,
+          "right": 402,
+          "bottom": 291
+        },
+        "abs_box": {
+          "left": 508,
+          "top": 650,
+          "right": 593,
+          "bottom": 665
+        }
+      },
+      {
+        "text": "482.9K|00:15",
+        "score": 0.9791,
+        "box": {
+          "left": 580,
+          "top": 276,
+          "right": 667,
+          "bottom": 291
+        },
+        "abs_box": {
+          "left": 771,
+          "top": 650,
+          "right": 858,
+          "bottom": 665
+        }
+      },
+      {
+        "text": "19.6M|00:08",
+        "score": 0.9811,
+        "box": {
+          "left": 1240,
+          "top": 276,
+          "right": 1320,
+          "bottom": 291
+        },
+        "abs_box": {
+          "left": 1431,
+          "top": 650,
+          "right": 1511,
+          "bottom": 665
+        }
+      }
+    ]
+  },
+  "error": null,
+  "texts": [
+    {
+      "text": "HD",
+      "score": 0.9901,
+      "box": {
+        "left": 1021,
+        "top": 21,
+        "right": 1038,
+        "bottom": 32
+      },
+      "abs_box": {
+        "left": 1212,
+        "top": 395,
+        "right": 1229,
+        "bottom": 406
+      }
+    },
+    {
+      "text": "Alvideo",
+      "score": 0.9849,
+      "box": {
+        "left": 212,
+        "top": 56,
+        "right": 263,
+        "bottom": 74
+      },
+      "abs_box": {
+        "left": 403,
+        "top": 430,
+        "right": 454,
+        "bottom": 448
+      }
+    },
+    {
+      "text": "Alimage",
+      "score": 0.9765,
+      "box": {
+        "left": 342,
+        "top": 56,
+        "right": 396,
+        "bottom": 74
+      },
+      "abs_box": {
+        "left": 533,
+        "top": 430,
+        "right": 587,
+        "bottom": 448
+      }
+    },
+    {
+      "text": "Video translator",
+      "score": 0.9995,
+      "box": {
+        "left": 454,
+        "top": 56,
+        "right": 548,
+        "bottom": 74
+      },
+      "abs_box": {
+        "left": 645,
+        "top": 430,
+        "right": 739,
+        "bottom": 448
+      }
+    },
+    {
+      "text": "Enhance quality",
+      "score": 0.9874,
+      "box": {
+        "left": 982,
+        "top": 56,
+        "right": 1075,
+        "bottom": 73
+      },
+      "abs_box": {
+        "left": 1173,
+        "top": 430,
+        "right": 1266,
+        "bottom": 447
+      }
+    },
+    {
+      "text": "Long video to",
+      "score": 0.9992,
+      "box": {
+        "left": 66,
+        "top": 57,
+        "right": 146,
+        "bottom": 74
+      },
+      "abs_box": {
+        "left": 257,
+        "top": 431,
+        "right": 337,
+        "bottom": 448
+      }
+    },
+    {
+      "text": "Al dialogue scene",
+      "score": 0.9797,
+      "box": {
+        "left": 582,
+        "top": 57,
+        "right": 685,
+        "bottom": 73
+      },
+      "abs_box": {
+        "left": 773,
+        "top": 431,
+        "right": 876,
+        "bottom": 447
+      }
+    },
+    {
+      "text": "Al fashion model",
+      "score": 0.9856,
+      "box": {
+        "left": 718,
+        "top": 57,
+        "right": 813,
+        "bottom": 72
+      },
+      "abs_box": {
+        "left": 909,
+        "top": 431,
+        "right": 1004,
+        "bottom": 446
+      }
+    },
+    {
+      "text": "Text to speech",
+      "score": 0.9954,
+      "box": {
+        "left": 854,
+        "top": 57,
+        "right": 942,
+        "bottom": 74
+      },
+      "abs_box": {
+        "left": 1045,
+        "top": 431,
+        "right": 1133,
+        "bottom": 448
+      }
+    },
+    {
+      "text": "Auto cutout",
+      "score": 0.9979,
+      "box": {
+        "left": 1127,
+        "top": 58,
+        "right": 1196,
+        "bottom": 73
+      },
+      "abs_box": {
+        "left": 1318,
+        "top": 432,
+        "right": 1387,
+        "bottom": 447
+      }
+    },
+    {
+      "text": "shorts",
+      "score": 0.9959,
+      "box": {
+        "left": 84,
+        "top": 70,
+        "right": 127,
+        "bottom": 88
+      },
+      "abs_box": {
+        "left": 275,
+        "top": 444,
+        "right": 318,
+        "bottom": 462
+      }
+    },
+    {
+      "text": "Projects",
+      "score": 0.9994,
+      "box": {
+        "left": 46,
+        "top": 114,
+        "right": 108,
+        "bottom": 134
+      },
+      "abs_box": {
+        "left": 237,
+        "top": 488,
+        "right": 299,
+        "bottom": 508
+      }
+    },
+    {
+      "text": "Trash",
+      "score": 0.9308,
+      "box": {
+        "left": 1522,
+        "top": 116,
+        "right": 1574,
+        "bottom": 134
+      },
+      "abs_box": {
+        "left": 1713,
+        "top": 490,
+        "right": 1765,
+        "bottom": 508
+      }
+    },
+    {
+      "text": "Project",
+      "score": 0.937,
+      "box": {
+        "left": 1596,
+        "top": 117,
+        "right": 1650,
+        "bottom": 132
+      },
+      "abs_box": {
+        "left": 1787,
+        "top": 491,
+        "right": 1841,
+        "bottom": 506
+      }
+    },
+    {
+      "text": "0420 (1)",
+      "score": 0.9982,
+      "box": {
+        "left": 52,
+        "top": 260,
+        "right": 104,
+        "bottom": 278
+      },
+      "abs_box": {
+        "left": 243,
+        "top": 634,
+        "right": 295,
+        "bottom": 652
+      }
+    },
+    {
+      "text": "0525 (1)",
+      "score": 0.9912,
+      "box": {
+        "left": 580,
+        "top": 260,
+        "right": 630,
+        "bottom": 278
+      },
+      "abs_box": {
+        "left": 771,
+        "top": 634,
+        "right": 821,
+        "bottom": 652
+      }
+    },
+    {
+      "text": "0602 (1)",
+      "score": 0.9775,
+      "box": {
+        "left": 976,
+        "top": 260,
+        "right": 1027,
+        "bottom": 278
+      },
+      "abs_box": {
+        "left": 1167,
+        "top": 634,
+        "right": 1218,
+        "bottom": 652
+      }
+    },
+    {
+      "text": "0703",
+      "score": 0.9995,
+      "box": {
+        "left": 185,
+        "top": 261,
+        "right": 218,
+        "bottom": 277
+      },
+      "abs_box": {
+        "left": 376,
+        "top": 635,
+        "right": 409,
+        "bottom": 651
+      }
+    },
+    {
+      "text": "0424",
+      "score": 0.9997,
+      "box": {
+        "left": 316,
+        "top": 261,
+        "right": 352,
+        "bottom": 277
+      },
+      "abs_box": {
+        "left": 507,
+        "top": 635,
+        "right": 543,
+        "bottom": 651
+      }
+    },
+    {
+      "text": "0701",
+      "score": 0.9993,
+      "box": {
+        "left": 448,
+        "top": 261,
+        "right": 480,
+        "bottom": 277
+      },
+      "abs_box": {
+        "left": 639,
+        "top": 635,
+        "right": 671,
+        "bottom": 651
+      }
+    },
+    {
+      "text": "0504",
+      "score": 0.9999,
+      "box": {
+        "left": 713,
+        "top": 261,
+        "right": 748,
+        "bottom": 277
+      },
+      "abs_box": {
+        "left": 904,
+        "top": 635,
+        "right": 939,
+        "bottom": 651
+      }
+    },
+    {
+      "text": "0602",
+      "score": 0.9996,
+      "box": {
+        "left": 845,
+        "top": 261,
+        "right": 879,
+        "bottom": 277
+      },
+      "abs_box": {
+        "left": 1036,
+        "top": 635,
+        "right": 1070,
+        "bottom": 651
+      }
+    },
+    {
+      "text": "0420",
+      "score": 0.9997,
+      "box": {
+        "left": 1109,
+        "top": 261,
+        "right": 1144,
+        "bottom": 277
+      },
+      "abs_box": {
+        "left": 1300,
+        "top": 635,
+        "right": 1335,
+        "bottom": 651
+      }
+    },
+    {
+      "text": "0525",
+      "score": 0.9996,
+      "box": {
+        "left": 1240,
+        "top": 261,
+        "right": 1274,
+        "bottom": 277
+      },
+      "abs_box": {
+        "left": 1431,
+        "top": 635,
+        "right": 1465,
+        "bottom": 651
+      }
+    },
+    {
+      "text": "69.1K|00:00",
+      "score": 0.9613,
+      "box": {
+        "left": 447,
+        "top": 275,
+        "right": 526,
+        "bottom": 292
+      },
+      "abs_box": {
+        "left": 638,
+        "top": 649,
+        "right": 717,
+        "bottom": 666
+      }
+    },
+    {
+      "text": "53.2M|05:16",
+      "score": 0.9372,
+      "box": {
+        "left": 712,
+        "top": 275,
+        "right": 792,
+        "bottom": 290
+      },
+      "abs_box": {
+        "left": 903,
+        "top": 649,
+        "right": 983,
+        "bottom": 664
+      }
+    },
+    {
+      "text": "2.7K|00:00",
+      "score": 0.9856,
+      "box": {
+        "left": 844,
+        "top": 275,
+        "right": 918,
+        "bottom": 292
+      },
+      "abs_box": {
+        "left": 1035,
+        "top": 649,
+        "right": 1109,
+        "bottom": 666
+      }
+    },
+    {
+      "text": "69.1K|00:00",
+      "score": 0.9449,
+      "box": {
+        "left": 976,
+        "top": 275,
+        "right": 1053,
+        "bottom": 292
+      },
+      "abs_box": {
+        "left": 1167,
+        "top": 649,
+        "right": 1244,
+        "bottom": 666
+      }
+    },
+    {
+      "text": "8.7M133:58",
+      "score": 0.9807,
+      "box": {
+        "left": 1108,
+        "top": 275,
+        "right": 1181,
+        "bottom": 292
+      },
+      "abs_box": {
+        "left": 1299,
+        "top": 649,
+        "right": 1372,
+        "bottom": 666
+      }
+    },
+    {
+      "text": "150.0M|07:08",
+      "score": 0.9773,
+      "box": {
+        "left": 52,
+        "top": 276,
+        "right": 138,
+        "bottom": 291
+      },
+      "abs_box": {
+        "left": 243,
+        "top": 650,
+        "right": 329,
+        "bottom": 665
+      }
+    },
+    {
+      "text": "150.2M|05:30",
+      "score": 0.9553,
+      "box": {
+        "left": 184,
+        "top": 276,
+        "right": 270,
+        "bottom": 291
+      },
+      "abs_box": {
+        "left": 375,
+        "top": 650,
+        "right": 461,
+        "bottom": 665
+      }
+    },
+    {
+      "text": "150.8M| 05:30",
+      "score": 0.9375,
+      "box": {
+        "left": 317,
+        "top": 276,
+        "right": 402,
+        "bottom": 291
+      },
+      "abs_box": {
+        "left": 508,
+        "top": 650,
+        "right": 593,
+        "bottom": 665
+      }
+    },
+    {
+      "text": "482.9K|00:15",
+      "score": 0.9791,
+      "box": {
+        "left": 580,
+        "top": 276,
+        "right": 667,
+        "bottom": 291
+      },
+      "abs_box": {
+        "left": 771,
+        "top": 650,
+        "right": 858,
+        "bottom": 665
+      }
+    },
+    {
+      "text": "19.6M|00:08",
+      "score": 0.9811,
+      "box": {
+        "left": 1240,
+        "top": 276,
+        "right": 1320,
+        "bottom": 291
+      },
+      "abs_box": {
+        "left": 1431,
+        "top": 650,
+        "right": 1511,
+        "bottom": 665
+      }
+    }
+  ]
+}
