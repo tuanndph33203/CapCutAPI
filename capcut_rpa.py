@@ -20,6 +20,7 @@ from PIL import ImageGrab
 
 pyautogui.FAILSAFE = True
 pyautogui.PAUSE = 0.05
+FAILSAFE_EDGE_MARGIN = 8
 
 
 @dataclass
@@ -81,8 +82,38 @@ def screenshot_window(window: WindowBox) -> np.ndarray:
     return cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
 
 
+def ensure_cursor_safe(window: WindowBox | None = None) -> None:
+    x, y = pyautogui.position()
+    screen_w, screen_h = pyautogui.size()
+    near_edge = (
+        x <= FAILSAFE_EDGE_MARGIN
+        or y <= FAILSAFE_EDGE_MARGIN
+        or x >= screen_w - 1 - FAILSAFE_EDGE_MARGIN
+        or y >= screen_h - 1 - FAILSAFE_EDGE_MARGIN
+    )
+    if not near_edge:
+        return
+
+    if window is not None:
+        target_x = max(window.left + 80, min(window.right - 80, window.left + window.width // 2))
+        target_y = max(window.top + 80, min(window.bottom - 80, window.top + window.height // 2))
+    else:
+        target_x = screen_w // 2
+        target_y = screen_h // 2
+
+    # Temporarily disable PyAutoGUI's failsafe only while nudging the cursor
+    # away from the screen corner that would otherwise abort all automation.
+    previous_failsafe = pyautogui.FAILSAFE
+    pyautogui.FAILSAFE = False
+    try:
+        pyautogui.moveTo(target_x, target_y, duration=0.1)
+    finally:
+        pyautogui.FAILSAFE = previous_failsafe
+
+
 def click_abs(x: int, y: int, dry_run: bool) -> dict[str, Any]:
     if not dry_run:
+        ensure_cursor_safe()
         pyautogui.click(x, y)
     return {"x": x, "y": y, "dry_run": dry_run}
 
@@ -100,6 +131,7 @@ def select_all_timeline(
     y = int(window.bottom - click_y_from_bottom)
 
     if not dry_run:
+        ensure_cursor_safe(window)
         pyautogui.click(x, y)
         time.sleep(pause_after_click)
         pyautogui.hotkey("ctrl", "a")
