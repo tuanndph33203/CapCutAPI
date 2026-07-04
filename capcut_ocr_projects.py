@@ -30,6 +30,38 @@ def crop_project_area(image, ratios: tuple[float, float, float, float]):
     }
 
 
+def serialize_window(window) -> dict[str, Any]:
+    return {
+        "hwnd": getattr(window, "hwnd", None),
+        "title": getattr(window, "title", ""),
+        "rect": [window.left, window.top, window.right, window.bottom],
+        "width": window.width,
+        "height": window.height,
+    }
+
+
+def write_ocr_debug_report(
+    debug_report: Path,
+    *,
+    window,
+    crop_rect: dict[str, int],
+    texts: list[dict[str, Any]],
+    target_text: str = "",
+    clicked: dict[str, Any] | None = None,
+    error: str | None = None,
+) -> None:
+    debug_report.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "window": serialize_window(window),
+        "crop_rect": crop_rect,
+        "target_text": target_text,
+        "clicked": clicked,
+        "error": error,
+        "texts": texts,
+    }
+    debug_report.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
 def parse_ocr_results(results: list[list[Any]] | None, min_score: float, crop_rect: dict[str, int]) -> list[dict[str, Any]]:
     items: list[dict[str, Any]] = []
     if not results:
@@ -69,12 +101,17 @@ def read_visible_texts(
     crop: str = "0.10,0.36,0.96,0.88",
     debug_image: Path | None = None,
     full_debug_image: Path | None = None,
+    debug_report: Path | None = None,
 ) -> dict[str, Any]:
     ratios = tuple(float(part.strip()) for part in crop.split(","))
     if len(ratios) != 4:
         raise ValueError("crop must have four comma-separated ratios")
 
-    window = find_capcut_window()
+    window_debug_report = None
+    if debug_report is not None:
+        window_debug_report = debug_report.with_name(f"{debug_report.stem}_window{debug_report.suffix}")
+
+    window = find_capcut_window(debug_report=window_debug_report)
     activate_window(window)
     image = screenshot_window(window)
     cropped_image, crop_rect = crop_project_area(image, ratios)
@@ -89,6 +126,14 @@ def read_visible_texts(
     ocr = RapidOCR()
     results, _ = ocr(cropped_image)
     items = parse_ocr_results(results, min_score, crop_rect)
+
+    if debug_report:
+        write_ocr_debug_report(
+            debug_report,
+            window=window,
+            crop_rect=crop_rect,
+            texts=items,
+        )
 
     return {
         "window": window,
@@ -106,16 +151,27 @@ def click_text_above(
     dry_run: bool = False,
     debug_image: Path | None = None,
     full_debug_image: Path | None = None,
+    debug_report: Path | None = None,
 ) -> dict[str, Any]:
     ocr_data = read_visible_texts(
         min_score=min_score,
         crop=crop,
         debug_image=debug_image,
         full_debug_image=full_debug_image,
+        debug_report=debug_report,
     )
     needle = text.lower()
     match = next((item for item in ocr_data["texts"] if needle in item["text"].lower()), None)
     if not match:
+        if debug_report:
+            write_ocr_debug_report(
+                debug_report,
+                window=ocr_data["window"],
+                crop_rect=ocr_data["crop_rect"],
+                texts=ocr_data["texts"],
+                target_text=text,
+                error=f"OCR text not found: {text}",
+            )
         raise RuntimeError(f"OCR text not found: {text}")
 
     window = ocr_data["window"]
@@ -125,18 +181,28 @@ def click_text_above(
     click_y = window.top + int((abs_box["top"] + abs_box["bottom"]) / 2) - offset_px
     if not dry_run:
         pyautogui.click(click_x, click_y)
-
-    return {
+    result = {
         "text": match["text"],
         "score": match["score"],
         "x": click_x,
         "y": click_y,
         "offset_px": offset_px,
         "dry_run": dry_run,
+        "window_title": ocr_data["window"].title,
         "window_rect": [window.left, window.top, window.right, window.bottom],
         "crop_rect": ocr_data["crop_rect"],
         "texts": ocr_data["texts"],
     }
+    if debug_report:
+        write_ocr_debug_report(
+            debug_report,
+            window=ocr_data["window"],
+            crop_rect=ocr_data["crop_rect"],
+            texts=ocr_data["texts"],
+            target_text=text,
+            clicked=result,
+        )
+    return result
 
 
 def main() -> int:
@@ -145,6 +211,7 @@ def main() -> int:
     parser.add_argument("--min-score", type=float, default=0.45)
     parser.add_argument("--debug-image", type=Path, default=Path("scratch/capcut_projects_ocr_crop.png"))
     parser.add_argument("--full-debug-image", type=Path, default=Path("scratch/capcut_projects_ocr_full.png"))
+    parser.add_argument("--debug-report", type=Path, default=Path("scratch/capcut_projects_ocr_report.json"))
     parser.add_argument("--crop", default="0.10,0.36,0.96,0.88", help="left,top,right,bottom ratios inside the CapCut window")
     parser.add_argument("--click-text", default="", help="Click the first OCR text containing this value")
     parser.add_argument("--click-above-cm", type=float, default=0.5, help="Click this many centimeters above the OCR text center")
@@ -163,6 +230,7 @@ def main() -> int:
             dry_run=args.dry_run,
             debug_image=args.debug_image,
             full_debug_image=args.full_debug_image,
+            debug_report=args.debug_report,
         )
         items = clicked["texts"]
         window_rect = clicked["window_rect"]
@@ -173,6 +241,7 @@ def main() -> int:
             crop=args.crop,
             debug_image=args.debug_image,
             full_debug_image=args.full_debug_image,
+            debug_report=args.debug_report,
         )
         window = ocr_data["window"]
         window_rect = [window.left, window.top, window.right, window.bottom]
@@ -186,6 +255,7 @@ def main() -> int:
         "crop_rect": crop_rect,
         "debug_image": str(args.debug_image),
         "full_debug_image": str(args.full_debug_image),
+        "debug_report": str(args.debug_report),
         "clicked": clicked,
         "texts": items,
     }, ensure_ascii=False, indent=2))

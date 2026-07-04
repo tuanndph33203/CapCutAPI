@@ -9,6 +9,7 @@ import threading
 import subprocess
 import re
 import shutil
+import socket
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, Response
 
@@ -34,6 +35,7 @@ CAPCUT_SHORTCUT_CANDIDATES = [
     os.path.join(os.environ.get("USERPROFILE", ""), "Desktop", "CapCut.lnk"),
     r"C:\Users\PC\Desktop\CapCut.lnk",
 ]
+GLOBAL_SETTINGS_PATH = Path(__file__).resolve().parent / "settings" / "global_pipeline_settings.json"
 
 # Configure logging
 logger = logging.getLogger("flask_video_generator")
@@ -319,7 +321,7 @@ def launch_capcut():
             time.sleep(0.5)
             if capcut_main_hwnd_and_rect() is not None:
                 break
-                
+
     # Wait for window and connect controller
     logger.info("Đang kết nối với cửa sổ CapCut...")
     for i in range(25):
@@ -337,10 +339,10 @@ def open_project_in_gui(controller, project_name):
     logger.info(f"Đang tìm và mở dự án '{project_name}' trên màn hình CapCut...")
     controller.app.SetActive()
     controller.app.SetTopmost()
-    
+
     # Refresh window state
     controller.get_window()
-    
+
     # If we are already in the editor panel (Export button exists), close active draft first
     export_btn = find_element_by_name(controller.app, "Export") or find_element_by_name(controller.app, "Xuất")
     if export_btn:
@@ -352,10 +354,11 @@ def open_project_in_gui(controller, project_name):
         controller.app.SetActive()
         controller.app.SetTopmost()
         time.sleep(2)
-        
+
     try:
         from capcut_ocr_projects import click_text_above
 
+        debug_report = Path("scratch/capcut_projects_ocr_report.json")
         logger.info(f"Đang dùng OCR tìm chữ dự án '{project_name}' rồi click lên trên 0.5cm...")
         click_result = click_text_above(
             text=str(project_name),
@@ -363,34 +366,42 @@ def open_project_in_gui(controller, project_name):
             click_above_cm=0.5,
             debug_image=Path("scratch/capcut_projects_ocr_crop.png"),
             full_debug_image=Path("scratch/capcut_projects_ocr_full.png"),
+            debug_report=debug_report,
         )
         logger.info(
             f"OCR đã thấy '{click_result['text']}' "
             f"(score={click_result['score']}) và click tại ({click_result['x']}, {click_result['y']})."
         )
+        logger.info(
+            f"Window OCR đang dùng: {click_result['window_title']} {click_result['window_rect']} | "
+            f"báo cáo: {debug_report}"
+        )
     except Exception as e:
-        logger.warning(f"OCR không mở được dự án '{project_name}': {str(e)}. Fallback click tọa độ project đầu tiên.")
-        pyautogui.click(FIRST_PROJECT_FALLBACK_X, FIRST_PROJECT_FALLBACK_Y)
+        raise Exception(
+            f"OCR không mở được đúng dự án '{project_name}'. "
+            f"Đã chặn fallback sang project đầu tiên. Chi tiết: {str(e)}. "
+            "Xem scratch/capcut_projects_ocr_report.json và *_window.json để debug selector."
+        ) from e
 
     logger.info("Waiting 5 seconds after project click before continuing pipeline...")
     time.sleep(5)
-    return controller
-
-    # Wait up to 30 seconds for editor window to open
-    logger.info("Đang đợi chế độ chỉnh sửa tải xong...")
+    logger.info("Đang xác nhận dự án đã mở vào chế độ chỉnh sửa...")
     for _ in range(30):
-        time.sleep(1)
         controller.get_window()
         export_btn = find_element_by_name(controller.app, "Export") or find_element_by_name(controller.app, "Xuất")
         if export_btn:
-            logger.info("Đã mở dự án thành công.")
+            logger.info("Đã mở đúng dự án thành công.")
             return controller
-            
-    raise Exception("Đợi mở dự án bị quá giờ (Timeout).")
+        time.sleep(1)
+
+    raise Exception(
+        f"Đã click dự án '{project_name}' nhưng không vào được màn hình chỉnh sửa. "
+        "Đã chặn fallback sang project đầu tiên."
+    )
 
 def run_auto_captions(controller):
     logger.info("Tiến hành tự động nhận diện phụ đề (Auto Captions)...")
-    
+
     # 1. Click Text tab on top-left menu
     text_tab = find_element_by_name(controller.app, "Text") or find_element_by_name(controller.app, "Văn bản")
     if not text_tab:
@@ -400,7 +411,7 @@ def run_auto_captions(controller):
     logger.info("Nhấp chọn tab 'Text'...")
     text_tab.Click()
     time.sleep(1)
-    
+
     # 2. Click Auto captions tab on left sub-menu
     captions_tab = find_element_by_name(controller.app, "Auto captions") or find_element_by_name(controller.app, "Chú thích tự động")
     if not captions_tab:
@@ -410,7 +421,7 @@ def run_auto_captions(controller):
     logger.info("Nhấp chọn 'Auto captions'...")
     captions_tab.Click()
     time.sleep(1.5)
-    
+
     # 3. Click Generate button
     gen_btn = find_element_by_name(controller.app, "Generate") or find_element_by_name(controller.app, "Bắt đầu") or find_element_by_name(controller.app, "Create")
     if not gen_btn:
@@ -419,7 +430,7 @@ def run_auto_captions(controller):
         raise Exception("Không tìm thấy nút 'Generate' / 'Bắt đầu' nhận diện phụ đề!")
     logger.info("Nhấp chọn nút 'Generate' / 'Bắt đầu'...")
     gen_btn.Click()
-    
+
     # 4. Wait for captions dialog to complete
     logger.info("Đang nhận diện giọng nói tạo chữ (Auto Captions)... Vui lòng đợi...")
     time.sleep(5)
@@ -434,20 +445,20 @@ def run_auto_captions(controller):
 
 def run_text_to_speech(controller):
     logger.info("Tiến hành tạo giọng đọc cho phụ đề (Text-to-speech)...")
-    
+
     # 1. Click timeline to select subtitle clips
     rect = controller.app.BoundingRectangle
     timeline_x = int(rect.left + rect.width() / 2)
     timeline_y = int(rect.bottom - 150)
-    
+
     logger.info("Focus vào vùng timeline...")
     pyautogui.click(timeline_x, timeline_y)
     time.sleep(0.5)
-    
+
     logger.info("Nhấn chọn tất cả các clip sub (Ctrl+A)...")
     pyautogui.hotkey('ctrl', 'a')
     time.sleep(1)
-    
+
     # 2. Click Text-to-speech tab on top-right properties panel
     tts_tab = find_element_by_name(controller.app, "Text-to-speech") or find_element_by_name(controller.app, "Đọc văn bản")
     if not tts_tab:
@@ -457,7 +468,7 @@ def run_text_to_speech(controller):
     logger.info("Nhấp chọn tab 'Text-to-speech'...")
     tts_tab.Click()
     time.sleep(1.5)
-    
+
     # 3. Choose Favorites tab (Star icon)
     fav_btn = find_element_by_name(controller.app, "Favorites") or find_element_by_name(controller.app, "Yêu thích")
     if not fav_btn:
@@ -466,7 +477,7 @@ def run_text_to_speech(controller):
         logger.info("Nhấp chọn mục Yêu thích (Star)...")
         fav_btn.Click()
         time.sleep(1)
-        
+
     # 4. Click the first voice item card
     # Offset coordinates from fav_btn
     if fav_btn:
@@ -477,11 +488,11 @@ def run_text_to_speech(controller):
         tab_rect = tts_tab.BoundingRectangle
         click_x = int(tab_rect.left + 50)
         click_y = int(tab_rect.bottom + 110)
-        
+
     logger.info("Nhấp chọn giọng đọc đầu tiên (Giọng bé đã sao)...")
     pyautogui.click(click_x, click_y)
     time.sleep(1)
-    
+
     # 5. Click Start reading button
     read_btn = find_element_by_name(controller.app, "Start reading") or find_element_by_name(controller.app, "Bắt đầu đọc") or find_element_by_name(controller.app, "Generate")
     if not read_btn:
@@ -490,7 +501,7 @@ def run_text_to_speech(controller):
         raise Exception("Không tìm thấy nút 'Start reading'/'Bắt đầu đọc'!")
     logger.info("Nhấp nút 'Bắt đầu đọc'...")
     read_btn.Click()
-    
+
     # 6. Wait for TTS generation to finish
     logger.info("Đang chuyển đổi văn bản thành giọng nói... Vui lòng đợi...")
     time.sleep(5)
@@ -658,7 +669,7 @@ def sync_text_material_fields(text_mat, content_json, translated, font_size=None
     text_mat["font_size"] = font_size
     text_mat["font_path"] = resolve_font_path(font_name)
     text_mat["font_name"] = ""
-    text_mat["border_color"] = "#000000" 
+    text_mat["border_color"] = "#000000"
     text_mat["border_alpha"] = 1.0
     text_mat["border_width"] = DEFAULT_SUBTITLE_BORDER_WIDTH
     text_mat["border_mode"] = 0
@@ -752,54 +763,250 @@ def normalize_ai_base_url(base_url):
     return base_url
 
 
-def build_ai_translation_config(item_config=None):
+def default_global_settings():
+    default_profile = {
+        "id": "openai-default",
+        "label": "OpenAI Default",
+        "provider": "openai",
+        "api_key": "",
+        "model": "gpt-4o-mini",
+        "base_url": "https://api.openai.com/v1",
+    }
+    return {
+        "ai_provider": default_profile["provider"],
+        "ai_api_key": default_profile["api_key"],
+        "ai_model": default_profile["model"],
+        "ai_base_url": default_profile["base_url"],
+        "ai_profiles": [default_profile],
+        "default_translation_ai_profile_id": default_profile["id"],
+        "default_context_ai_profile_id": default_profile["id"],
+        "openreel_api_key": "",
+        "openreel_reference_keys": "",
+    }
+
+
+def default_ai_model_for_provider(provider):
+    provider = (provider or "openai").strip().lower()
+    if provider == "gemini":
+        return "gemini-1.5-flash"
+    if provider == "anthropic":
+        return "claude-3-5-haiku-20241022"
+    return "gpt-4o-mini"
+
+
+def default_ai_base_url_for_provider(provider):
+    provider = (provider or "openai").strip().lower()
+    if provider == "gemini":
+        return "https://generativelanguage.googleapis.com/v1beta/openai"
+    if provider == "anthropic":
+        return "https://api.anthropic.com/v1"
+    return "https://api.openai.com/v1"
+
+
+def slugify_profile_id(value, fallback="custom-ai"):
+    raw = str(value or "").strip().lower()
+    slug = re.sub(r"[^a-z0-9]+", "-", raw).strip("-")
+    return slug or fallback
+
+
+def sanitize_ai_profile(profile, fallback_index=0):
+    source = profile if isinstance(profile, dict) else {}
+    provider = (source.get("provider") or source.get("ai_provider") or "openai").strip().lower()
+    model = (source.get("model") or source.get("ai_model") or default_ai_model_for_provider(provider)).strip()
+    base_url = normalize_ai_base_url(
+        source.get("base_url") or source.get("ai_base_url") or default_ai_base_url_for_provider(provider)
+    )
+    label = (
+        source.get("label")
+        or source.get("name")
+        or source.get("title")
+        or f"{provider.title()} {fallback_index + 1}"
+    ).strip()
+    profile_id = slugify_profile_id(
+        source.get("id") or source.get("key") or source.get("slug") or label,
+        fallback=f"custom-ai-{fallback_index + 1}",
+    )
+    return {
+        "id": profile_id,
+        "label": label,
+        "provider": provider,
+        "api_key": str(source.get("api_key") or source.get("ai_api_key") or "").strip(),
+        "model": model,
+        "base_url": base_url,
+    }
+
+
+def normalize_ai_profiles(raw_profiles, legacy_settings=None):
+    legacy_settings = legacy_settings or {}
+    profiles = []
+    seen_ids = set()
+
+    if isinstance(raw_profiles, list):
+        for index, profile in enumerate(raw_profiles):
+            sanitized = sanitize_ai_profile(profile, fallback_index=index)
+            base_id = sanitized["id"]
+            dedup_id = base_id
+            suffix = 2
+            while dedup_id in seen_ids:
+                dedup_id = f"{base_id}-{suffix}"
+                suffix += 1
+            sanitized["id"] = dedup_id
+            seen_ids.add(dedup_id)
+            profiles.append(sanitized)
+
+    if not profiles:
+        profiles.append(
+            sanitize_ai_profile(
+                {
+                    "id": "openai-default",
+                    "label": "OpenAI Default",
+                    "provider": legacy_settings.get("ai_provider") or "openai",
+                    "api_key": legacy_settings.get("ai_api_key") or "",
+                    "model": legacy_settings.get("ai_model") or "",
+                    "base_url": legacy_settings.get("ai_base_url") or "",
+                }
+            )
+        )
+
+    return profiles
+
+
+def sync_legacy_ai_settings(settings):
+    profiles = settings.get("ai_profiles") or []
+    default_translation_id = settings.get("default_translation_ai_profile_id")
+    default_context_id = settings.get("default_context_ai_profile_id")
+
+    profile_map = {profile["id"]: profile for profile in profiles if isinstance(profile, dict) and profile.get("id")}
+    default_translation = profile_map.get(default_translation_id) or (profiles[0] if profiles else {})
+    default_context = profile_map.get(default_context_id) or default_translation
+
+    if default_translation:
+        settings["ai_provider"] = default_translation.get("provider", "openai")
+        settings["ai_api_key"] = default_translation.get("api_key", "")
+        settings["ai_model"] = default_translation.get("model", default_ai_model_for_provider(settings["ai_provider"]))
+        settings["ai_base_url"] = normalize_ai_base_url(
+            default_translation.get("base_url", default_ai_base_url_for_provider(settings["ai_provider"]))
+        )
+
+    if profiles:
+        settings["default_translation_ai_profile_id"] = (
+            default_translation.get("id") or profiles[0].get("id")
+        )
+        settings["default_context_ai_profile_id"] = (
+            default_context.get("id") or settings["default_translation_ai_profile_id"]
+        )
+
+    return settings
+
+
+def load_global_settings():
+    defaults = default_global_settings()
+    try:
+        GLOBAL_SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
+        if GLOBAL_SETTINGS_PATH.exists():
+            with open(GLOBAL_SETTINGS_PATH, "r", encoding="utf-8") as f:
+                saved = json.load(f)
+                if isinstance(saved, dict):
+                    defaults.update(saved)
+    except Exception as e:
+        logger.warning(f"Không thể đọc global settings: {str(e)}")
+
+    defaults["ai_profiles"] = normalize_ai_profiles(defaults.get("ai_profiles"), legacy_settings=defaults)
+    defaults["ai_base_url"] = normalize_ai_base_url(defaults.get("ai_base_url"))
+    return sync_legacy_ai_settings(defaults)
+
+
+def save_global_settings(data):
+    settings = default_global_settings()
+    payload = data or {}
+    settings.update({
+        "openreel_api_key": payload.get("openreel_api_key", settings["openreel_api_key"]),
+        "openreel_reference_keys": payload.get("openreel_reference_keys", settings["openreel_reference_keys"]),
+    })
+    settings["ai_profiles"] = normalize_ai_profiles(payload.get("ai_profiles"), legacy_settings=payload or settings)
+
+    profile_ids = [profile["id"] for profile in settings["ai_profiles"]]
+    default_translation_id = payload.get("default_translation_ai_profile_id") or settings["default_translation_ai_profile_id"]
+    default_context_id = payload.get("default_context_ai_profile_id") or settings["default_context_ai_profile_id"]
+    settings["default_translation_ai_profile_id"] = (
+        default_translation_id if default_translation_id in profile_ids else profile_ids[0]
+    )
+    settings["default_context_ai_profile_id"] = (
+        default_context_id if default_context_id in profile_ids else settings["default_translation_ai_profile_id"]
+    )
+    settings = sync_legacy_ai_settings(settings)
+    GLOBAL_SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(GLOBAL_SETTINGS_PATH, "w", encoding="utf-8") as f:
+        json.dump(settings, f, ensure_ascii=False, indent=4)
+    return settings
+
+
+def apply_global_settings_to_config(config):
+    global_settings = load_global_settings()
+    merged = {
+        "openreel_api_key": global_settings.get("openreel_api_key", ""),
+        "openreel_reference_keys": global_settings.get("openreel_reference_keys", ""),
+        "available_ai_profiles": global_settings.get("ai_profiles", []),
+        "default_translation_ai_profile_id": global_settings.get("default_translation_ai_profile_id"),
+        "default_context_ai_profile_id": global_settings.get("default_context_ai_profile_id"),
+        "translation_ai_profile_id": global_settings.get("default_translation_ai_profile_id"),
+        "context_ai_profile_id": global_settings.get("default_context_ai_profile_id"),
+    }
+    if config:
+        merged.update(config)
+    merged["available_ai_profiles"] = normalize_ai_profiles(
+        merged.get("available_ai_profiles") or global_settings.get("ai_profiles"),
+        legacy_settings=global_settings,
+    )
+    merged["ai_base_url"] = normalize_ai_base_url(merged.get("ai_base_url"))
+    return merged
+
+
+def resolve_ai_profile(settings, profile_id=None):
+    profiles = normalize_ai_profiles((settings or {}).get("ai_profiles"), legacy_settings=settings or {})
+    profile_map = {profile["id"]: profile for profile in profiles}
+    default_profile = profile_map.get((settings or {}).get("default_translation_ai_profile_id")) or profiles[0]
+    if profile_id and profile_id in profile_map:
+        return profile_map[profile_id]
+    return default_profile
+
+
+def build_ai_translation_config(item_config=None, purpose="translation"):
     item_config = item_config or {}
+    global_settings = load_global_settings()
     method = (
         item_config.get("translation_method")
         or item_config.get("translationMethod")
         or "google"
     ).lower()
 
-    provider = (
-        item_config.get("ai_provider")
-        or item_config.get("aiProvider")
-        or "openai"
-    ).lower()
-
-    api_key = (
-        item_config.get("ai_api_key")
-        or item_config.get("apiKey")
+    profile_key = "context_ai_profile_id" if purpose == "context" else "translation_ai_profile_id"
+    default_profile_key = "default_context_ai_profile_id" if purpose == "context" else "default_translation_ai_profile_id"
+    selected_profile_id = (
+        item_config.get(profile_key)
+        or item_config.get("contextAiProfileId" if purpose == "context" else "translationAiProfileId")
+        or global_settings.get(default_profile_key)
     )
+    profile = resolve_ai_profile(global_settings, selected_profile_id)
 
-    model = (
-        item_config.get("ai_model")
-        or item_config.get("aiModel")
-    )
-    if not model:
-        if provider == "gemini":
-            model = "gemini-1.5-flash"
-        elif provider == "anthropic":
-            model = "claude-3-5-haiku-20241022"
-        else:
-            model = "gpt-4o-mini"
+    provider = (profile.get("provider") or "openai").lower()
+    api_key = profile.get("api_key") or ""
+    model = profile.get("model") or default_ai_model_for_provider(provider)
+    base_url = normalize_ai_base_url(profile.get("base_url") or default_ai_base_url_for_provider(provider))
     fallback_model = (
         item_config.get("ai_fallback_model")
         or item_config.get("aiFallbackModel")
+        or profile.get("fallback_model")
         or "z-ai/glm-5.2"
     )
 
-    base_url = (
-        item_config.get("ai_base_url")
-        or item_config.get("aiBaseUrl")
-    )
-    if not base_url:
-        if provider == "gemini":
-            base_url = "https://generativelanguage.googleapis.com/v1beta/openai"
-        elif provider == "anthropic":
-            base_url = "https://api.anthropic.com/v1"
-        else:
-            base_url = "https://api.openai.com/v1"
-    base_url = normalize_ai_base_url(base_url)
+    if not item_config.get(profile_key) and not item_config.get("contextAiProfileId" if purpose == "context" else "translationAiProfileId"):
+        provider = (item_config.get("ai_provider") or item_config.get("aiProvider") or provider).lower()
+        api_key = item_config.get("ai_api_key") or item_config.get("apiKey") or api_key
+        model = item_config.get("ai_model") or item_config.get("aiModel") or model or default_ai_model_for_provider(provider)
+        base_url = normalize_ai_base_url(
+            item_config.get("ai_base_url") or item_config.get("aiBaseUrl") or base_url or default_ai_base_url_for_provider(provider)
+        )
 
     glossary = item_config.get("ai_glossary") or item_config.get("glossary") or {}
     if isinstance(glossary, str):
@@ -825,7 +1032,10 @@ def build_ai_translation_config(item_config=None):
     )
 
     return {
-        "enabled": method == "ai" and bool(api_key),
+        "enabled": (method == "ai" if purpose == "translation" else True) and bool(api_key),
+        "purpose": purpose,
+        "profile_id": profile.get("id"),
+        "profile_label": profile.get("label"),
         "method": method,
         "provider": provider,
         "api_key": api_key,
@@ -1115,9 +1325,9 @@ def normalize_full_subtitles(raw_texts):
 
 
 def review_asr_suggested_fixes(full_subtitles, video_context, suggested_fixes, item_config=None):
-    config = build_ai_translation_config(item_config)
+    config = build_ai_translation_config(item_config, purpose="context")
     if not config["enabled"]:
-        raise ValueError("ASR review cần bật translation_method='ai' và ai_api_key trong config.")
+        raise ValueError("ASR review cần context/ASR AI profile có api_key hợp lệ trong global settings.")
 
     payload = {
         "full_subtitles": full_subtitles,
@@ -1284,7 +1494,7 @@ def translate_ai_batch_recursive(lines, config, previous_context=None, next_cont
 
 
 def translate_texts_with_ai(raw_texts, item_config=None):
-    config = build_ai_translation_config(item_config)
+    config = build_ai_translation_config(item_config, purpose="translation")
     if not config["enabled"]:
         return None
 
@@ -1337,12 +1547,12 @@ def patch_subtitles_file(content_path, font_size=5.0, font_color=DEFAULT_SUBTITL
     logger.info(f"Đang đọc {content_path} để dịch và cập nhật font/màu sắc...")
     with open(content_path, "r", encoding="utf-8") as f:
         data = json.load(f)
-        
+
     texts = data.get("materials", {}).get("texts", [])
     if not texts:
         logger.warning("Không tìm thấy phụ đề nào trong bản nháp.")
         return False
-        
+
     parsed_items = []
     raw_texts = []
     for text_mat in texts:
@@ -1463,10 +1673,10 @@ def patch_subtitles_file(content_path, font_size=5.0, font_color=DEFAULT_SUBTITL
         raise RuntimeError(
             f"Dừng patch phụ đề vì draft vẫn còn {len(remaining_source)} dòng tiếng Trung sau dịch. Ví dụ: {preview}"
         )
-            
+
     with open(content_path, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
-        
+
     for raw_sample, translated_sample in translated_samples:
         logger.info(f"Mẫu dịch: '{raw_sample}' -> '{translated_sample}'")
     logger.info(
@@ -1688,6 +1898,53 @@ def parse_video_paths(value):
     return [item.strip().strip('"') for item in raw_items if item and item.strip()]
 
 
+def get_machine_aliases():
+    aliases = []
+    for raw in [
+        os.environ.get("CAPCUT_MACHINE_NAME"),
+        os.environ.get("COMPUTERNAME"),
+        os.environ.get("HOSTNAME"),
+        socket.gethostname(),
+    ]:
+        value = str(raw or "").strip().lower()
+        if value and value not in aliases:
+            aliases.append(value)
+    return aliases
+
+
+def resolve_existing_video_source(item_config):
+    item_config = item_config or {}
+    aliases = get_machine_aliases()
+    candidates = []
+
+    override_map = item_config.get("video_path_overrides") or item_config.get("videoPathOverrides") or {}
+    if isinstance(override_map, dict):
+        for alias in aliases:
+            override_value = override_map.get(alias)
+            if override_value:
+                candidates.extend(parse_video_paths(override_value))
+
+    candidates.extend(parse_video_paths(item_config.get("video_paths") or item_config.get("videoPaths")))
+    candidates.extend(parse_video_paths(item_config.get("video_path") or item_config.get("videoPath")))
+
+    seen = set()
+    normalized = []
+    for candidate in candidates:
+        key = candidate.strip().lower()
+        if key and key not in seen:
+            seen.add(key)
+            normalized.append(candidate)
+
+    missing = []
+    for candidate in normalized:
+        path = Path(candidate).expanduser()
+        if path.exists() and path.is_file():
+            return str(path), normalized, missing
+        missing.append(str(path))
+
+    return None, normalized, missing
+
+
 def wait_for_draft_files_unlocked(draft_path, timeout=20):
     root = Path(draft_path)
     if not root.exists():
@@ -1792,6 +2049,7 @@ class QueueRunner:
     def __init__(self):
         self.queue = []
         self.is_processing = False
+        self.is_paused = False
         self.current_index = -1
         self.pause_requested = False
         self.thread = None
@@ -1835,6 +2093,8 @@ class QueueRunner:
         return {
             "queue": self.queue,
             "is_processing": self.is_processing,
+            "is_paused": self.is_paused,
+            "pause_requested": self.pause_requested,
             "current_index": self.current_index
         }
 
@@ -1864,7 +2124,9 @@ class QueueRunner:
                 item["progress"] = 0
                 item["message"] = "Đang chờ..."
             item.pop("cancel_requested", None)
+            item.setdefault("resume_from_step", 1)
         self.pause_requested = False
+        self.is_paused = False
         self.is_processing = True
         self.save_cache()
         self.thread = threading.Thread(target=self._run_loop, daemon=True)
@@ -1873,12 +2135,47 @@ class QueueRunner:
     def pause(self):
         self.pause_requested = True
 
+    def resume(self, config=None):
+        if self.is_processing:
+            return
+        if config:
+            self.config.update(config)
+        has_resumable = any(item.get("status") in ("paused", "pending") for item in self.queue)
+        if not has_resumable:
+            return
+        self.pause_requested = False
+        self.is_paused = False
+        self.is_processing = True
+        self.thread = threading.Thread(target=self._run_loop, daemon=True)
+        self.thread.start()
+
     def clear(self):
         if self.is_processing:
             return
         self.queue = []
         self.current_index = -1
+        self.is_paused = False
         self.save_cache()
+
+    def _pause_item(self, item, next_step, progress, message):
+        item["status"] = "paused"
+        item["progress"] = progress
+        item["resume_from_step"] = next_step
+        item["message"] = message
+        item["paused_at"] = int(time.time())
+        self.is_paused = True
+        self.pause_requested = False
+        raise RuntimeError("__PIPELINE_PAUSED__")
+
+    def _checkpoint_pause(self, item, next_step, progress):
+        if not self.pause_requested:
+            return
+        self._pause_item(
+            item,
+            next_step=next_step,
+            progress=progress,
+            message=f"Tạm dừng. Tiếp tục sẽ chạy từ Bước {next_step}."
+        )
 
     def _run_loop(self):
         import ctypes
@@ -1887,18 +2184,19 @@ class QueueRunner:
         try:
             while True:
                 if self.pause_requested:
+                    self.is_paused = True
                     logger.info("Đã tạm dừng hàng chờ video.")
                     break
-                    
-                # Find the first pending item
+
+                # Find the first paused or pending item
                 pending_item = None
                 pending_idx = -1
                 for i, item in enumerate(self.queue):
-                    if item["status"] == "pending":
+                    if item["status"] in ("paused", "pending"):
                         pending_item = item
                         pending_idx = i
                         break
-                
+
                 if pending_item is None:
                     if self.config.get("auto_shutdown"):
                         logger.info("Tất cả video trong hàng chờ đã xử lý xong. Hệ thống sẽ tự động tắt máy sau 10 giây (lệnh: shutdown /s /f /t 10)...")
@@ -1906,13 +2204,18 @@ class QueueRunner:
                     else:
                         logger.info("Tất cả video trong hàng chờ đã xử lý xong. Không tắt máy vì người dùng không bật tùy chọn tự tắt.")
                     break
-                    
+
                 self.current_index = pending_idx
                 pending_item["status"] = "running"
-                pending_item["progress"] = 5
-                pending_item["message"] = "Đang xử lý..."
+                pending_item["progress"] = max(5, int(pending_item.get("progress", 0) or 0))
+                resume_from_step = int(pending_item.get("resume_from_step", 1) or 1)
+                pending_item["message"] = (
+                    f"Đang tiếp tục từ Bước {resume_from_step}..."
+                    if resume_from_step > 1
+                    else "Đang xử lý..."
+                )
                 self.save_cache()
-                
+
                 try:
                     self._process_item(pending_item)
                     if pending_item.get("cancel_requested"):
@@ -1921,7 +2224,13 @@ class QueueRunner:
                         pending_item["status"] = "success"
                         pending_item["progress"] = 100
                         pending_item["message"] = "Hoàn thành!"
+                        pending_item["resume_from_step"] = None
                         self.save_cache()
+                except RuntimeError as e:
+                    if str(e) == "__PIPELINE_PAUSED__":
+                        logger.info(f"Đã tạm dừng dự án '{pending_item.get('video')}' tại checkpoint an toàn.")
+                        break
+                    raise
                 except Exception as e:
                     if pending_item.get("cancel_requested"):
                         logger.info(f"Dự án '{pending_item.get('video')}' đã bị hủy.")
@@ -1941,23 +2250,39 @@ class QueueRunner:
     def _process_item(self, item):
         is_existing_project = item.get("type") == "project"
         draft_id = item.get("draft_id")
-        
+        resume_from_step = int(item.get("resume_from_step", 1) or 1)
+
         # Determine config for this item (either item-specific or runner global config)
-        item_config = item.get("config") or self.config or {}
-        
+        item_config = apply_global_settings_to_config(item.get("config") or self.config or {})
+
         speed = float(item_config.get("speed", 0.77))
         volume_db = float(item_config.get("volume_db", -15.5))
         tts_speed = float(item_config.get("tts_speed", 1.17))
         font_size = float(item_config.get("font_size", 5.0))
         font_color_hex = item_config.get("font_color", DEFAULT_SUBTITLE_COLOR_HEX)
         font_name = item_config.get("font_name", DEFAULT_SUBTITLE_FONT_PATH)
+        video_name = os.path.basename(str(item.get("video") or draft_id or "project"))
 
-        configured_video_path = item_config.get("video_path")
+        configured_video_path, configured_candidates, missing_candidates = resolve_existing_video_source(item_config)
         if configured_video_path:
             item["video"] = configured_video_path
             is_existing_project = False
-            logger.info(f"Project has video_path config; forcing Step 1 video patch into draft {draft_id}: {configured_video_path}")
-        
+            logger.info(
+                f"Project has reusable source video; forcing Step 1 video patch into draft {draft_id}: "
+                f"{configured_video_path}"
+            )
+        elif item_config.get("video_path") or item_config.get("video_paths") or item_config.get("video_path_overrides"):
+            if item.get("type") == "project":
+                logger.warning(
+                    "Không tìm thấy source video hợp lệ trên máy hiện tại. "
+                    f"Sẽ dùng draft sẵn có và bỏ qua Step 1. Candidates: {configured_candidates or missing_candidates}"
+                )
+            else:
+                raise FileNotFoundError(
+                    "Không tìm thấy source video hợp lệ để tạo project mới. "
+                    f"Candidates đã thử: {configured_candidates or missing_candidates}"
+                )
+
         # Convert hex color to RGB normalized float tuple (R, G, B)
         try:
             hex_val = font_color_hex.lstrip('#')
@@ -1967,32 +2292,33 @@ class QueueRunner:
             font_color_rgb = (r, g, b)
         except Exception:
             font_color_rgb = DEFAULT_SUBTITLE_COLOR_RGB
-            
-        if is_existing_project:
-            video_name = item["video"]
+
+        if resume_from_step <= 1 and is_existing_project:
             logger.info(f"=== BẮT ĐẦU AUTOMATION CHO DỰ ÁN CÓ SẴN: {video_name} ({draft_id}) ===")
             clean_name = "".join([c if c.isalnum() else "_" for c in video_name])
-            
+
             # Step 1 is skipped
             item["progress"] = 15
             item["message"] = "Bước 1: Bỏ qua (Dự án đã tồn tại)..."
             time.sleep(1)
-        else:
+            item["resume_from_step"] = 2
+            self._checkpoint_pause(item, next_step=2, progress=15)
+        elif resume_from_step <= 1:
             video_path = item["video"]
             logger.info(f"=== BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: {video_path} ===")
-            
+
             # Step 1: Run background pipeline to load video
             item["progress"] = 10
             item["message"] = "Bước 1: Khởi tạo dự án & load video..."
-            
+
             video_name = os.path.basename(video_path)
             clean_name = "".join([c if c.isalnum() else "_" for c in os.path.splitext(video_name)[0]])
             if not draft_id:
                 draft_id = f"auto_{clean_name[:20]}"
                 item["draft_id"] = draft_id
-            
+
             from capcut_pipeline import run_pipeline
-            
+
             logger.info(f"Chạy pipeline ngầm để tạo draft '{draft_id}'...")
             draft_full_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, draft_id)
             run_pipeline_with_file_lock_retry(
@@ -2012,7 +2338,7 @@ class QueueRunner:
                 volume=1.0,
                 preserve_blur_effect=bool(item_config.get("preserve_blur_effect", True)),
             )
-            
+
             # Save pipeline_config.json inside the newly created project folder
             try:
                 new_project_folder = os.path.join(DEFAULT_CAPCUT_DRAFTS, draft_id)
@@ -2022,151 +2348,172 @@ class QueueRunner:
                     json.dump(item_config, f, ensure_ascii=False, indent=4)
             except Exception as e:
                 logger.warning(f"Không thể lưu pipeline_config cho dự án mới: {str(e)}")
+            item["resume_from_step"] = 2
+            self._checkpoint_pause(item, next_step=2, progress=20)
 
-        # Step 2: Open CapCut & Open Project
-        item["progress"] = 25
-        item["message"] = "Bước 2: Mở dự án trong CapCut..."
         draft_full_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, draft_id)
-        try:
-            patch_canvas_config_in_json(
-                draft_full_path,
-                ratio=item_config.get("canvas_ratio", "16:9"),
-                width=int(item_config.get("canvas_width", 1920)),
-                height=int(item_config.get("canvas_height", 1080)),
-            )
-            patch_video_mirror_in_json(
-                draft_full_path,
-                mirror_horizontal=bool(item_config.get("mirror_video", True)),
-            )
-            patch_track_lock_in_json(draft_full_path, track_types=["video", "effect"], locked=True)
-            patch_track_lock_in_json(draft_full_path, track_types=["text", "audio"], locked=False)
-        except Exception as e:
-            logger.warning(f"Không thể chỉnh trạng thái khóa track trước khi mở dự án: {str(e)}")
-
-        controller = launch_capcut()
-        open_project_in_gui(controller, draft_id)
-        
-        # Step 3: Auto Captions
-        item["progress"] = 45
-        item["message"] = "Bước 3: Đang tự động tạo phụ đề (Auto Captions)..."
-        run_image_workflow("rpa_auto_captions.sample.json", "Auto Captions")
-        
-        # Step 4 & 5: Close project, then translate Chinese -> Vietnamese and patch volume on disk
-        item["progress"] = 60
-        item["message"] = "Bước 4 & 5: Đang đóng CapCut để lưu draft, sau đó dịch phụ đề và chỉnh âm lượng..."
-        kill_capcut()
-        time.sleep(1)
-        
-        patch_subtitles_in_json(
-            draft_full_path,
-            font_size=font_size,
-            font_color=font_color_rgb,
-            font_name=font_name,
-            item_config=item_config
-        )
-        patch_track_volume_in_json(draft_full_path, volume_db=volume_db, track_types=["video"])
-
-        if item_config.get("stop_after_patch"):
-            item["progress"] = 70
-            item["message"] = "Đã patch bản dịch/âm lượng xong và dừng để kiểm tra draft."
-            item["stopped_after_patch"] = True
-            logger.info(
-                f"Đã dừng pipeline sau bước patch theo cấu hình stop_after_patch=true. "
-                f"Draft: {draft_full_path}"
-            )
-            return
-
-        logger.info("Đợi 1 giây sau khi patch âm lượng trước khi mở lại CapCut...")
-        time.sleep(1)
-
-        item["message"] = "Bước 5.5: Đang mở lại dự án sau khi patch bản dịch và âm lượng..."
-        controller = launch_capcut()
-        open_project_in_gui(controller, draft_id)
-        
-        # Step 6: Text to speech on the currently open project
-        item["progress"] = 75
-        item["message"] = "Bước 6: Đang tạo giọng nói (TTS) cho sub trên dự án đang mở..."
-        tts_audio_before = count_audio_assets_in_json(draft_full_path)
-        logger.info(f"Trước TTS: audio_segments={tts_audio_before['segments']}, audio_materials={tts_audio_before['materials']}.")
-
-        max_tts_attempts = int(item_config.get("tts_attempts", 3))
-        tts_ready = False
-        tts_audio_after = tts_audio_before
-
-        for attempt in range(1, max_tts_attempts + 1):
-            item["message"] = f"Bước 6: Đang tạo giọng nói TTS, lần {attempt}/{max_tts_attempts}..."
-            logger.info(f"Chạy TTS lần {attempt}/{max_tts_attempts}...")
-            if attempt == 1:
-                run_image_workflow("rpa_tts.sample.json", "Text to speech")
-            else:
-                run_image_workflow("rpa_tts_retry.sample.json", "Text to speech retry")
-
-            tts_ready, tts_audio_after = wait_for_new_audio_assets(
-                draft_full_path,
-                tts_audio_before,
-                interval=int(item_config.get("tts_audio_wait_interval", 5)),
-            )
-
-            if tts_ready:
-                logger.info("Đã xác nhận draft có audio TTS mới.")
-                break
-
-            if attempt < max_tts_attempts:
-                logger.warning("Chưa thấy audio TTS trong draft. Giữ nguyên dự án đang mở và bấm Generate speech lần nữa...")
-
-        if not tts_ready:
-            logger.warning("Chưa thấy audio khi project đang mở. Đóng CapCut một lần để flush draft rồi kiểm tra lại...")
-            kill_capcut()
-            time.sleep(1)
-            tts_audio_after = count_audio_assets_in_json(draft_full_path)
-            logger.info(
-                f"Sau khi flush draft: audio_segments={tts_audio_after['segments']}, "
-                f"audio_materials={tts_audio_after['materials']}."
-            )
-            if tts_audio_after["total"] > tts_audio_before["total"]:
-                logger.info("Đã xác nhận draft có audio TTS mới sau khi flush.")
-                tts_ready = True
-            else:
-                raise Exception(
-                    f"Không thấy audio TTS sau {max_tts_attempts} lần Generate speech "
-                    f"(trước={tts_audio_before}, sau={tts_audio_after})."
+        if resume_from_step <= 2:
+            item["progress"] = 25
+            item["message"] = "Bước 2: Mở dự án trong CapCut..."
+            try:
+                patch_canvas_config_in_json(
+                    draft_full_path,
+                    ratio=item_config.get("canvas_ratio", "16:9"),
+                    width=int(item_config.get("canvas_width", 1920)),
+                    height=int(item_config.get("canvas_height", 1080)),
                 )
-        else:
-            logger.info("Đóng CapCut để flush draft sau khi xác nhận TTS...")
+                patch_video_mirror_in_json(
+                    draft_full_path,
+                    mirror_horizontal=bool(item_config.get("mirror_video", True)),
+                )
+                patch_track_lock_in_json(draft_full_path, track_types=["video", "effect"], locked=True)
+                patch_track_lock_in_json(draft_full_path, track_types=["text", "audio"], locked=False)
+            except Exception as e:
+                logger.warning(f"Không thể chỉnh trạng thái khóa track trước khi mở dự án: {str(e)}")
+
+            controller = launch_capcut()
+            open_project_in_gui(controller, draft_id)
+            item["resume_from_step"] = 3
+            self._checkpoint_pause(item, next_step=3, progress=30)
+
+        if resume_from_step <= 3:
+            item["progress"] = 45
+            item["message"] = "Bước 3: Đang tự động tạo phụ đề (Auto Captions)..."
+            controller = launch_capcut()
+            open_project_in_gui(controller, draft_id)
+            run_image_workflow("rpa_auto_captions.sample.json", "Auto Captions")
+            item["resume_from_step"] = 4
+            self._checkpoint_pause(item, next_step=4, progress=50)
+
+        if resume_from_step <= 4:
+            item["progress"] = 60
+            item["message"] = "Bước 4 & 5: Đang đóng CapCut để lưu draft, sau đó dịch phụ đề và chỉnh âm lượng..."
             kill_capcut()
             time.sleep(1)
-        
-        # Step 7: Close, Set audio speed
-        item["progress"] = 85
-        item["message"] = f"Bước 7: Đang tăng tốc độ giọng đọc lên {tts_speed}..."
-        patch_audio_speed_in_json(draft_full_path, target_speed=tts_speed)
-        
-        # Step 8: Reopen, Export
-        item["progress"] = 90
-        item["message"] = "Bước 8: Đang xuất video thành phẩm..."
-        export_source_video = item_config.get("video_path") or item.get("video")
-        export_scan_dirs = get_export_scan_dirs(export_source_video, item_config)
-        export_before_snapshot = snapshot_video_files(export_scan_dirs)
-        logger.info(
-            "Theo dõi file export trong các thư mục: "
-            + ", ".join(str(path) for path in export_scan_dirs)
-        )
-        controller = launch_capcut()
-        open_project_in_gui(controller, draft_id)
-        run_image_workflow("rpa_export.sample.json", "Export")
-        logger.info("Đóng CapCut để nhả file export trước khi đổi tên và chuyển thư mục...")
-        kill_capcut()
-        time.sleep(1)
-        exported_path = move_latest_export_to_source_folder(
-            export_source_video,
-            export_before_snapshot,
-            item_config=item_config,
-            timeout=int(item_config.get("export_detect_timeout", 180)),
-        )
-        if exported_path:
-            item["exported_path"] = exported_path
-        
-        # Step 9: Close CapCut / Done
+
+            patch_subtitles_in_json(
+                draft_full_path,
+                font_size=font_size,
+                font_color=font_color_rgb,
+                font_name=font_name,
+                item_config=item_config
+            )
+            patch_track_volume_in_json(draft_full_path, volume_db=volume_db, track_types=["video"])
+
+            if item_config.get("stop_after_patch"):
+                item["progress"] = 70
+                item["message"] = "Đã patch bản dịch/âm lượng xong và dừng để kiểm tra draft."
+                item["stopped_after_patch"] = True
+                logger.info(
+                    f"Đã dừng pipeline sau bước patch theo cấu hình stop_after_patch=true. "
+                    f"Draft: {draft_full_path}"
+                )
+                return
+
+            item["resume_from_step"] = 5
+            self._checkpoint_pause(item, next_step=5, progress=68)
+
+        if resume_from_step <= 5:
+            logger.info("Đợi 1 giây sau khi patch âm lượng trước khi mở lại CapCut...")
+            time.sleep(1)
+            item["message"] = "Bước 5.5: Đang mở lại dự án sau khi patch bản dịch và âm lượng..."
+            controller = launch_capcut()
+            open_project_in_gui(controller, draft_id)
+            item["resume_from_step"] = 6
+            self._checkpoint_pause(item, next_step=6, progress=72)
+
+        if resume_from_step <= 6:
+            item["progress"] = 75
+            item["message"] = "Bước 6: Đang tạo giọng nói (TTS) cho sub trên dự án đang mở..."
+            controller = launch_capcut()
+            open_project_in_gui(controller, draft_id)
+            tts_audio_before = count_audio_assets_in_json(draft_full_path)
+            logger.info(f"Trước TTS: audio_segments={tts_audio_before['segments']}, audio_materials={tts_audio_before['materials']}.")
+
+            max_tts_attempts = int(item_config.get("tts_attempts", 3))
+            tts_ready = False
+            tts_audio_after = tts_audio_before
+
+            for attempt in range(1, max_tts_attempts + 1):
+                item["message"] = f"Bước 6: Đang tạo giọng nói TTS, lần {attempt}/{max_tts_attempts}..."
+                logger.info(f"Chạy TTS lần {attempt}/{max_tts_attempts}...")
+                if attempt == 1:
+                    run_image_workflow("rpa_tts.sample.json", "Text to speech")
+                else:
+                    run_image_workflow("rpa_tts_retry.sample.json", "Text to speech retry")
+
+                tts_ready, tts_audio_after = wait_for_new_audio_assets(
+                    draft_full_path,
+                    tts_audio_before,
+                    interval=int(item_config.get("tts_audio_wait_interval", 5)),
+                )
+
+                if tts_ready:
+                    logger.info("Đã xác nhận draft có audio TTS mới.")
+                    break
+
+                if attempt < max_tts_attempts:
+                    logger.warning("Chưa thấy audio TTS trong draft. Giữ nguyên dự án đang mở và bấm Generate speech lần nữa...")
+
+            if not tts_ready:
+                logger.warning("Chưa thấy audio khi project đang mở. Đóng CapCut một lần để flush draft rồi kiểm tra lại...")
+                kill_capcut()
+                time.sleep(1)
+                tts_audio_after = count_audio_assets_in_json(draft_full_path)
+                logger.info(
+                    f"Sau khi flush draft: audio_segments={tts_audio_after['segments']}, "
+                    f"audio_materials={tts_audio_after['materials']}."
+                )
+                if tts_audio_after["total"] > tts_audio_before["total"]:
+                    logger.info("Đã xác nhận draft có audio TTS mới sau khi flush.")
+                    tts_ready = True
+                else:
+                    raise Exception(
+                        f"Không thấy audio TTS sau {max_tts_attempts} lần Generate speech "
+                        f"(trước={tts_audio_before}, sau={tts_audio_after})."
+                    )
+            else:
+                logger.info("Đóng CapCut để flush draft sau khi xác nhận TTS...")
+                kill_capcut()
+                time.sleep(1)
+
+            item["resume_from_step"] = 7
+            self._checkpoint_pause(item, next_step=7, progress=82)
+
+        if resume_from_step <= 7:
+            item["progress"] = 85
+            item["message"] = f"Bước 7: Đang tăng tốc độ giọng đọc lên {tts_speed}..."
+            patch_audio_speed_in_json(draft_full_path, target_speed=tts_speed)
+            item["resume_from_step"] = 8
+            self._checkpoint_pause(item, next_step=8, progress=88)
+
+        if resume_from_step <= 8:
+            item["progress"] = 90
+            item["message"] = "Bước 8: Đang xuất video thành phẩm..."
+            export_source_video = item_config.get("video_path") or item.get("video")
+            export_scan_dirs = get_export_scan_dirs(export_source_video, item_config)
+            export_before_snapshot = snapshot_video_files(export_scan_dirs)
+            logger.info(
+                "Theo dõi file export trong các thư mục: "
+                + ", ".join(str(path) for path in export_scan_dirs)
+            )
+            controller = launch_capcut()
+            open_project_in_gui(controller, draft_id)
+            run_image_workflow("rpa_export.sample.json", "Export")
+            logger.info("Đóng CapCut để nhả file export trước khi đổi tên và chuyển thư mục...")
+            kill_capcut()
+            time.sleep(1)
+            exported_path = move_latest_export_to_source_folder(
+                export_source_video,
+                export_before_snapshot,
+                item_config=item_config,
+                timeout=int(item_config.get("export_detect_timeout", 180)),
+            )
+            if exported_path:
+                item["exported_path"] = exported_path
+            item["resume_from_step"] = 9
+            self._checkpoint_pause(item, next_step=9, progress=96)
+
         item["progress"] = 98
         item["message"] = "Bước 9: Hoàn tất dự án..."
         logger.info(f"=== ĐÃ XỬ LÝ XONG: {video_name} ===")
@@ -2179,6 +2526,18 @@ runner = QueueRunner()
 @app.route('/')
 def index():
     return render_template("index.html")
+
+@app.route('/api/settings/global', methods=['GET', 'POST'])
+def global_settings():
+    if request.method == 'POST':
+        try:
+            data = request.get_json() or {}
+            settings = save_global_settings(data)
+            return jsonify({"ok": True, "settings": settings})
+        except Exception as e:
+            logger.error(f"Failed to save global settings: {str(e)}")
+            return jsonify({"error": str(e)}), 500
+    return jsonify(load_global_settings())
 
 @app.route('/api/status', methods=['GET'])
 def get_status():
@@ -2202,7 +2561,13 @@ def start_runner():
 @app.route('/api/pause', methods=['POST'])
 def pause_runner():
     runner.pause()
-    return jsonify({"ok": True})
+    return jsonify(runner.get_state())
+
+@app.route('/api/resume', methods=['POST'])
+def resume_runner():
+    data = request.get_json() or {}
+    runner.resume(data)
+    return jsonify(runner.get_state())
 
 @app.route('/api/clear', methods=['POST'])
 def clear_runner():
@@ -2214,11 +2579,11 @@ def select_files():
     try:
         import tkinter as tk
         from tkinter import filedialog
-        
+
         root = tk.Tk()
         root.withdraw()
         root.wm_attributes('-topmost', 1)
-        
+
         file_paths = filedialog.askopenfilenames(
             title="Chọn các file video",
             filetypes=[("Video files", "*.mp4 *.avi *.mkv *.mov *.flv *.ts"), ("All files", "*.*")]
@@ -2234,14 +2599,14 @@ def select_folder():
     try:
         import tkinter as tk
         from tkinter import filedialog
-        
+
         root = tk.Tk()
         root.withdraw()
         root.wm_attributes('-topmost', 1)
-        
+
         folder_path = filedialog.askdirectory(title="Chọn thư mục chứa video")
         root.destroy()
-        
+
         video_files = []
         if folder_path:
             for r, d, files in os.walk(folder_path):
@@ -2285,11 +2650,11 @@ def list_projects():
                 if entry.is_dir():
                     meta_path = os.path.join(entry.path, "draft_meta_info.json")
                     config_path = os.path.join(entry.path, "pipeline_config.json")
-                    
+
                     name = entry.name
                     updated_at = 0
                     duration_str = "00:00"
-                    
+
                     if os.path.exists(meta_path):
                         try:
                             with open(meta_path, "r", encoding="utf-8") as f:
@@ -2304,7 +2669,7 @@ def list_projects():
                                     duration_str = f"{int(duration_sec // 60):02d}:{int(duration_sec % 60):02d}"
                         except Exception as json_err:
                             logger.warning(f"Error reading meta for {entry.name}: {str(json_err)}")
-                    
+
                     if updated_at == 0:
                         try:
                             updated_at = int(os.path.getmtime(entry.path) * 1000000)
@@ -2323,7 +2688,7 @@ def list_projects():
                         "size": size_str,
                         "has_config": has_config
                     })
-            
+
             projects.sort(key=lambda x: x["updated_at"], reverse=True)
         return jsonify({"projects": projects})
     except Exception as e:
@@ -2343,10 +2708,10 @@ def get_project_cover(folder):
 def project_config(folder):
     folder_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, folder)
     config_path = os.path.join(folder_path, "pipeline_config.json")
-    
+
     if not os.path.exists(folder_path):
         return jsonify({"error": "Project folder not found"}), 404
-        
+
     if request.method == 'POST':
         try:
             data = request.get_json() or {}
@@ -2359,7 +2724,8 @@ def project_config(folder):
         except Exception as e:
             return jsonify({"error": str(e)}), 500
     else:
-        default_config = {
+        global_settings = load_global_settings()
+        default_config = apply_global_settings_to_config({
             "speed": 0.77,
             "volume_db": -15.5,
             "tts_speed": 1.17,
@@ -2368,10 +2734,8 @@ def project_config(folder):
             "font_name": DEFAULT_SUBTITLE_FONT_PATH,
             "mirror_video": True,
             "translation_method": "google",
-            "ai_provider": "openai",
-            "ai_api_key": "",
-            "ai_model": "gpt-4o-mini",
-            "ai_base_url": "https://api.openai.com/v1",
+            "translation_ai_profile_id": global_settings.get("default_translation_ai_profile_id"),
+            "context_ai_profile_id": global_settings.get("default_context_ai_profile_id"),
             "source_language": "Chinese",
             "target_language": "Vietnamese",
             "ai_tone": "natural and fluent",
@@ -2381,12 +2745,13 @@ def project_config(folder):
             "translation_branch": "A",
             "asr_suggested_fixes": [],
             "video_path": ""
-        }
+        })
         if os.path.exists(config_path):
             try:
                 with open(config_path, "r", encoding="utf-8") as f:
                     saved_config = json.load(f)
                     default_config.update(saved_config)
+                    default_config = apply_global_settings_to_config(default_config)
             except Exception:
                 pass
         return jsonify(default_config)
@@ -2397,19 +2762,20 @@ def create_project():
         data = request.get_json() or {}
         video_path = data.get("video_path")
         project_name = data.get("project_name")
-        
+        global_settings = load_global_settings()
+
         if not video_path:
             return jsonify({"error": "Video path is required"}), 400
-            
+
         if not project_name:
             project_name = os.path.splitext(os.path.basename(video_path))[0]
-            
+
         clean_name = "".join([c if c.isalnum() else "_" for c in project_name])
         draft_id = f"auto_{clean_name[:20]}_{int(time.time())}"
-        
+
         project_folder = os.path.join(DEFAULT_CAPCUT_DRAFTS, draft_id)
         os.makedirs(project_folder, exist_ok=True)
-        
+
         config_data = {
             "speed": float(data.get("speed", 0.77)),
             "volume_db": float(data.get("volume_db", -15.5)),
@@ -2419,10 +2785,14 @@ def create_project():
             "font_name": data.get("font_name", DEFAULT_SUBTITLE_FONT_PATH),
             "mirror_video": bool(data.get("mirror_video", True)),
             "translation_method": data.get("translation_method", "google"),
-            "ai_provider": data.get("ai_provider", "openai"),
-            "ai_api_key": data.get("ai_api_key", ""),
-            "ai_model": data.get("ai_model", "gpt-4o-mini"),
-            "ai_base_url": normalize_ai_base_url(data.get("ai_base_url", "https://api.openai.com/v1")),
+            "translation_ai_profile_id": data.get(
+                "translation_ai_profile_id",
+                global_settings.get("default_translation_ai_profile_id"),
+            ),
+            "context_ai_profile_id": data.get(
+                "context_ai_profile_id",
+                global_settings.get("default_context_ai_profile_id"),
+            ),
             "source_language": data.get("source_language", "Chinese"),
             "target_language": data.get("target_language", "Vietnamese"),
             "ai_tone": data.get("ai_tone", "natural and fluent"),
@@ -2431,11 +2801,13 @@ def create_project():
             "ai_glossary": data.get("ai_glossary", {}),
             "translation_branch": data.get("translation_branch", "A"),
             "asr_suggested_fixes": data.get("asr_suggested_fixes", []),
+            "openreel_api_key": data.get("openreel_api_key", global_settings.get("openreel_api_key", "")),
+            "openreel_reference_keys": data.get("openreel_reference_keys", global_settings.get("openreel_reference_keys", "")),
             "video_path": video_path
         }
         with open(os.path.join(project_folder, "pipeline_config.json"), "w", encoding="utf-8") as f:
             json.dump(config_data, f, ensure_ascii=False, indent=4)
-            
+
         meta_data = {
             "draft_name": project_name,
             "draft_id": draft_id,
@@ -2446,7 +2818,7 @@ def create_project():
         }
         with open(os.path.join(project_folder, "draft_meta_info.json"), "w", encoding="utf-8") as f:
             json.dump(meta_data, f, ensure_ascii=False, indent=4)
-            
+
         return jsonify({"ok": True, "project": {
             "name": project_name,
             "folder": draft_id,
@@ -2492,21 +2864,22 @@ def add_to_queue():
         folder = data.get("folder")
         if not folder:
             return jsonify({"error": "Folder is required"}), 400
-            
+
         folder_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, folder)
         meta_path = os.path.join(folder_path, "draft_meta_info.json")
         config_path = os.path.join(folder_path, "pipeline_config.json")
-        
+
         name = folder
         if os.path.exists(meta_path):
             with open(meta_path, "r", encoding="utf-8") as f:
                 name = json.load(f).get("draft_name", folder)
-                
+
         config = {}
         if os.path.exists(config_path):
             with open(config_path, "r", encoding="utf-8") as f:
                 config = json.load(f)
-                
+        config = apply_global_settings_to_config(config)
+
         video_paths = parse_video_paths(config.get("video_paths") or config.get("video_path"))
         if not video_paths:
             video_paths = [None]
@@ -2543,7 +2916,7 @@ def test_dump_uia():
         controller = CapCutController()
         out_path = os.path.join(os.path.dirname(__file__), "scratch", "uia_tree.txt")
         os.makedirs(os.path.dirname(out_path), exist_ok=True)
-        
+
         # Use uiautomation's WalkControl instead of GetChildren
         import uiautomation as uia
         with open(out_path, "w", encoding="utf-8") as f:
@@ -2554,7 +2927,7 @@ def test_dump_uia():
                 auto_id = control.AutomationId or ""
                 rect = control.BoundingRectangle
                 f.write(f"{'  '*depth}Name: '{name}' | Class: '{class_name}' | Type: '{control_type}' | AutoId: '{auto_id}' | Rect: {rect}\n")
-                
+
         return jsonify({"ok": True, "path": out_path})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -2564,10 +2937,10 @@ def test_find_uia():
     try:
         from pyJianYingDraft.capcut_controller import CapCutController
         controller = CapCutController()
-        
+
         import uiautomation as uia
         results = []
-        
+
         # Strategy 1: Walk the tree manually using WalkControl and look for '0602' or any project name
         for ctrl, depth in uia.WalkControl(controller.app, maxDepth=16):
             name = ctrl.Name or ""
@@ -2582,7 +2955,7 @@ def test_find_uia():
                     "auto_id": auto_id,
                     "rect": str(ctrl.BoundingRectangle)
                 })
-                
+
         # Strategy 2: Use Native TextControl lookup
         tc = controller.app.TextControl(searchDepth=15, Name="0602")
         if tc.Exists(1):
@@ -2593,7 +2966,7 @@ def test_find_uia():
                 "type": tc.ControlTypeName,
                 "rect": str(tc.BoundingRectangle)
             })
-            
+
         # Strategy 3: General Control lookup
         c = controller.app.Control(searchDepth=15, Compare=lambda ctrl, depth: "0602" in (ctrl.Name or ""))
         if c.Exists(1):
@@ -2604,7 +2977,7 @@ def test_find_uia():
                 "type": c.ControlTypeName,
                 "rect": str(c.BoundingRectangle)
             })
-            
+
         return jsonify({"ok": True, "results": results})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -2645,7 +3018,7 @@ def retry_queue_item():
             item["message"] = "Đang chờ..."
             item.pop("cancel_requested", None)
             runner.save_cache()
-            
+
             # Start queue runner if it's currently idle
             if not runner.is_processing:
                 runner.start(data)
@@ -2693,7 +3066,7 @@ def get_logs():
                 sse_log_queue.get_nowait()
             except queue.Empty:
                 break
-                
+
         while True:
             try:
                 log_data = sse_log_queue.get(timeout=30)

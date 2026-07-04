@@ -17,6 +17,11 @@ import win32gui
 import win32process
 from PIL import ImageGrab
 
+try:
+    from pyJianYingDraft.capcut_controller import capcut_main_hwnd_and_rect
+except Exception:
+    capcut_main_hwnd_and_rect = None
+
 
 pyautogui.FAILSAFE = True
 pyautogui.PAUSE = 0.05
@@ -41,22 +46,96 @@ class WindowBox:
         return self.bottom - self.top
 
 
-def find_capcut_window() -> WindowBox:
+def list_window_candidates() -> list[dict[str, Any]]:
+    candidates: list[dict[str, Any]] = []
+
+    def enum_window(hwnd: int, _: Any) -> None:
+        if not win32gui.IsWindowVisible(hwnd):
+            return
+        title = win32gui.GetWindowText(hwnd)
+        class_name = win32gui.GetClassName(hwnd)
+        left, top, right, bottom = win32gui.GetWindowRect(hwnd)
+        width = max(0, right - left)
+        height = max(0, bottom - top)
+        try:
+            _, pid = win32process.GetWindowThreadProcessId(hwnd)
+            proc = psutil.Process(pid)
+            process_name = proc.name()
+            process_path = proc.exe()
+        except Exception as exc:
+            pid = -1
+            process_name = ""
+            process_path = f"<error: {exc}>"
+        haystack = f"{title} {class_name} {process_name} {process_path}".lower()
+        if "capcut" not in haystack:
+            return
+        candidates.append({
+            "hwnd": hwnd,
+            "pid": pid,
+            "title": title,
+            "class_name": class_name,
+            "process_name": process_name,
+            "process_path": process_path,
+            "rect": [left, top, right, bottom],
+            "width": width,
+            "height": height,
+            "area": width * height,
+        })
+
+    win32gui.EnumWindows(enum_window, None)
+    candidates.sort(key=lambda item: item["area"], reverse=True)
+    return candidates
+
+
+def write_window_debug_report(debug_report: Path, *, selected: WindowBox | None = None, reason: str | None = None) -> None:
+    debug_report.parent.mkdir(parents=True, exist_ok=True)
+    payload: dict[str, Any] = {
+        "reason": reason,
+        "selected": None,
+        "candidates": list_window_candidates(),
+    }
+    if selected is not None:
+        payload["selected"] = {
+            "hwnd": selected.hwnd,
+            "title": selected.title,
+            "rect": [selected.left, selected.top, selected.right, selected.bottom],
+            "width": selected.width,
+            "height": selected.height,
+        }
+    debug_report.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def find_capcut_window(debug_report: Path | None = None) -> WindowBox:
+    if capcut_main_hwnd_and_rect is not None:
+        try:
+            found = capcut_main_hwnd_and_rect()
+            if found is not None:
+                hwnd, rect = found
+                title = win32gui.GetWindowText(hwnd) or "CapCut"
+                selected = WindowBox(hwnd, title, rect[0], rect[1], rect[2], rect[3])
+                if debug_report:
+                    write_window_debug_report(debug_report, selected=selected, reason="selected via capcut_main_hwnd_and_rect")
+                return selected
+        except Exception:
+            pass
+
     matches: list[WindowBox] = []
 
     def enum_window(hwnd: int, _: Any) -> None:
         if not win32gui.IsWindowVisible(hwnd):
             return
         title = win32gui.GetWindowText(hwnd)
-        if "CapCut" not in title:
-            return
         try:
             _, pid = win32process.GetWindowThreadProcessId(hwnd)
             proc = psutil.Process(pid)
-            if "capcut" not in proc.name().lower():
+            process_name = proc.name().lower()
+            process_path = (proc.exe() or "").lower()
+            if process_name != "capcut.exe" and not process_path.endswith("\\capcut.exe"):
                 return
         except Exception:
-            pass
+            return
+        if "CapCut" not in title:
+            return
         left, top, right, bottom = win32gui.GetWindowRect(hwnd)
         if right - left < 600 or bottom - top < 400:
             return
@@ -64,8 +143,13 @@ def find_capcut_window() -> WindowBox:
 
     win32gui.EnumWindows(enum_window, None)
     if not matches:
+        if debug_report:
+            write_window_debug_report(debug_report, reason="no matching CapCut.exe window found")
         raise RuntimeError("CapCut window not found")
-    return sorted(matches, key=lambda box: box.width * box.height, reverse=True)[0]
+    selected = sorted(matches, key=lambda box: box.width * box.height, reverse=True)[0]
+    if debug_report:
+        write_window_debug_report(debug_report, selected=selected, reason="selected via win32 enumeration fallback")
+    return selected
 
 
 def activate_window(window: WindowBox) -> None:
