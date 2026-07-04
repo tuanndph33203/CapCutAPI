@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -699,6 +699,7 @@
         </div>
         <div class="status-badge">
             <button class="btn btn-secondary" id="btn-test-ui" type="button" style="padding: 6px 12px; font-size: 0.8rem; width: auto; margin-right: 10px;">🔌 Test connection</button>
+            <button class="btn btn-secondary" id="btn-auto-shutdown" type="button" style="padding: 6px 12px; font-size: 0.8rem; width: auto; margin-right: 10px;">Tắt máy: Tắt</button>
             <span class="status-dot" id="system-status-dot"></span>
             <span id="system-status-text">Đang kết nối...</span>
         </div>
@@ -897,8 +898,15 @@
     <div class="queue-logs-section" style="margin-top: 40px; display: grid; grid-template-columns: 1.2fr 1fr; gap: 30px;">
         <!-- Left: Queue Panel -->
         <section class="panel">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px;">
                 <h2 class="panel-title" style="margin: 0; color: var(--accent-cyan); font-size: 1.2rem; font-weight: 600;">Hàng chờ Automation</h2>
+            </div>
+            <div id="queue-status-tabs" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
+                <button type="button" class="btn btn-secondary queue-filter-btn active" data-status="active" style="width:auto; height:auto; padding:6px 10px; font-size:0.78rem;">Tất cả</button>
+                <button type="button" class="btn btn-secondary queue-filter-btn" data-status="running" style="width:auto; height:auto; padding:6px 10px; font-size:0.78rem;">Đang chạy</button>
+                <button type="button" class="btn btn-secondary queue-filter-btn" data-status="pending" style="width:auto; height:auto; padding:6px 10px; font-size:0.78rem;">Chờ xử lý</button>
+                <button type="button" class="btn btn-secondary queue-filter-btn" data-status="failed" style="width:auto; height:auto; padding:6px 10px; font-size:0.78rem;">Lỗi</button>
+                <button type="button" class="btn btn-secondary queue-filter-btn" data-status="success" style="width:auto; height:auto; padding:6px 10px; font-size:0.78rem;">Hoàn thành</button>
             </div>
             <div class="queue-table-container" style="max-height: 350px; overflow: auto;">
                 <table>
@@ -1023,11 +1031,13 @@
     const systemStatusText = document.getElementById('system-status-text');
     const terminalOut = document.getElementById('terminal-out');
     const queueTbody = document.getElementById('queue-tbody');
+    const queueStatusTabs = document.getElementById('queue-status-tabs');
 
     const btnStart = document.getElementById('btn-start');
     const btnPause = document.getElementById('btn-pause');
     const btnClear = document.getElementById('btn-clear');
     const btnTestUI = document.getElementById('btn-test-ui');
+    const btnAutoShutdown = document.getElementById('btn-auto-shutdown');
     const btnRefreshProjects = document.getElementById('btn-refresh-projects');
 
     // Modals & Forms (Create Project)
@@ -1058,6 +1068,26 @@
     const projectsGrid = document.getElementById('projects-grid');
 
     let isProcessing = false;
+    let currentQueue = [];
+    let queueStatusFilter = 'active';
+    let autoShutdownEnabled = localStorage.getItem('capcut_auto_shutdown') === 'true';
+
+    function renderAutoShutdownButton() {
+        if (!btnAutoShutdown) return;
+        btnAutoShutdown.innerText = autoShutdownEnabled ? 'Tắt máy: Bật' : 'Tắt máy: Tắt';
+        btnAutoShutdown.style.borderColor = autoShutdownEnabled ? 'var(--warning-color)' : 'var(--border-color)';
+        btnAutoShutdown.style.color = autoShutdownEnabled ? 'var(--warning-color)' : 'var(--text-color)';
+    }
+
+    renderAutoShutdownButton();
+    if (btnAutoShutdown) {
+        btnAutoShutdown.addEventListener('click', () => {
+            autoShutdownEnabled = !autoShutdownEnabled;
+            localStorage.setItem('capcut_auto_shutdown', String(autoShutdownEnabled));
+            renderAutoShutdownButton();
+            log(`Tự tắt máy sau pipeline: ${autoShutdownEnabled ? 'BẬT' : 'TẮT'}`, autoShutdownEnabled ? 'warning' : 'info');
+        });
+    }
 
     // Modals toggle helper
     function openModal(modal) {
@@ -1418,7 +1448,7 @@
         fetch('/api/start', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({})
+            body: JSON.stringify({ auto_shutdown: autoShutdownEnabled })
         })
         .then(res => res.json())
         .then(data => {
@@ -1496,7 +1526,15 @@
     };
 
     function updateQueueTable(serverQueue) {
-        if (!serverQueue || serverQueue.length === 0) {
+        currentQueue = Array.isArray(serverQueue) ? serverQueue : [];
+        const filteredQueue = currentQueue
+            .map((item, originalIndex) => ({ item, originalIndex }))
+            .filter(({ item }) => {
+                if (queueStatusFilter === 'active') return item.status !== 'success';
+                return item.status === queueStatusFilter;
+            });
+
+        if (!currentQueue || currentQueue.length === 0) {
             queueTbody.innerHTML = `
                 <tr>
                     <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">
@@ -1506,9 +1544,20 @@
             `;
             return;
         }
+
+        if (filteredQueue.length === 0) {
+            queueTbody.innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                        Không có mục nào ở trạng thái này.
+                    </td>
+                </tr>
+            `;
+            return;
+        }
         
         queueTbody.innerHTML = '';
-        serverQueue.forEach((item, index) => {
+        filteredQueue.forEach(({ item, originalIndex }, displayIndex) => {
             const display_name = item.video.split(/[\\/]/).pop();
             const badgeClass = `badge badge-${item.status}`;
             const statusLabel = {
@@ -1521,14 +1570,16 @@
             // Render action button
             let actionBtn = '';
             if (item.status === 'running' || item.status === 'pending') {
-                actionBtn = `<button class="btn btn-danger" onclick="cancelQueueItem(${index})" style="padding: 4px 10px; font-size: 0.75rem; width: auto; height: auto;">Hủy</button>`;
+                actionBtn = `<button class="btn btn-danger" onclick="cancelQueueItem(${originalIndex})" style="padding: 4px 10px; font-size: 0.75rem; width: auto; height: auto;">Hủy</button>`;
             } else if (item.status === 'failed') {
-                actionBtn = `<button class="btn btn-warning" onclick="retryQueueItem(${index})" style="padding: 4px 10px; font-size: 0.75rem; width: auto; height: auto; background: #f2994a; border: none; color: #fff;">Thử lại</button>`;
+                actionBtn = `<button class="btn btn-warning" onclick="retryQueueItem(${originalIndex})" style="padding: 4px 10px; font-size: 0.75rem; width: auto; height: auto; background: #f2994a; border: none; color: #fff;">Thử lại</button><button class="btn btn-danger" onclick="deleteQueueItem(${originalIndex})" style="padding: 4px 10px; font-size: 0.75rem; width: auto; height: auto; margin-left: 6px;">Xóa</button>`;
+            } else {
+                actionBtn = `<button class="btn btn-danger" onclick="deleteQueueItem(${originalIndex})" style="padding: 4px 10px; font-size: 0.75rem; width: auto; height: auto;">Xóa</button>`;
             }
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${index + 1}</td>
+                <td>${originalIndex + 1}</td>
                 <td class="filename-cell" title="${item.video}">${display_name}</td>
                 <td><span class="${badgeClass}">${statusLabel}</span></td>
                 <td>
@@ -1545,6 +1596,20 @@
                 <td style="text-align: center;">${actionBtn}</td>
             `;
             queueTbody.appendChild(tr);
+        });
+    }
+
+    if (queueStatusTabs) {
+        queueStatusTabs.querySelectorAll('.queue-filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                queueStatusFilter = btn.dataset.status || 'active';
+                queueStatusTabs.querySelectorAll('.queue-filter-btn').forEach(other => {
+                    other.classList.toggle('active', other === btn);
+                    other.style.borderColor = other === btn ? 'var(--accent-cyan)' : 'var(--border-color)';
+                    other.style.color = other === btn ? 'var(--accent-cyan)' : 'var(--text-color)';
+                });
+                updateQueueTable(currentQueue);
+            });
         });
     }
 
@@ -1583,7 +1648,22 @@
             log(`Lỗi khi thực hiện lại: ${err}`, 'error');
         });
     };
-
+    window.deleteQueueItem = function(index) {
+        if (!confirm(`Bạn có chắc chắn muốn xóa mục hàng chờ thứ ${index + 1}?`)) return;
+        fetch('/api/queue/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ index: index })
+        })
+        .then(res => res.json())
+        .then(data => {
+            updateQueueTable(data.queue);
+            log(`Đã xóa mục hàng chờ thứ ${index + 1}.`, 'warning');
+        })
+        .catch(err => {
+            log(`Lỗi khi xóa mục hàng chờ: ${err}`, 'error');
+        });
+    };
     // Check UI automation connection
     btnTestUI.addEventListener('click', () => {
         log('Đang kiểm tra kết nối với cửa sổ CapCut GUI...');
@@ -1611,3 +1691,4 @@
 </script>
 </body>
 </html>
+

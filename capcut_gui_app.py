@@ -8,6 +8,7 @@ import logging
 import threading
 import subprocess
 import re
+import shutil
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, Response
 
@@ -114,19 +115,9 @@ def get_export_scan_dirs(video_path=None, item_config=None):
             if part.strip():
                 dirs.append(Path(part.strip()))
 
-    if video_path:
-        try:
-            dirs.append(Path(video_path).expanduser().resolve().parent)
-        except Exception:
-            pass
-
     user_profile = Path(os.environ.get("USERPROFILE", str(Path.home())))
-    local_app_data = Path(os.environ.get("LOCALAPPDATA", ""))
     dirs.extend([
-        local_app_data / "CapCut" / "Videos",
         user_profile / "Videos",
-        user_profile / "Downloads",
-        user_profile / "Desktop",
     ])
 
     seen = set()
@@ -187,6 +178,45 @@ def unique_output_path(folder, stem, suffix=".mp4"):
         counter += 1
     return candidate
 
+def safe_ascii_stem(value, fallback="export"):
+    ascii_name = re.sub(r"[^A-Za-z0-9._-]+", "_", str(value or ""))
+    ascii_name = re.sub(r"_+", "_", ascii_name).strip("._-")
+    return ascii_name or fallback
+
+def has_non_ascii(value):
+    return any(ord(ch) > 127 for ch in str(value or ""))
+
+def replace_file_with_retry(source, target, attempts=8, interval=2):
+    last_error = None
+    expected_size = source.stat().st_size
+    for attempt in range(1, attempts + 1):
+        try:
+            os.replace(str(source), str(target))
+            if not target.exists() or target.stat().st_size != expected_size:
+                raise OSError(f"Move xong nhưng file đích không hợp lệ: {target}")
+            return True
+        except OSError as exc:
+            last_error = exc
+            if attempt == attempts:
+                break
+            logger.warning(
+                f"Chưa chuyển được file export do Windows còn giữ file "
+                f"(lần {attempt}/{attempts}): {exc}. Đợi {interval}s rồi thử lại..."
+            )
+            time.sleep(interval)
+    logger.warning(f"Không move được file export sau {attempts} lần, thử copy thay vì move: {last_error}")
+    shutil.copy2(str(source), str(target))
+    if target.exists() and target.stat().st_size == expected_size:
+        try:
+            source.unlink()
+        except OSError as exc:
+            logger.warning(f"Đã copy export sang đích nhưng chưa xóa được file gốc '{source}': {exc}")
+        return True
+    raise OSError(
+        f"Copy export không hợp lệ: source={source} size={expected_size}, "
+        f"target={target} exists={target.exists()} size={target.stat().st_size if target.exists() else 0}"
+    )
+
 def move_latest_export_to_source_folder(video_path, before_snapshot, item_config=None, timeout=180):
     if not video_path:
         logger.warning("Không có video_path nên không thể xác định folder xuất theo video gốc.")
@@ -232,14 +262,26 @@ def move_latest_export_to_source_folder(video_path, before_snapshot, item_config
     )
     stem = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "_", stem).strip(" .") or f"{source_video.stem}_vi"
     target = unique_output_path(output_dir, stem, suffix)
+    logger.info(f"File export mới phát hiện: {newest} ({newest.stat().st_size} bytes). Đích yêu cầu: {target}")
 
     if newest.resolve() == target.resolve():
-        logger.info(f"File export đã nằm đúng vị trí: {target}")
-        return str(target)
+        if target.exists() and target.parent.resolve() == output_dir.resolve() and target.stat().st_size > 0:
+            logger.info(f"File export đã nằm đúng vị trí: {target}")
+            return str(target)
+        raise RuntimeError(f"File export trùng đường dẫn đích nhưng không hợp lệ: {target}")
 
-    os.replace(str(newest), str(target))
-    logger.info(f"Đã chuyển file export về folder video gốc: {target}")
-    return str(target)
+    try:
+        replace_file_with_retry(newest, target)
+        if not target.exists() or target.parent.resolve() != output_dir.resolve():
+            raise RuntimeError(f"Không xác minh được file đích sau move/copy: {target}")
+        logger.info(f"Đã chuyển file export về folder video gốc: {target} ({target.stat().st_size} bytes)")
+        return str(target)
+    except OSError as exc:
+        raise RuntimeError(
+            f"Không thể move/copy file export sang thư mục video gốc '{output_dir}' với tên '{target.name}': {exc}. "
+            f"File CapCut đã xuất vẫn nằm tại: {newest}. "
+            "Hãy Allow app python.exe trong Windows Security > Protected folder access rồi bấm Thử lại."
+        )
 
 def find_element_by_name(root, target_name, depth=0, max_depth=10):
     if not root or depth > max_depth:
@@ -740,6 +782,11 @@ def build_ai_translation_config(item_config=None):
             model = "claude-3-5-haiku-20241022"
         else:
             model = "gpt-4o-mini"
+    fallback_model = (
+        item_config.get("ai_fallback_model")
+        or item_config.get("aiFallbackModel")
+        or "z-ai/glm-5.2"
+    )
 
     base_url = (
         item_config.get("ai_base_url")
@@ -783,6 +830,7 @@ def build_ai_translation_config(item_config=None):
         "provider": provider,
         "api_key": api_key,
         "model": model,
+        "fallback_model": fallback_model,
         "base_url": base_url,
         "is_mimo": is_mimo,
         "source_language": item_config.get("source_language") or item_config.get("sourceLanguage") or "Chinese",
@@ -1167,25 +1215,71 @@ def call_ai_translation_once(lines, config, previous_context=None, next_context=
     return translations
 
 
-def translate_ai_batch_recursive(lines, config, previous_context=None, next_context=None):
+def config_with_model(config, model):
+    updated = dict(config)
+    updated["model"] = model
+    updated["is_mimo"] = (
+        "xiaomimimo.com" in (updated.get("base_url") or "").lower()
+        or "mimo" in (model or "").lower()
+    )
+    return updated
+
+
+def call_ai_translation_with_fallback(lines, config, previous_context=None, next_context=None, ultra_short=False):
+    try:
+        return call_ai_translation_once(lines, config, previous_context, next_context, ultra_short=ultra_short)
+    except Exception as primary_error:
+        fallback_model = (config.get("fallback_model") or "").strip()
+        if not fallback_model or fallback_model == config.get("model"):
+            raise
+        fallback_config = config_with_model(config, fallback_model)
+        logger.warning(
+            f"Model chính {config.get('model')} dịch thất bại, chuyển sang fallback "
+            f"{fallback_model}: {str(primary_error)}"
+        )
+        return call_ai_translation_once(
+            lines,
+            fallback_config,
+            previous_context,
+            next_context,
+            ultra_short=ultra_short,
+        )
+
+
+def translate_ai_batch_recursive(lines, config, previous_context=None, next_context=None, item_config=None):
     if not lines:
         return []
 
     for ultra_short in (False, True):
         try:
+            if len(lines) <= 10:
+                return call_ai_translation_with_fallback(lines, config, previous_context, next_context, ultra_short=ultra_short)
             return call_ai_translation_once(lines, config, previous_context, next_context, ultra_short=ultra_short)
         except Exception as e:
             logger.warning(f"Dịch AI batch {len(lines)} dòng thất bại (ultra_short={ultra_short}): {str(e)}")
 
     if len(lines) == 1:
-        logger.warning(f"Dịch AI dòng đơn thất bại hoàn toàn, dùng glossary repair: {lines[0]['text']}")
-        return [repair_with_glossary(lines[0]["text"], config.get("glossary"))]
+        raw_text = lines[0]["text"]
+        logger.warning(f"Dịch AI dòng đơn thất bại hoàn toàn, thử repair dòng đơn: {raw_text}")
+        try:
+            return [repair_single_translation(
+                raw_text,
+                item_config=item_config,
+                previous_context=previous_context,
+                next_context=next_context,
+            )]
+        except Exception as e:
+            logger.warning(f"Repair dòng đơn thất bại, dùng glossary repair cuối cùng: {str(e)}")
+            repaired = repair_with_glossary(raw_text, config.get("glossary"))
+            if has_source_chars(repaired, config["source_language"]):
+                raise ValueError(f"Dòng đơn vẫn còn ký tự nguồn sau mọi retry: {repaired}")
+            return [repaired]
 
     mid = len(lines) // 2
-    left = translate_ai_batch_recursive(lines[:mid], config, previous_context, next_context)
+    left = translate_ai_batch_recursive(lines[:mid], config, previous_context, next_context, item_config=item_config)
     right_context = (previous_context or []) + left
     right_context = right_context[-5:]
-    right = translate_ai_batch_recursive(lines[mid:], config, right_context, next_context)
+    right = translate_ai_batch_recursive(lines[mid:], config, right_context, next_context, item_config=item_config)
     return left + right
 
 
@@ -1204,12 +1298,37 @@ def translate_texts_with_ai(raw_texts, item_config=None):
         batch = [{"id": str(i), "text": raw_texts[i]} for i in range(start, end)]
         prev_context = raw_texts[max(0, start - context_window):start]
         next_context = raw_texts[end:min(len(raw_texts), end + context_window)]
-        batch_translations = translate_ai_batch_recursive(batch, config, prev_context, next_context)
+        batch_translations = translate_ai_batch_recursive(batch, config, prev_context, next_context, item_config=item_config)
         for offset, value in enumerate(batch_translations):
             translated[start + offset] = value
         logger.info(f"Dịch AI batch {start // batch_size + 1}: OK ({len(batch_translations)}/{len(batch)})")
 
     return translated
+
+
+def repair_single_translation(raw_text, item_config=None, previous_context=None, next_context=None):
+    config = build_ai_translation_config(item_config)
+    if config["enabled"]:
+        line = [{"id": "0", "text": raw_text}]
+        for ultra_short in (False, True):
+            try:
+                repaired = call_ai_translation_with_fallback(
+                    line,
+                    config,
+                    previous_context=previous_context,
+                    next_context=next_context,
+                    ultra_short=ultra_short,
+                )[0]
+                if repaired and not has_source_chars(repaired, config["source_language"]):
+                    return repaired
+                logger.warning(f"Dịch lại dòng đơn vẫn còn ký tự nguồn: {raw_text} -> {repaired}")
+            except Exception as e:
+                logger.warning(f"Dịch lại dòng đơn thất bại (ultra_short={ultra_short}): {str(e)}")
+
+    translated = translate_google(raw_text, "zh-CN", "vi")
+    if translated and not has_source_chars(translated, "Chinese"):
+        return translated
+    raise ValueError(f"Bản dịch vẫn còn chữ Trung sau khi retry: {translated}")
 
 
 def patch_subtitles_file(content_path, font_size=5.0, font_color=DEFAULT_SUBTITLE_COLOR_RGB, font_name=DEFAULT_SUBTITLE_FONT_PATH, item_config=None, translation_cache=None):
@@ -1300,7 +1419,16 @@ def patch_subtitles_file(content_path, font_size=5.0, font_color=DEFAULT_SUBTITL
                 translation_cache[raw_text] = translated
 
             if has_source_chars(translated, "Chinese"):
-                raise ValueError(f"Bản dịch vẫn còn chữ Trung: {translated}")
+                logger.warning(f"Bản dịch vẫn còn chữ Trung, thử dịch lại riêng dòng: {raw_text} -> {translated}")
+                previous_context = raw_texts[max(0, index - 2):index]
+                next_context = raw_texts[index + 1:index + 3]
+                translated = repair_single_translation(
+                    raw_text,
+                    item_config=item_config,
+                    previous_context=previous_context,
+                    next_context=next_context,
+                )
+                translation_cache[raw_text] = translated
 
             if len(translated_samples) < 3:
                 translated_samples.append((raw_text, translated))
@@ -1680,9 +1808,8 @@ class QueueRunner:
                 self.queue = cached_queue
                 for item in self.queue:
                     if item.get("status") == "running":
-                        item["status"] = "pending"
-                        item["progress"] = 0
-                        item["message"] = "Đang chờ sau khi khôi phục cache..."
+                        item["status"] = "failed"
+                        item["message"] = "Lỗi: Pipeline bị gián đoạn khi server/máy tính tắt. Bấm Thử lại nếu muốn chạy lại mục này."
                     item.pop("cancel_requested", None)
             cached_config = data.get("config", {})
             if isinstance(cached_config, dict):
@@ -1723,11 +1850,20 @@ class QueueRunner:
         self.config = dict(config or {})
         self.config.setdefault("auto_shutdown", False)
         for item in self.queue:
-            if item["status"] != "success":
+            if item.get("status") == "running":
+                item["status"] = "failed"
+                item["message"] = "Lỗi: Pipeline bị gián đoạn trước đó. Bấm Thử lại nếu muốn chạy lại mục này."
+            elif item.get("status") == "pending":
+                item.setdefault("progress", 0)
+                item.setdefault("message", "Đang chờ...")
+            elif item.get("status") in ("success", "failed", "cancelled"):
+                item.pop("cancel_requested", None)
+                continue
+            else:
                 item["status"] = "pending"
                 item["progress"] = 0
                 item["message"] = "Đang chờ..."
-                item.pop("cancel_requested", None)
+            item.pop("cancel_requested", None)
         self.pause_requested = False
         self.is_processing = True
         self.save_cache()
@@ -2018,6 +2154,9 @@ class QueueRunner:
         controller = launch_capcut()
         open_project_in_gui(controller, draft_id)
         run_image_workflow("rpa_export.sample.json", "Export")
+        logger.info("Đóng CapCut để nhả file export trước khi đổi tên và chuyển thư mục...")
+        kill_capcut()
+        time.sleep(1)
         exported_path = move_latest_export_to_source_folder(
             export_source_video,
             export_before_snapshot,
@@ -2029,8 +2168,7 @@ class QueueRunner:
         
         # Step 9: Close CapCut / Done
         item["progress"] = 98
-        item["message"] = "Bước 9: Đang đóng CapCut hoàn tất dự án..."
-        kill_capcut()
+        item["message"] = "Bước 9: Hoàn tất dự án..."
         logger.info(f"=== ĐÃ XỬ LÝ XONG: {video_name} ===")
 
 # Instantiate global runner
