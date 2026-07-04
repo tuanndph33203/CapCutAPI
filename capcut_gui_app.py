@@ -29,6 +29,9 @@ DEFAULT_CAPCUT_DRAFTS = os.environ.get(
 QUEUE_CACHE_PATH = Path(__file__).with_name("queue_cache.json")
 FIRST_PROJECT_FALLBACK_X = 285
 FIRST_PROJECT_FALLBACK_Y = 583
+PROJECT_TITLE_MARKER_TEMPLATE = Path(__file__).with_name("rpa_templates") / "project_title_marker.png"
+PROJECT_TITLE_MARKER_CLICK_ABOVE_CM = 1.0
+PROJECT_TITLE_MARKER_DPI = 96.0
 CAPCUT_SHORTCUT_CANDIDATES = [
     os.environ.get("CAPCUT_SHORTCUT", ""),
     os.path.join(os.environ.get("APPDATA", ""), "Microsoft", "Windows", "Start Menu", "Programs", "CapCut", "CapCut.lnk"),
@@ -356,31 +359,29 @@ def open_project_in_gui(controller, project_name):
         time.sleep(2)
 
     try:
-        from capcut_ocr_projects import click_text_above
+        from capcut_rpa import click_template
 
-        debug_report = Path("scratch/capcut_projects_ocr_report.json")
-        logger.info(f"Đang dùng OCR tìm chữ dự án '{project_name}' rồi click lên trên 0.5cm...")
-        click_result = click_text_above(
-            text=str(project_name),
-            min_score=0.35,
-            click_above_cm=0.5,
-            debug_image=Path("scratch/capcut_projects_ocr_crop.png"),
-            full_debug_image=Path("scratch/capcut_projects_ocr_full.png"),
-            debug_report=debug_report,
+        click_above_px = -int(PROJECT_TITLE_MARKER_CLICK_ABOVE_CM / 2.54 * PROJECT_TITLE_MARKER_DPI)
+        logger.info(
+            f"Đang dùng ảnh {PROJECT_TITLE_MARKER_TEMPLATE.name} để mở dự án, "
+            f"click lên trên {PROJECT_TITLE_MARKER_CLICK_ABOVE_CM}cm ở giữa ảnh..."
+        )
+        click_result = click_template(
+            PROJECT_TITLE_MARKER_TEMPLATE,
+            threshold=0.82,
+            dry_run=False,
+            timeout=30,
+            click_offset_y=click_above_px,
+            search_region=[0.0, 0.12, 1.0, 0.85],
         )
         logger.info(
-            f"OCR đã thấy '{click_result['text']}' "
-            f"(score={click_result['score']}) và click tại ({click_result['x']}, {click_result['y']})."
-        )
-        logger.info(
-            f"Window OCR đang dùng: {click_result['window_title']} {click_result['window_rect']} | "
-            f"báo cáo: {debug_report}"
+            f"Đã thấy template project marker score={click_result['score']:.4f} "
+            f"và click tại ({click_result['x']}, {click_result['y']})."
         )
     except Exception as e:
         raise Exception(
-            f"OCR không mở được đúng dự án '{project_name}'. "
-            f"Đã chặn fallback sang project đầu tiên. Chi tiết: {str(e)}. "
-            "Xem scratch/capcut_projects_ocr_report.json và *_window.json để debug selector."
+            f"Không mở được dự án '{project_name}' bằng template ảnh {PROJECT_TITLE_MARKER_TEMPLATE}. "
+            f"Đã chặn fallback sang project đầu tiên. Chi tiết: {str(e)}."
         ) from e
 
     logger.info("Waiting 5 seconds after project click before continuing pipeline...")
