@@ -257,12 +257,10 @@ class CapCutController:
             timeout=timeout,
         )
         if draft_control is None:
-            logger.warning("Draft '%s' was not visible via UIA; clicking the first project tile fallback.", draft_name)
-            if not self.click_first_project_tile_fallback():
-                raise exceptions.DraftNotFound(f"No CapCut draft named '{draft_name}' found")
-            time.sleep(8)
-            self.app_status = "edit"
-            return
+            raise exceptions.DraftNotFound(
+                f"Draft '{draft_name}' was not visible via UIA. "
+                "First-project fallback is disabled to prevent opening the wrong draft."
+            )
         parent = draft_control.GetParentControl()
         (parent or draft_control).Click(simulateMove=False)
 
@@ -325,17 +323,8 @@ class CapCutController:
                 return
 
     def click_first_project_tile_fallback(self) -> bool:
-        rect = activate_capcut_main_window()
-        if rect is None:
-            return False
-        left, top, _right, _bottom = rect
-        # CapCut 8.8 home grid: first project tile center. This is intentionally
-        # a fallback for builds that expose only the root window to UIA.
-        x = left + 290
-        y = top + 585
-        logger.info("Clicking first project tile fallback at (%s, %s).", x, y)
-        uia.Click(x, y)
-        return True
+        logger.error("click_first_project_tile_fallback() is disabled to prevent opening the wrong draft.")
+        return False
 
     def click_export_button(self) -> None:
         control = self.find_first(["MainWindowTitleBarExportBtn", "Export"], max_depth=8, timeout=2)

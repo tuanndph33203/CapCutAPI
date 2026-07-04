@@ -1,0 +1,28 @@
+{
+    "ai_provider": "openai",
+    "ai_api_key": "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",
+    "ai_model": "z-ai/glm-5.2",
+    "ai_base_url": "https://integrate.api.nvidia.com/v1",
+    "ai_profiles": [
+        {
+            "id": "openai-default",
+            "label": "OpenAI",
+            "provider": "openai",
+            "api_key": "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",
+            "model": "z-ai/glm-5.2",
+            "base_url": "https://integrate.api.nvidia.com/v1"
+        },
+        {
+            "id": "harmonyos-sans-sc-regular",
+            "label": "GEMMA",
+            "provider": "openai",
+            "api_key": "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",
+            "model": "google/gemma-4-31b-it",
+            "base_url": "https://integrate.api.nvidia.com/v1"
+        }
+    ],
+    "default_translation_ai_profile_id": "openai-default",
+    "default_context_ai_profile_id": "openai-default",
+    "openreel_api_key": "",
+    "openreel_reference_keys": ""
+}

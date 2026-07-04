@@ -1,0 +1,91 @@
+{
+  "window": {
+    "hwnd": 1181378,
+    "title": "CapCut",
+    "rect": [
+      -8,
+      -8,
+      1928,
+      1048
+    ],
+    "width": 1936,
+    "height": 1056
+  },
+  "crop_rect": {
+    "left": 193,
+    "top": 380,
+    "right": 1858,
+    "bottom": 929,
+    "width": 1665,
+    "height": 549
+  },
+  "target_text": "",
+  "clicked": null,
+  "error": null,
+  "texts": [
+    {
+      "text": "60.00fps",
+      "score": 0.9987,
+      "box": {
+        "left": 1318,
+        "top": 4,
+        "right": 1375,
+        "bottom": 24
+      },
+      "abs_box": {
+        "left": 1511,
+        "top": 384,
+        "right": 1568,
+        "bottom": 404
+      }
+    },
+    {
+      "text": "Frame rate:",
+      "score": 0.9985,
+      "box": {
+        "left": 1179,
+        "top": 8,
+        "right": 1240,
+        "bottom": 23
+      },
+      "abs_box": {
+        "left": 1372,
+        "top": 388,
+        "right": 1433,
+        "bottom": 403
+      }
+    },
+    {
+      "text": "Q",
+      "score": 0.7868,
+      "box": {
+        "left": 1517,
+        "top": 276,
+        "right": 1577,
+        "bottom": 296
+      },
+      "abs_box": {
+        "left": 1710,
+        "top": 656,
+        "right": 1770,
+        "bottom": 676
+      }
+    },
+    {
+      "text": "aterial here and start to create",
+      "score": 0.9553,
+      "box": {
+        "left": 0,
+        "top": 484,
+        "right": 164,
+        "bottom": 499
+      },
+      "abs_box": {
+        "left": 193,
+        "top": 864,
+        "right": 357,
+        "bottom": 879
+      }
+    }
+  ]
+}
