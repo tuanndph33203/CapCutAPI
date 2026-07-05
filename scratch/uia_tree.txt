@@ -1,0 +1,1 @@
+Name: 'CapCut' | Class: 'HomePageX_QMLTYPE_171' | Type: 'WindowControl' | AutoId: 'HomeWindow' | Rect: (0,0,1920,1040)[1920x1040]

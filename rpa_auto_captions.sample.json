@@ -4,13 +4,13 @@
                       "template":  "rpa_templates/captions_tab.png",
                       "threshold":  0.82,
                       "action":  "click_template",
-                      "timeout":  20
+                      "timeout":  60
                   },
                   {
                       "template":  "rpa_templates/generate_button.png",
                       "threshold":  0.82,
                       "action":  "click_template",
-                      "timeout":  20
+                      "timeout":  60
                   },
                   {
                       "action":  "wait",
