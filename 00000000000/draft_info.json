@@ -33,7 +33,7 @@
     },
     "cover": null,
     "create_time": 0,
-    "duration": 347791666,
+    "duration": 226500000,
     "extra_info": null,
     "fps": 30,
     "free_render_index_mode_on": false,
@@ -96,7 +96,7 @@
         "speeds": [
             {
                 "curve_speed": null,
-                "id": "16b96e166d5c4a7eb50390fc1f1d6eaa",
+                "id": "4198882011d44747a9c818ab11b5e897",
                 "mode": 0,
                 "speed": 0.8,
                 "type": "speed"
@@ -110,55 +110,61 @@
         "transitions": [],
         "video_effects": [
             {
-                "id": "78D19617-73EE-4a8a-88E7-35FE1A679E12",
-                "effect_id": "7405166014960307462",
-                "resource_id": "7405166014960307462",
+                "id": "2e36c9fb1fb84ecf95354c5d659e7710",
+                "effect_id": "15206412",
+                "resource_id": "6739752823140913675",
                 "name": "Blur",
                 "type": "video_effect",
                 "sub_type": 0,
                 "bind_segment_id": "",
                 "transparent_params": "",
-                "path": "C:/Users/nguye/AppData/Local/CapCut/User Data/Cache/effect/7405166014960307462/2ef5e9b64a26662fcfb4fc0c3a8634bc",
+                "path": "C:/Users/nguye/AppData/Local/CapCut/User Data/Cache/effect/11326141/949f7b952a59c3bf0c9069cda2a4fb7f",
                 "value": 1.0,
-                "category_id": "1111",
-                "category_name": "Video effects",
+                "category_id": "",
+                "category_name": "",
                 "platform": "all",
                 "apply_target_type": 2,
-                "source_platform": 1,
+                "source_platform": 0,
                 "version": "",
                 "item_effect_type": 0,
-                "adjust_params": [],
+                "adjust_params": [
+                    {
+                        "name": "effects_adjust_blur",
+                        "value": 0.5,
+                        "default_value": 0.5
+                    }
+                ],
                 "time_range": null,
                 "formula_id": "",
                 "apply_time_range": null,
-                "render_index": 0,
+                "render_index": 11000,
                 "track_render_index": 0,
                 "common_keyframes": [],
-                "request_id": "202607031212570000000000002438C45",
+                "request_id": "",
                 "algorithm_artifact_path": "",
                 "disable_effect_faces": [],
                 "covering_relation_change": 0,
                 "enable_mask": true,
                 "effect_mask": [
                     {
-                        "id": "F023DD5F-B3FF-435a-A034-FE71E38727CB",
-                        "type": "video_effect",
+                        "id": "B08DE5EC-7D76-4777-A396-3A9293ED04D5",
+                        "type": "none",
                         "category": "effect",
                         "category_name": "",
                         "category_id": "",
                         "panel": "",
                         "is_old_version": false,
                         "resource_id": "7374021450748924432",
-                        "constant_material_id": "FB10FAA4-B0E6-45f9-89AA-06B5ED7A8252",
+                        "constant_material_id": "C7521527-CF89-4d70-8C02-FDC8B1CBBC33",
                         "name": "Rectangle",
                         "resource_type": "rectangle",
                         "path": "C:/Users/nguye/AppData/Local/CapCut/User Data/Cache/effect/1036120042/6e7fa46ea829d76af5c4b45b3af75696",
                         "position_info": "",
                         "config": {
-                            "width": 1.0,
-                            "height": 0.10476190476190478,
+                            "width": 0.9868273092369478,
+                            "height": 0.13333333333333333,
                             "centerX": 0.0,
-                            "centerY": -0.8380952380952381,
+                            "centerY": -0.8365079365079364,
                             "rotation": 0.0,
                             "feather": 0.0,
                             "expansion": 0.0,
@@ -212,17 +218,17 @@
                 },
                 "crop_ratio": "free",
                 "crop_scale": 1.0,
-                "duration": 278233333,
-                "height": 1440,
-                "id": "c170b1083b0b3d61a1c426da0801626e",
+                "duration": 181200000,
+                "height": 576,
+                "id": "d8e0f72704b838bcbe81faa76e43df20",
                 "local_material_id": "",
-                "material_id": "c170b1083b0b3d61a1c426da0801626e",
-                "material_name": "video_aeb4e757e9495703.mp4",
+                "material_id": "d8e0f72704b838bcbe81faa76e43df20",
+                "material_name": "video_abcb553acb1cf89f.mp4",
                 "media_path": "",
-                "path": "C:\\Users\\nguye\\AppData\\Local\\CapCut\\User Data\\Projects\\com.lveditor.draft\\00000000000\\assets\\video\\video_aeb4e757e9495703.mp4",
-                "remote_url": "C:\\Users\\nguye\\Videos\\Phim1\\第11集丨石希芸成帝炼体之力圆满 #原创动画 #沙雕动画 #修仙.mp4",
+                "path": "C:\\Users\\nguye\\AppData\\Local\\CapCut\\User Data\\Projects\\com.lveditor.draft\\00000000000\\assets\\video\\video_abcb553acb1cf89f.mp4",
+                "remote_url": "C:\\Users\\nguye\\Videos\\Phim3\\奇才叶凌天的抖音 - 抖音_files\\tap22.mp4",
                 "type": "video",
-                "width": 2560
+                "width": 1024
             }
         ],
         "vocal_beautifys": [],
@@ -242,7 +248,7 @@
         {
             "attribute": 0,
             "flag": 0,
-            "id": "5058487e470247a5bf1379fa748d0e35",
+            "id": "bf9984f1f0354650ac0a21e2f7fd8e70",
             "is_default_name": false,
             "name": "video",
             "segments": [],
@@ -251,7 +257,7 @@
         {
             "attribute": 0,
             "flag": 0,
-            "id": "8eae12cf2f214ea682ae1901980b52c7",
+            "id": "8f40486daccb486fadfa2b92e947f207",
             "is_default_name": false,
             "name": "main",
             "segments": [
@@ -268,22 +274,22 @@
                     "track_attribute": 0,
                     "track_render_index": 0,
                     "visible": true,
-                    "id": "7f6a813811e0409396250cb1e6c8540a",
-                    "material_id": "c170b1083b0b3d61a1c426da0801626e",
+                    "id": "3bd4012abab2498291d728f3961f9223",
+                    "material_id": "d8e0f72704b838bcbe81faa76e43df20",
                     "target_timerange": {
                         "start": 0,
-                        "duration": 347791666
+                        "duration": 226500000
                     },
                     "common_keyframes": [],
                     "keyframe_refs": [],
                     "source_timerange": {
                         "start": 0,
-                        "duration": 278233333
+                        "duration": 181200000
                     },
                     "speed": 0.8,
                     "volume": 1.0,
                     "extra_material_refs": [
-                        "16b96e166d5c4a7eb50390fc1f1d6eaa"
+                        "4198882011d44747a9c818ab11b5e897"
                     ],
                     "clip": {
                         "alpha": 1.0,
@@ -293,12 +299,12 @@
                         },
                         "rotation": 0.0,
                         "scale": {
-                            "x": 1,
-                            "y": 1
+                            "x": 1.0,
+                            "y": 1.0
                         },
                         "transform": {
-                            "x": 0,
-                            "y": 0
+                            "x": 0.0,
+                            "y": 0.0
                         }
                     },
                     "uniform_scale": {
@@ -316,15 +322,15 @@
             "type": "video"
         },
         {
-            "id": "5DF13FBA-28FF-4d06-B0A3-0414854BA4D0",
+            "id": "3AC80F7B-C401-46FF-AB18-6689A3CC7241",
             "type": "effect",
             "segments": [
                 {
-                    "id": "BCC7C3FA-2D2B-45a7-93DD-8D14C1003545",
+                    "id": "3d8b22a3b9e54c0cace4e10afc2fc6b8",
                     "source_timerange": null,
                     "target_timerange": {
                         "start": 0,
-                        "duration": 347791666
+                        "duration": 226500000
                     },
                     "render_timerange": {
                         "start": 0,
@@ -342,7 +348,7 @@
                     "last_nonzero_volume": 1.0,
                     "clip": null,
                     "uniform_scale": null,
-                    "material_id": "78D19617-73EE-4a8a-88E7-35FE1A679E12",
+                    "material_id": "2e36c9fb1fb84ecf95354c5d659e7710",
                     "extra_material_refs": [],
                     "render_index": 11000,
                     "keyframe_refs": [],
@@ -353,7 +359,7 @@
                     "group_id": "",
                     "enable_color_curves": true,
                     "enable_hsl_curves": true,
-                    "track_render_index": 1,
+                    "track_render_index": 0,
                     "hdr_settings": null,
                     "enable_color_wheels": true,
                     "track_attribute": 4,

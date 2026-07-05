@@ -22,6 +22,88 @@ import pyautogui
 from pyJianYingDraft.capcut_controller import CapCutController, ExportResolution, ExportFramerate, capcut_process_ids, capcut_main_hwnd_and_rect
 from pyJianYingDraft.exceptions import AutomationError
 
+def load_env_file():
+    env_path = Path(__file__).resolve().parent / ".env"
+    if env_path.exists():
+        try:
+            with open(env_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    if "=" in line:
+                        key, val = line.split("=", 1)
+                        key = key.strip()
+                        val = val.strip().strip("'\"")
+                        os.environ[key] = val
+        except Exception as e:
+            print(f"Error loading .env file: {e}")
+
+load_env_file()
+
+def resolve_env_value(val, fallback_env_names=None):
+    val = (val or "").strip()
+    if val.startswith("env:"):
+        var_name = val[4:].strip()
+        return os.environ.get(var_name, "")
+    if not val and fallback_env_names:
+        for env_name in fallback_env_names:
+            env_val = os.environ.get(env_name)
+            if env_val:
+                return env_val
+    return val
+
+def write_key_to_env_file(key_name, key_value):
+    env_path = Path(__file__).resolve().parent / ".env"
+    lines = []
+    found = False
+    
+    if env_path.exists():
+        try:
+            with open(env_path, "r", encoding="utf-8") as f:
+                lines = f.readlines()
+        except Exception as e:
+            print(f"Error reading .env file: {e}")
+            
+    new_lines = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped.startswith(f"{key_name}="):
+            new_lines.append(f"{key_name}={key_value}\n")
+            found = True
+        else:
+            new_lines.append(line)
+            
+    if not found:
+        if new_lines and not new_lines[-1].endswith("\n"):
+            new_lines[-1] += "\n"
+        new_lines.append(f"{key_name}={key_value}\n")
+        
+    try:
+        with open(env_path, "w", encoding="utf-8") as f:
+            f.writelines(new_lines)
+    except Exception as e:
+        print(f"Error writing key to .env file: {e}")
+        
+    os.environ[key_name] = key_value
+
+
+def delete_key_from_env_file(key_name):
+    """Remove a key from .env file and os.environ."""
+    env_path = Path(__file__).resolve().parent / ".env"
+    if not env_path.exists():
+        return
+    try:
+        with open(env_path, "r", encoding="utf-8") as f:
+            lines = f.readlines()
+        new_lines = [line for line in lines if not line.strip().startswith(f"{key_name}=")]
+        with open(env_path, "w", encoding="utf-8") as f:
+            f.writelines(new_lines)
+    except Exception as e:
+        print(f"Error deleting key from .env file: {e}")
+    os.environ.pop(key_name, None)
+
+
 DEFAULT_CAPCUT_DRAFTS = os.environ.get(
     "CAPCUT_DRAFTS_DIR",
     os.path.join(os.environ.get("LOCALAPPDATA", ""), "CapCut", "User Data", "Projects", "com.lveditor.draft"),
@@ -67,6 +149,12 @@ formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s', datef
 sse_handler = SSELogHandler()
 sse_handler.setFormatter(formatter)
 logger.addHandler(sse_handler)
+try:
+    file_handler = logging.FileHandler(Path(__file__).with_name("capcut_gui_app.log"), encoding="utf-8")
+    file_handler.setFormatter(formatter)
+    logger.addHandler(file_handler)
+except Exception:
+    pass
 
 # Create Flask Application
 app = Flask(__name__, template_folder="templates")
@@ -83,7 +171,13 @@ def run_image_workflow(config_name, label):
 
     workflow_path = Path(__file__).resolve().parent / config_name
     logger.info(f"Chạy workflow nhận diện ảnh: {label} ({workflow_path.name})")
-    result = run_workflow(workflow_path, dry_run=False)
+    try:
+        logger.info(f"Bắt đầu run_workflow: {workflow_path}")
+        result = run_workflow(workflow_path, dry_run=False)
+        logger.info(f"run_workflow hoàn tất: {workflow_path.name}")
+    except BaseException as exc:
+        logger.exception(f"run_workflow lỗi nghiêm trọng tại {workflow_path.name}: {type(exc).__name__}: {exc}")
+        raise
     for step in result.get("steps", []):
         template_name = os.path.basename(step.get("template", "")) if step.get("template") else ""
         if step.get("skipped"):
@@ -303,7 +397,7 @@ def find_element_by_name(root, target_name, depth=0, max_depth=10):
         pass
     return None
 
-def launch_capcut():
+def launch_capcut(connect_ui=True):
     logger.info("Đang kiểm tra và khởi động CapCut...")
     hwnd_and_rect = capcut_main_hwnd_and_rect()
     if hwnd_and_rect is None:
@@ -325,6 +419,20 @@ def launch_capcut():
             if capcut_main_hwnd_and_rect() is not None:
                 break
 
+    if not connect_ui:
+        hwnd_and_rect = capcut_main_hwnd_and_rect()
+        if hwnd_and_rect is None:
+            raise Exception("Không tìm thấy cửa sổ CapCut sau khi khởi động.")
+        try:
+            import win32gui
+            hwnd, _ = hwnd_and_rect
+            win32gui.ShowWindow(hwnd, 5)
+            win32gui.SetForegroundWindow(hwnd)
+        except Exception as e:
+            logger.warning(f"Không activate được cửa sổ CapCut bằng Win32, workflow ảnh vẫn sẽ tự tìm cửa sổ: {e}")
+        logger.info("Đã sẵn sàng cửa sổ CapCut cho workflow nhận diện ảnh.")
+        return None
+
     # Wait for window and connect controller
     logger.info("Đang kết nối với cửa sổ CapCut...")
     for i in range(25):
@@ -338,25 +446,72 @@ def launch_capcut():
         time.sleep(1)
     raise Exception("Không thể kết nối với cửa sổ CapCut. Vui lòng mở CapCut thủ công trước.")
 
+def activate_capcut_for_image_workflow():
+    hwnd_and_rect = capcut_main_hwnd_and_rect()
+    if hwnd_and_rect is None:
+        return False
+
+    hwnd, _ = hwnd_and_rect
+    try:
+        import win32con
+        import win32gui
+        import win32process
+
+        _, pid = win32process.GetWindowThreadProcessId(hwnd)
+        try:
+            subprocess.run(
+                [
+                    "powershell.exe",
+                    "-NoProfile",
+                    "-Command",
+                    f"$ws=New-Object -ComObject WScript.Shell; $null=$ws.AppActivate({int(pid)})",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=3,
+            )
+        except Exception:
+            pass
+
+        win32gui.ShowWindow(hwnd, win32con.SW_MAXIMIZE)
+        win32gui.SetWindowPos(
+            hwnd,
+            win32con.HWND_TOPMOST,
+            0,
+            0,
+            0,
+            0,
+            win32con.SWP_NOMOVE | win32con.SWP_NOSIZE,
+        )
+        time.sleep(0.15)
+        try:
+            win32gui.SetForegroundWindow(hwnd)
+        except Exception as e:
+            logger.warning(f"Không SetForegroundWindow được cho CapCut, vẫn giữ TOPMOST để workflow ảnh thấy cửa sổ: {e}")
+        time.sleep(0.5)
+        return True
+    except Exception as e:
+        logger.warning(f"Không đưa được CapCut lên foreground bằng Win32/AppActivate: {e}")
+        return False
+
 def open_project_in_gui(controller, project_name):
     logger.info(f"Đang tìm và mở dự án '{project_name}' trên màn hình CapCut...")
-    controller.app.SetActive()
-    controller.app.SetTopmost()
-
-    # Refresh window state
-    controller.get_window()
-
-    # If we are already in the editor panel (Export button exists), close active draft first
-    export_btn = find_element_by_name(controller.app, "Export") or find_element_by_name(controller.app, "Xuất")
-    if export_btn:
-        logger.info("CapCut đang mở sẵn dự án khác. Tiến hành đóng dự án cũ để về màn hình chính...")
-        # Click close project button (usually "Back" arrow or X in the top left)
-        # We can also just taskkill and launch CapCut clean to ensure we start on home screen!
-        kill_capcut()
-        controller = launch_capcut()
-        controller.app.SetActive()
-        controller.app.SetTopmost()
-        time.sleep(2)
+    if controller is not None:
+        try:
+            controller.app.SetActive()
+            controller.app.SetTopmost()
+            controller.get_window()
+            if getattr(controller, "app_status", "") in ("edit", "pre_export"):
+                logger.info("CapCut đã ở màn hình editor, bỏ qua bước tìm/click project trên home.")
+                return controller
+            export_btn = find_element_by_name(controller.app, "Export") or find_element_by_name(controller.app, "Xuất")
+            if export_btn:
+                logger.info("CapCut đang mở sẵn dự án khác. Đóng CapCut để về màn hình chính...")
+                kill_capcut()
+                controller = launch_capcut()
+                time.sleep(2)
+        except Exception as e:
+            logger.warning(f"Bỏ qua kiểm tra UIAutomation khi mở dự án, dùng nhận diện ảnh trực tiếp: {e}")
 
     try:
         from capcut_rpa import click_template
@@ -370,7 +525,7 @@ def open_project_in_gui(controller, project_name):
             PROJECT_TITLE_MARKER_TEMPLATE,
             threshold=0.82,
             dry_run=False,
-            timeout=30,
+            timeout=90,
             click_offset_y=click_above_px,
             search_region=[0.0, 0.12, 1.0, 0.85],
         )
@@ -384,21 +539,8 @@ def open_project_in_gui(controller, project_name):
             f"Đã chặn fallback sang project đầu tiên. Chi tiết: {str(e)}."
         ) from e
 
-    logger.info("Waiting 5 seconds after project click before continuing pipeline...")
-    time.sleep(5)
-    logger.info("Đang xác nhận dự án đã mở vào chế độ chỉnh sửa...")
-    for _ in range(30):
-        controller.get_window()
-        export_btn = find_element_by_name(controller.app, "Export") or find_element_by_name(controller.app, "Xuất")
-        if export_btn:
-            logger.info("Đã mở đúng dự án thành công.")
-            return controller
-        time.sleep(1)
-
-    raise Exception(
-        f"Đã click dự án '{project_name}' nhưng không vào được màn hình chỉnh sửa. "
-        "Đã chặn fallback sang project đầu tiên."
-    )
+    logger.info("Đã click project marker. Chuyển ngay sang bước kế tiếp, workflow ảnh sẽ tự chờ nút cần bấm.")
+    return controller
 
 def run_auto_captions(controller):
     logger.info("Tiến hành tự động nhận diện phụ đề (Auto Captions)...")
@@ -566,6 +708,35 @@ def draft_json_paths(draft_path):
         return [str(path) for path in candidates]
 
     return [draft_json_path(draft_path)]
+
+def count_subtitle_text_items_in_json(draft_path):
+    text_materials = 0
+    text_segments = 0
+    scanned_files = 0
+    for content_path in draft_json_paths(draft_path):
+        try:
+            data = json.loads(Path(content_path).read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        if not isinstance(data, dict):
+            continue
+        scanned_files += 1
+        materials = data.get("materials") or {}
+        texts = materials.get("texts") or []
+        if isinstance(texts, list):
+            text_materials += sum(1 for item in texts if isinstance(item, dict))
+        for track in data.get("tracks") or []:
+            if not isinstance(track, dict) or track.get("type") != "text":
+                continue
+            segments = track.get("segments") or []
+            if isinstance(segments, list):
+                text_segments += sum(1 for item in segments if isinstance(item, dict))
+    return {
+        "materials": text_materials,
+        "segments": text_segments,
+        "total": text_materials + text_segments,
+        "files": scanned_files,
+    }
 
 def translate_google(text: str, source_lang: str = "zh-CN", target_lang: str = "vi") -> str:
     import requests
@@ -920,12 +1091,77 @@ def load_global_settings():
 def save_global_settings(data):
     settings = default_global_settings()
     payload = data or {}
+    
+    # 1. Process OpenReel API Key
+    openreel_key = payload.get("openreel_api_key", "").strip()
+    if openreel_key and not openreel_key.startswith("env:"):
+        write_key_to_env_file("OPENREEL_API_KEY", openreel_key)
+        openreel_key = "env:OPENREEL_API_KEY"
+    elif not openreel_key:
+        openreel_key = settings["openreel_api_key"]
+        
     settings.update({
-        "openreel_api_key": payload.get("openreel_api_key", settings["openreel_api_key"]),
+        "openreel_api_key": openreel_key,
         "openreel_reference_keys": payload.get("openreel_reference_keys", settings["openreel_reference_keys"]),
     })
-    settings["ai_profiles"] = normalize_ai_profiles(payload.get("ai_profiles"), legacy_settings=payload or settings)
+    
+    # 2. Process AI Profiles
+    # Check for duplicate labels (case-insensitive) on raw payload BEFORE normalize
+    raw_profiles = payload.get("ai_profiles") or []
+    labels_seen = set()
+    for profile in raw_profiles:
+        p_label = (profile.get("label") or profile.get("id") or "").strip()
+        if p_label:
+            p_label_lower = p_label.lower()
+            if p_label_lower in labels_seen:
+                raise ValueError(f"Tên hiển thị (Label) '{p_label}' bị trùng lặp. Vui lòng đặt tên hiển thị duy nhất.")
+            labels_seen.add(p_label_lower)
 
+    ai_profiles = normalize_ai_profiles(raw_profiles, legacy_settings=payload or settings)
+
+    for profile in ai_profiles:
+        api_key = profile.get("api_key", "").strip()
+        if api_key and not api_key.startswith("env:"):
+            # Determine appropriate variable name
+            p_label = profile.get("label", "").strip()
+            p_id = profile.get("id", "").strip()
+            p_provider = profile.get("provider", "").strip()
+            
+            if p_label:
+                label_clean = re.sub(r"[^a-zA-Z0-9]", "_", p_label).strip("_").upper()
+                env_name = f"{label_clean}_API_KEY"
+            elif p_id:
+                env_name = f"{p_id.replace('-', '_').upper()}_API_KEY"
+            else:
+                env_name = f"{p_provider.upper()}_API_KEY"
+                
+            write_key_to_env_file(env_name, api_key)
+            profile["api_key"] = f"env:{env_name}"
+            
+    settings["ai_profiles"] = ai_profiles
+
+    # 3. Clean up env keys for deleted profiles
+    try:
+        existing_saved = load_global_settings()
+        existing_profiles = existing_saved.get("ai_profiles") or []
+        new_profile_ids = {p["id"] for p in ai_profiles}
+        for old_profile in existing_profiles:
+            if old_profile.get("id") not in new_profile_ids:
+                old_key_ref = old_profile.get("api_key", "")
+                if old_key_ref.startswith("env:"):
+                    env_var = old_key_ref[4:].strip()
+                    # Only delete if no remaining profile still uses this env var
+                    still_in_use = any(
+                        p.get("api_key", "") == old_key_ref
+                        for p in ai_profiles
+                    )
+                    if not still_in_use:
+                        delete_key_from_env_file(env_var)
+                        logger.info(f"Đã xóa env key '{env_var}' do profile '{old_profile.get('label', old_profile.get('id'))}' bị xóa.")
+    except Exception as e:
+        logger.warning(f"Không thể dọn env keys sau khi xóa profile: {e}")
+
+    
     profile_ids = [profile["id"] for profile in settings["ai_profiles"]]
     default_translation_id = payload.get("default_translation_ai_profile_id") or settings["default_translation_ai_profile_id"]
     default_context_id = payload.get("default_context_ai_profile_id") or settings["default_context_ai_profile_id"]
@@ -1032,14 +1268,51 @@ def build_ai_translation_config(item_config=None, purpose="translation"):
         or "mimo" in (model or "").lower()
     )
 
+    fallback_envs = []
+    
+    # 1. Fallback based on profile ID (e.g. openai-default -> OPENAI_DEFAULT_API_KEY)
+    p_id = profile.get("id")
+    if p_id:
+        id_env = f"{p_id.replace('-', '_').upper()}_API_KEY"
+        if id_env not in fallback_envs:
+            fallback_envs.append(id_env)
+            
+    # 2. Fallback based on profile label (e.g. GEMMA -> GEMMA_API_KEY)
+    p_label = profile.get("label")
+    if p_label:
+        label_clean = re.sub(r"[^a-zA-Z0-9]", "_", p_label).strip("_")
+        if label_clean:
+            label_env = f"{label_clean.upper()}_API_KEY"
+            if label_env not in fallback_envs:
+                fallback_envs.append(label_env)
+
+    # 3. Fallback based on provider (e.g. openai -> OPENAI_API_KEY)
+    if provider == "openai":
+        fallback_envs.append("OPENAI_API_KEY")
+    elif provider == "gemini":
+        fallback_envs.append("GEMINI_API_KEY")
+    elif provider == "anthropic":
+        fallback_envs.append("ANTHROPIC_API_KEY")
+    else:
+        prov_env = f"{provider.upper()}_API_KEY"
+        if prov_env not in fallback_envs:
+            fallback_envs.append(prov_env)
+
+    # 4. General fallbacks
+    for gen_env in ["NVIDIA_API_KEY", "AI_API_KEY", "API_KEY"]:
+        if gen_env not in fallback_envs:
+            fallback_envs.append(gen_env)
+
+    resolved_api_key = resolve_env_value(api_key, fallback_envs)
+
     return {
-        "enabled": (method == "ai" if purpose == "translation" else True) and bool(api_key),
+        "enabled": (method == "ai" if purpose == "translation" else True) and bool(resolved_api_key),
         "purpose": purpose,
         "profile_id": profile.get("id"),
         "profile_label": profile.get("label"),
         "method": method,
         "provider": provider,
-        "api_key": api_key,
+        "api_key": resolved_api_key,
         "model": model,
         "fallback_model": fallback_model,
         "base_url": base_url,
@@ -2091,12 +2364,22 @@ class QueueRunner:
             logger.warning(f"Không thể lưu queue cache: {str(e)}")
 
     def get_state(self):
+        if not self.is_processing:
+            changed = False
+            for item in self.queue:
+                if item.get("status") == "running":
+                    item["status"] = "failed"
+                    item["message"] = "Lỗi: Pipeline đã dừng khi mục này đang chạy. Bấm Thử lại để chạy lại."
+                    changed = True
+            if changed:
+                self.save_cache()
         return {
             "queue": self.queue,
             "is_processing": self.is_processing,
             "is_paused": self.is_paused,
             "pause_requested": self.pause_requested,
-            "current_index": self.current_index
+            "current_index": self.current_index,
+            "auto_shutdown": bool(self.config.get("auto_shutdown", False)),
         }
 
     def set_queue(self, videos):
@@ -2110,13 +2393,16 @@ class QueueRunner:
             return
         self.config = dict(config or {})
         self.config.setdefault("auto_shutdown", False)
+        self.config["auto_shutdown"] = bool(self.config.get("auto_shutdown"))
         for item in self.queue:
             if item.get("status") == "running":
                 item["status"] = "failed"
                 item["message"] = "Lỗi: Pipeline bị gián đoạn trước đó. Bấm Thử lại nếu muốn chạy lại mục này."
             elif item.get("status") == "pending":
-                item.setdefault("progress", 0)
+                item["progress"] = int(item.get("progress", 0) or 0)
                 item.setdefault("message", "Đang chờ...")
+                item["resume_from_step"] = 1
+                item.pop("stopped_after_patch", None)
             elif item.get("status") in ("success", "failed", "cancelled"):
                 item.pop("cancel_requested", None)
                 continue
@@ -2125,7 +2411,8 @@ class QueueRunner:
                 item["progress"] = 0
                 item["message"] = "Đang chờ..."
             item.pop("cancel_requested", None)
-            item.setdefault("resume_from_step", 1)
+            if item.get("status") != "paused":
+                item["resume_from_step"] = 1
         self.pause_requested = False
         self.is_paused = False
         self.is_processing = True
@@ -2141,6 +2428,9 @@ class QueueRunner:
             return
         if config:
             self.config.update(config)
+            if "auto_shutdown" in config:
+                self.config["auto_shutdown"] = bool(config.get("auto_shutdown"))
+            self.save_cache()
         has_resumable = any(item.get("status") in ("paused", "pending") for item in self.queue)
         if not has_resumable:
             return
@@ -2149,6 +2439,11 @@ class QueueRunner:
         self.is_processing = True
         self.thread = threading.Thread(target=self._run_loop, daemon=True)
         self.thread.start()
+
+    def set_auto_shutdown(self, enabled):
+        self.config["auto_shutdown"] = bool(enabled)
+        self.save_cache()
+        return self.config["auto_shutdown"]
 
     def clear(self):
         if self.is_processing:
@@ -2179,8 +2474,28 @@ class QueueRunner:
         )
 
     def _run_loop(self):
-        import ctypes
-        ctypes.windll.ole32.CoInitialize(None)
+
+        uia_initializer = None
+
+        com_initialized = False
+
+        try:
+
+            uia_initializer = auto.UIAutomationInitializerInThread()
+
+            uia_initializer.__enter__()
+
+            logger.info("Đã khởi tạo UIAutomation cho thread pipeline.")
+
+        except Exception as init_error:
+
+            import ctypes
+
+            logger.warning(f"UIAutomationInitializerInThread thất bại, fallback CoInitialize: {init_error}")
+
+            ctypes.windll.ole32.CoInitialize(None)
+
+            com_initialized = True
         logger.info("Bắt đầu xử lý hàng chờ video...")
         try:
             while True:
@@ -2201,7 +2516,19 @@ class QueueRunner:
                 if pending_item is None:
                     if self.config.get("auto_shutdown"):
                         logger.info("Tất cả video trong hàng chờ đã xử lý xong. Hệ thống sẽ tự động tắt máy sau 10 giây (lệnh: shutdown /s /f /t 10)...")
-                        os.system("shutdown /s /f /t 10")
+                        result = subprocess.run(
+                            ["shutdown.exe", "/s", "/f", "/t", "10"],
+                            capture_output=True,
+                            text=True,
+                            errors="replace",
+                        )
+                        if result.returncode == 0:
+                            logger.info("Đã gửi lệnh shutdown thành công cho Windows.")
+                        else:
+                            logger.error(
+                                f"Lệnh shutdown thất bại, code={result.returncode}: "
+                                f"{(result.stderr or result.stdout or '').strip()}"
+                            )
                     else:
                         logger.info("Tất cả video trong hàng chờ đã xử lý xong. Không tắt máy vì người dùng không bật tùy chọn tự tắt.")
                     break
@@ -2241,11 +2568,23 @@ class QueueRunner:
                     pending_item["status"] = "failed"
                     pending_item["message"] = f"Lỗi: {str(e)}"
                     self.save_cache()
+                except BaseException as e:
+                    logger.exception(f"Lỗi nghiêm trọng ngoài Exception khi tự động hóa video '{pending_item.get('video')}': {e}")
+                    pending_item["status"] = "failed"
+                    pending_item["message"] = f"Lỗi nghiêm trọng: {type(e).__name__}: {e}"
+                    self.save_cache()
         finally:
             self.is_processing = False
             self.current_index = -1
             self.save_cache()
-            ctypes.windll.ole32.CoUninitialize()
+            if uia_initializer is not None:
+                try:
+                    uia_initializer.__exit__(None, None, None)
+                except Exception as exit_error:
+                    logger.warning(f"Không giải phóng được UIAutomation initializer: {exit_error}")
+            elif com_initialized:
+                import ctypes
+                ctypes.windll.ole32.CoUninitialize()
             logger.info("Quá trình chạy hàng chờ hoàn tất.")
 
     def _process_item(self, item):
@@ -2353,6 +2692,7 @@ class QueueRunner:
             self._checkpoint_pause(item, next_step=2, progress=20)
 
         draft_full_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, draft_id)
+        project_opened_this_run = False
         if resume_from_step <= 2:
             item["progress"] = 25
             item["message"] = "Bước 2: Mở dự án trong CapCut..."
@@ -2374,15 +2714,26 @@ class QueueRunner:
 
             controller = launch_capcut()
             open_project_in_gui(controller, draft_id)
+            project_opened_this_run = True
             item["resume_from_step"] = 3
             self._checkpoint_pause(item, next_step=3, progress=30)
 
         if resume_from_step <= 3:
             item["progress"] = 45
             item["message"] = "Bước 3: Đang tự động tạo phụ đề (Auto Captions)..."
-            controller = launch_capcut()
-            open_project_in_gui(controller, draft_id)
-            run_image_workflow("rpa_auto_captions.sample.json", "Auto Captions")
+            existing_subtitles = count_subtitle_text_items_in_json(draft_full_path)
+            if existing_subtitles["total"] > 0:
+                logger.info(
+                    f"Draft đã có subtitle/text trước bước Auto Captions "
+                    f"(materials={existing_subtitles['materials']}, segments={existing_subtitles['segments']}). "
+                    "Bỏ qua bước Captions và đi tiếp."
+                )
+            else:
+                if not project_opened_this_run:
+                    controller = launch_capcut()
+                    open_project_in_gui(controller, draft_id)
+                    project_opened_this_run = True
+                run_image_workflow("rpa_auto_captions.sample.json", "Auto Captions")
             item["resume_from_step"] = 4
             self._checkpoint_pause(item, next_step=4, progress=50)
 
@@ -2420,14 +2771,17 @@ class QueueRunner:
             item["message"] = "Bước 5.5: Đang mở lại dự án sau khi patch bản dịch và âm lượng..."
             controller = launch_capcut()
             open_project_in_gui(controller, draft_id)
+            project_opened_this_run = True
             item["resume_from_step"] = 6
             self._checkpoint_pause(item, next_step=6, progress=72)
 
         if resume_from_step <= 6:
             item["progress"] = 75
             item["message"] = "Bước 6: Đang tạo giọng nói (TTS) cho sub trên dự án đang mở..."
-            controller = launch_capcut()
-            open_project_in_gui(controller, draft_id)
+            if not project_opened_this_run:
+                controller = launch_capcut()
+                open_project_in_gui(controller, draft_id)
+                project_opened_this_run = True
             tts_audio_before = count_audio_assets_in_json(draft_full_path)
             logger.info(f"Trước TTS: audio_segments={tts_audio_before['segments']}, audio_materials={tts_audio_before['materials']}.")
 
@@ -2558,6 +2912,13 @@ def start_runner():
         runner.set_queue(data["videos"])
     runner.start(data)
     return jsonify({"ok": True})
+
+@app.route('/api/auto_shutdown', methods=['POST'])
+def set_auto_shutdown():
+    data = request.get_json() or {}
+    enabled = runner.set_auto_shutdown(bool(data.get("auto_shutdown", False)))
+    logger.info(f"Tự tắt máy sau pipeline đã được {'BẬT' if enabled else 'TẮT'} trên server.")
+    return jsonify({"ok": True, "auto_shutdown": enabled})
 
 @app.route('/api/pause', methods=['POST'])
 def pause_runner():
@@ -3017,7 +3378,9 @@ def retry_queue_item():
             item["status"] = "pending"
             item["progress"] = 0
             item["message"] = "Đang chờ..."
+            item["resume_from_step"] = 1
             item.pop("cancel_requested", None)
+            item.pop("stopped_after_patch", None)
             runner.save_cache()
 
             # Start queue runner if it's currently idle
@@ -3083,6 +3446,9 @@ if __name__ == "__main__":
     # Ensure port 5000 is used
     logger.info("Khởi động server CapCut Automation Studio tại http://127.0.0.1:5000")
     app.run(host="127.0.0.1", port=5000, debug=False)
+
+
+
 
 
 

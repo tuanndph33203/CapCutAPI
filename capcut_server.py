@@ -50,6 +50,7 @@ def add_video():
     scale_x = data.get('scale_x', 1)
     scale_y = data.get('scale_y', 1)
     transform_x = data.get('transform_x', 0)
+    rotation = data.get('rotation', 0.0)
     speed = data.get('speed', 1.0)  # New speed parameter
     target_start = data.get('target_start', 0)  # New target start time parameter
     track_name = data.get('track_name', "video_main")  # New track name parameter
@@ -96,6 +97,7 @@ def add_video():
             scale_x=scale_x,
             scale_y=scale_y,
             transform_x=transform_x,
+            rotation=rotation,
             speed=speed,
             track_name=track_name,
             relative_index=relative_index,

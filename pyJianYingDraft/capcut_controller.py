@@ -68,7 +68,7 @@ def capcut_main_hwnd_and_rect() -> tuple[int, tuple[int, int, int, int]] | None:
             return
         title = win32gui.GetWindowText(hwnd)
         class_name = win32gui.GetClassName(hwnd)
-        if "CapCut" not in title or "Qt" not in class_name:
+        if "Qt" not in class_name:
             return
         rect = win32gui.GetWindowRect(hwnd)
         area = max(0, rect[2] - rect[0]) * max(0, rect[3] - rect[1])

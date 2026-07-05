@@ -275,6 +275,11 @@ def run_pipeline(
     draft_id: str | None = None,
     volume: float = 1.0,
     preserve_blur_effect: bool = False,
+    rotation: float = 0.0,
+    scale_x: float = 1.0,
+    scale_y: float = 1.0,
+    transform_x: float = 0.0,
+    transform_y: float = 0.0,
 ) -> dict:
     # Clear the in-memory draft cache at the start of each pipeline execution
     from draft_cache import DRAFT_CACHE
@@ -303,6 +308,11 @@ def run_pipeline(
         track_name="main",
         draft_id=draft_id,
         volume=volume,
+        rotation=rotation,
+        scale_x=scale_x,
+        scale_y=scale_y,
+        transform_x=transform_x,
+        transform_y=transform_y,
     )
     draft_id = video_result["draft_id"]
 
@@ -372,6 +382,11 @@ def main() -> int:
     parser.add_argument("--volume", type=float, default=1.0, help="Volume level (linear float, e.g. 1.0 is 100%, 0.168 is -15.5dB).")
     parser.add_argument("--volume-db", type=float, help="Volume in decibels (dB), e.g. -15.5. Overrides --volume if specified.")
     parser.add_argument("--preserve-blur-effect", action="store_true", help="Keep or recreate a full-duration Blur effect track.")
+    parser.add_argument("--rotation", type=float, default=0.0, help="Rotate video segment in degrees clockwise.")
+    parser.add_argument("--scale-x", type=float, default=1.0, help="Scale video segment horizontally.")
+    parser.add_argument("--scale-y", type=float, default=1.0, help="Scale video segment vertically.")
+    parser.add_argument("--transform-x", type=float, default=0.0, help="Move video segment horizontally.")
+    parser.add_argument("--transform-y", type=float, default=0.0, help="Move video segment vertically.")
     args = parser.parse_args()
 
     volume = args.volume
@@ -392,6 +407,11 @@ def main() -> int:
         draft_id=args.draft_id,
         volume=volume,
         preserve_blur_effect=args.preserve_blur_effect,
+        rotation=args.rotation,
+        scale_x=args.scale_x,
+        scale_y=args.scale_y,
+        transform_x=args.transform_x,
+        transform_y=args.transform_y,
     )
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0

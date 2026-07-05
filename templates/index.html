@@ -1353,6 +1353,22 @@
                     localStorage.setItem('capcut_auto_shutdown', String(autoShutdownEnabled));
                     renderAutoShutdownButton();
                     log(`Tự tắt máy sau pipeline: ${autoShutdownEnabled ? 'BẬT' : 'TẮT'}`, autoShutdownEnabled ? 'warning' : 'info');
+                    fetch('/api/auto_shutdown', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ auto_shutdown: autoShutdownEnabled })
+                    })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.ok) {
+                                autoShutdownEnabled = !!data.auto_shutdown;
+                                localStorage.setItem('capcut_auto_shutdown', String(autoShutdownEnabled));
+                                renderAutoShutdownButton();
+                            } else {
+                                log('Khong luu duoc trang thai tu tat may tren server.', 'error');
+                            }
+                        })
+                        .catch(() => log('Khong gui duoc trang thai tu tat may len server.', 'error'));
                 });
             }
             let cachedGlobalSettings = null;
@@ -1654,6 +1670,25 @@
                 e.preventDefault();
                 const label = document.getElementById('ai-profile-label').value.trim();
                 const manualId = document.getElementById('ai-profile-id').value.trim();
+                
+                if (!label) {
+                    alert('Vui lòng nhập tên hiển thị (Label).');
+                    return;
+                }
+
+                // Check for duplicate labels (excluding the one being edited)
+                const isDuplicate = settingsProfilesDraft.some((p, idx) => {
+                    if (aiProfileEditingIndex >= 0 && idx === aiProfileEditingIndex) {
+                        return false;
+                    }
+                    return p.label.toLowerCase() === label.toLowerCase();
+                });
+
+                if (isDuplicate) {
+                    alert(`Tên hiển thị "${label}" đã tồn tại. Vui lòng đặt tên hiển thị khác.`);
+                    return;
+                }
+
                 const profile = {
                     id: manualId || slugifyProfileId(label) || `custom-ai-${settingsProfilesDraft.length + 1}`,
                     label: label || manualId || `AI ${settingsProfilesDraft.length + 1}`,
@@ -2253,7 +2288,11 @@
                         systemStatusText.innerText = 'Máy chủ Hoạt động';
                         isProcessing = data.is_processing;
                         const isPaused = !!data.is_paused;
-
+                        if (typeof data.auto_shutdown !== 'undefined' && data.auto_shutdown !== autoShutdownEnabled) {
+                            autoShutdownEnabled = !!data.auto_shutdown;
+                            localStorage.setItem('capcut_auto_shutdown', String(autoShutdownEnabled));
+                            renderAutoShutdownButton();
+                        }
                         if (isProcessing) {
                             if (btnStart) btnStart.disabled = true;
                             if (btnPause) btnPause.style.display = 'block';

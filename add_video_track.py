@@ -22,6 +22,7 @@ def add_video_track(
     scale_x: float = 1,
     scale_y: float = 1,
     transform_x: float = 0,
+    rotation: float = 0.0,
     speed: float = 1.0,
     track_name: str = "main",
     relative_index: int = 0,
@@ -54,6 +55,7 @@ def add_video_track(
     :param scale_x: X-axis scale, default 1
     :param scale_y: Y-axis scale, default 1
     :param transform_x: X-axis transform, default 0
+    :param rotation: Video rotation angle (degrees, clockwise), default 0.0
     :param speed: Video playback speed, default 1.0
     :param track_name: When there is only one video, track name can be omitted
     :param relative_index: Track rendering order index, default 0
@@ -165,7 +167,8 @@ def add_video_track(
             transform_y=transform_y,
             scale_x=scale_x,
             scale_y=scale_y,
-            transform_x=transform_x
+            transform_x=transform_x,
+            rotation=rotation
         ),
         volume=volume
     )
