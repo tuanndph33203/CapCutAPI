@@ -1,25 +1,31 @@
 {
-    "steps":  [
-                  {
-                      "template":  "rpa_templates/export_button.png",
-                      "threshold":  0.82,
-                      "action":  "click_template",
-                      "timeout":  20
-                  },
-                  {
-                      "template":  "rpa_templates/export_confirm_button.png",
-                      "threshold":  0.82,
-                      "action":  "click_template",
-                      "timeout":  20
-                  },
-                  {
-                      "action":  "wait",
-                      "template":  "rpa_templates/exporting.png",
-                      "interval":  3,
-                      "require_seen":  true,
-                      "threshold":  0.82,
-                      "mode":  "gone",
-                      "timeout":  1200
-                  }
-              ]
+    "steps": [
+        {
+            "template": "rpa_templates/export_button.png",
+            "threshold": 0.76,
+            "action": "click_template",
+            "timeout": 12,
+            "search_region": [
+                0.6667,
+                0.0,
+                1.0,
+                0.45
+            ]
+        },
+        {
+            "template": "rpa_templates/export_confirm_button.png",
+            "threshold": 0.58,
+            "action": "click_template",
+            "timeout": 18
+        },
+        {
+            "action": "wait",
+            "template": "rpa_templates/exporting.png",
+            "interval": 3,
+            "require_seen": true,
+            "threshold": 0.82,
+            "mode": "gone",
+            "timeout": 1200
+        }
+    ]
 }
