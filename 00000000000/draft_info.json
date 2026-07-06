@@ -33,7 +33,7 @@
     },
     "cover": null,
     "create_time": 0,
-    "duration": 226500000,
+    "duration": 364761905,
     "extra_info": null,
     "fps": 30,
     "free_render_index_mode_on": false,
@@ -96,9 +96,9 @@
         "speeds": [
             {
                 "curve_speed": null,
-                "id": "4198882011d44747a9c818ab11b5e897",
+                "id": "6312229963774168b198c366e6974260",
                 "mode": 0,
-                "speed": 0.8,
+                "speed": 0.77,
                 "type": "speed"
             }
         ],
@@ -118,7 +118,7 @@
                 "sub_type": 0,
                 "bind_segment_id": "",
                 "transparent_params": "",
-                "path": "C:/Users/nguye/AppData/Local/CapCut/User Data/Cache/effect/11326141/949f7b952a59c3bf0c9069cda2a4fb7f",
+                "path": "C:/Users/nguye/AppData/Local/CapCut/User Data/Cache/effect/752625/2db7bf49d9349e308ef0f46c39b14abf",
                 "value": 1.0,
                 "category_id": "",
                 "category_name": "",
@@ -218,17 +218,17 @@
                 },
                 "crop_ratio": "free",
                 "crop_scale": 1.0,
-                "duration": 181200000,
-                "height": 576,
-                "id": "d8e0f72704b838bcbe81faa76e43df20",
+                "duration": 280866667,
+                "height": 1080,
+                "id": "d91b4aa48e7e37b59acd868413278f86",
                 "local_material_id": "",
-                "material_id": "d8e0f72704b838bcbe81faa76e43df20",
-                "material_name": "video_abcb553acb1cf89f.mp4",
+                "material_id": "d91b4aa48e7e37b59acd868413278f86",
+                "material_name": "video_089835ac3048fd68.mp4",
                 "media_path": "",
-                "path": "C:\\Users\\nguye\\AppData\\Local\\CapCut\\User Data\\Projects\\com.lveditor.draft\\00000000000\\assets\\video\\video_abcb553acb1cf89f.mp4",
-                "remote_url": "C:\\Users\\nguye\\Videos\\Phim3\\奇才叶凌天的抖音 - 抖音_files\\tap22.mp4",
+                "path": "C:\\Users\\nguye\\AppData\\Local\\CapCut\\User Data\\Projects\\com.lveditor.draft\\00000000000\\assets\\video\\video_089835ac3048fd68.mp4",
+                "remote_url": "C:\\Users\\nguye\\Videos\\Phim4\\tap29.mp4",
                 "type": "video",
-                "width": 1024
+                "width": 1920
             }
         ],
         "vocal_beautifys": [],
@@ -248,7 +248,7 @@
         {
             "attribute": 0,
             "flag": 0,
-            "id": "bf9984f1f0354650ac0a21e2f7fd8e70",
+            "id": "f2f9e3dfe779432a98fb9e339b0d3ad8",
             "is_default_name": false,
             "name": "video",
             "segments": [],
@@ -257,7 +257,7 @@
         {
             "attribute": 0,
             "flag": 0,
-            "id": "8f40486daccb486fadfa2b92e947f207",
+            "id": "07201128da3b4d4892f7c19175ae7ffe",
             "is_default_name": false,
             "name": "main",
             "segments": [
@@ -274,22 +274,22 @@
                     "track_attribute": 0,
                     "track_render_index": 0,
                     "visible": true,
-                    "id": "3bd4012abab2498291d728f3961f9223",
-                    "material_id": "d8e0f72704b838bcbe81faa76e43df20",
+                    "id": "d257c856405b4aecbea8d2c16dc18545",
+                    "material_id": "d91b4aa48e7e37b59acd868413278f86",
                     "target_timerange": {
                         "start": 0,
-                        "duration": 226500000
+                        "duration": 364761905
                     },
                     "common_keyframes": [],
                     "keyframe_refs": [],
                     "source_timerange": {
                         "start": 0,
-                        "duration": 181200000
+                        "duration": 280866667
                     },
-                    "speed": 0.8,
+                    "speed": 0.77,
                     "volume": 1.0,
                     "extra_material_refs": [
-                        "4198882011d44747a9c818ab11b5e897"
+                        "6312229963774168b198c366e6974260"
                     ],
                     "clip": {
                         "alpha": 1.0,
@@ -330,7 +330,7 @@
                     "source_timerange": null,
                     "target_timerange": {
                         "start": 0,
-                        "duration": 226500000
+                        "duration": 364761905
                     },
                     "render_timerange": {
                         "start": 0,

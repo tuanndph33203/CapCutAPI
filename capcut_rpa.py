@@ -105,6 +105,17 @@ def write_window_debug_report(debug_report: Path, *, selected: WindowBox | None 
     debug_report.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+def is_capcut_hwnd(hwnd: int) -> bool:
+    try:
+        _, pid = win32process.GetWindowThreadProcessId(hwnd)
+        proc = psutil.Process(pid)
+        process_name = (proc.name() or "").lower()
+        process_path = (proc.exe() or "").lower()
+        return process_name == "capcut.exe" or process_path.endswith("\\capcut.exe")
+    except Exception:
+        return False
+
+
 def find_capcut_window(debug_report: Path | None = None) -> WindowBox:
     deadline = time.time() + 20.0
     last_reason = "no matching CapCut.exe window found"
@@ -115,6 +126,9 @@ def find_capcut_window(debug_report: Path | None = None) -> WindowBox:
                 found = capcut_main_hwnd_and_rect()
                 if found is not None:
                     hwnd, rect = found
+                    if not is_capcut_hwnd(hwnd):
+                        last_reason = "capcut_main_hwnd_and_rect returned a non-CapCut window"
+                        raise RuntimeError(last_reason)
                     title = win32gui.GetWindowText(hwnd) or "CapCut"
                     selected = WindowBox(hwnd, title, rect[0], rect[1], rect[2], rect[3])
                     if debug_report:

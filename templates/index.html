@@ -873,12 +873,6 @@
         </header>
 
         <div id="projects-grid-container">
-            <!-- Create Project Banner (styled exactly like CapCut's Desktop UI) -->
-            <div class="create-project-banner" id="banner-create-project">
-                <span style="font-size: 1.5rem; font-weight: 300; margin-top: -2px;">+</span>
-                <span>Create project</span>
-            </div>
-
             <!-- Project List Header -->
             <div
                 style="margin-top: 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
@@ -1086,9 +1080,9 @@
                         <button class="btn btn-secondary" id="btn-start"
                             style="width:auto; padding:8px 12px;">Chạy</button>
                         <button class="btn btn-secondary" id="btn-pause"
-                            style="width:auto; padding:8px 12px; display:none;">Tạm dừng</button>
+                            style="width:auto; padding:8px 12px;">Tạm dừng</button>
                         <button class="btn btn-secondary" id="btn-resume"
-                            style="width:auto; padding:8px 12px; display:none;">Tiếp tục</button>
+                            style="width:auto; padding:8px 12px;">Tiếp tục</button>
                         <button class="btn btn-secondary" id="btn-clear" style="width:auto; padding:8px 12px;">Xóa hàng
                             chờ</button>
                     </div>
@@ -1390,7 +1384,9 @@
             }
 
             // Event Listeners for Modals
-            bannerCreateProject.addEventListener('click', () => openModal(modalCreateProject));
+            if (bannerCreateProject) {
+                bannerCreateProject.addEventListener('click', () => openModal(modalCreateProject));
+            }
             closeCreateModal.addEventListener('click', () => closeModal(modalCreateProject));
             if (btnOpenSettings) {
                 btnOpenSettings.addEventListener('click', () => {
@@ -1545,7 +1541,7 @@
                         <div class="form-row">
                             <div class="form-group">
                                 <label for="ai-profile-label">Tên hiển thị</label>
-                                <input type="text" id="ai-profile-label" placeholder="GLM Context">
+                                <input type="text" id="ai-profile-label" placeholder="GEMMA">
                             </div>
                             <div class="form-group">
                                 <label for="ai-profile-id">Profile ID</label>
@@ -1563,7 +1559,7 @@
                             </div>
                             <div class="form-group">
                                 <label for="ai-profile-model">Model</label>
-                                <input type="text" id="ai-profile-model" placeholder="gpt-4o-mini / glm-5.2 / gemma-3">
+                                <input type="text" id="ai-profile-model" placeholder="google/gemma-4-31b-it">
                             </div>
                         </div>
                         <div class="form-group">
@@ -1719,7 +1715,7 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>Label</label>
-                        <input type="text" data-profile-label value="${escapeHtml(item.label)}" placeholder="GLM Context">
+                        <input type="text" data-profile-label value="${escapeHtml(item.label)}" placeholder="GEMMA">
                     </div>
                     <div class="form-group">
                         <label>Profile ID</label>
@@ -1737,7 +1733,7 @@
                     </div>
                     <div class="form-group">
                         <label>Model</label>
-                        <input type="text" data-profile-model value="${escapeHtml(item.model)}" placeholder="gpt-4o-mini / glm-5.2 / gemma-3">
+                        <input type="text" data-profile-model value="${escapeHtml(item.model)}" placeholder="google/gemma-4-31b-it">
                     </div>
                 </div>
                 <div class="form-group">
@@ -2223,6 +2219,9 @@
                     .then(res => res.json())
                     .then(data => {
                         if (data.ok) {
+                            syncQueueStepLogs(data.queue || []);
+                            updateQueueTable(data.queue || []);
+                            checkServerStatus();
                             log('Hàng chờ đã bắt đầu chạy!', 'success');
                         } else {
                             log('Không thể chạy hàng chờ: ' + data.error, 'error');
@@ -2239,6 +2238,7 @@
                         .then(res => res.json())
                         .then(data => {
                             updateQueueTable(data.queue || []);
+                            checkServerStatus();
                             log('Đã gửi yêu cầu tạm dừng pipeline tại checkpoint an toàn gần nhất.', 'warning');
                         });
                 });
@@ -2254,6 +2254,7 @@
                         .then(res => res.json())
                         .then(data => {
                             updateQueueTable(data.queue || []);
+                            checkServerStatus();
                             log('Đã gửi yêu cầu tiếp tục pipeline từ bước đang tạm dừng.', 'success');
                         });
                 });
@@ -2269,7 +2270,7 @@
                                 queueTbody.innerHTML = `
                         <tr>
                             <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 30px;">
-                                Hàng chờ trống. Vui lòng bấm "Chạy Pipeline" trên thẻ dự án hoặc bấm "+ Create project" để bắt đầu.
+                                Hàng chờ trống. Vui lòng bấm nút chạy trên thẻ dự án để bắt đầu.
                             </td>
                         </tr>
                     `;
@@ -2295,12 +2296,26 @@
                         }
                         if (isProcessing) {
                             if (btnStart) btnStart.disabled = true;
-                            if (btnPause) btnPause.style.display = 'block';
-                            if (btnResume) btnResume.style.display = 'none';
+                            if (btnPause) {
+                                btnPause.style.display = 'block';
+                                btnPause.disabled = false;
+                                btnPause.textContent = data.pause_requested ? 'Đang tạm dừng...' : 'Tạm dừng';
+                            }
+                            if (btnResume) {
+                                btnResume.style.display = 'block';
+                                btnResume.disabled = true;
+                            }
                         } else {
                             if (btnStart) btnStart.disabled = false;
-                            if (btnPause) btnPause.style.display = 'none';
-                            if (btnResume) btnResume.style.display = isPaused ? 'block' : 'none';
+                            if (btnPause) {
+                                btnPause.style.display = 'block';
+                                btnPause.disabled = true;
+                                btnPause.textContent = 'Tạm dừng';
+                            }
+                            if (btnResume) {
+                                btnResume.style.display = 'block';
+                                btnResume.disabled = !isPaused;
+                            }
                         }
 
                         syncQueueStepLogs(data.queue || []);
@@ -2335,7 +2350,7 @@
                     queueTbody.innerHTML = `
                 <tr>
                     <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">
-                        Hàng chờ trống. Vui lòng bấm "Chạy Pipeline" trên thẻ dự án hoặc bấm "+ Create project" để bắt đầu.
+                        Hàng chờ trống. Vui lòng bấm nút chạy trên thẻ dự án để bắt đầu.
                     </td>
                 </tr>
             `;
