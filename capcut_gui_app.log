@@ -1,221 +1,373 @@
-﻿19:45:59 - INFO - Đã khôi phục 24 item hàng chờ từ cache.
-19:45:59 - INFO - Khởi động server CapCut Automation Studio tại http://127.0.0.1:5000
-19:45:59 - WARNING - Không bật được overlay điều khiển pipeline: name 'psutil' is not defined
-19:48:13 - INFO - Đã khôi phục 24 item hàng chờ từ cache.
-19:48:13 - INFO - Khởi động server CapCut Automation Studio tại http://127.0.0.1:5000
-19:48:13 - WARNING - Không bật được overlay điều khiển pipeline: name 'psutil' is not defined
-19:49:10 - INFO - Đã khôi phục 24 item hàng chờ từ cache.
-19:49:10 - INFO - Khởi động server CapCut Automation Studio tại http://127.0.0.1:5000
-19:49:10 - WARNING - Không bật được overlay điều khiển pipeline: name 'psutil' is not defined
-19:49:56 - INFO - Đã khôi phục 24 item hàng chờ từ cache.
-19:49:56 - INFO - Khởi động server CapCut Automation Studio tại http://127.0.0.1:5000
-19:49:56 - WARNING - Không bật được overlay điều khiển pipeline: name 'psutil' is not defined
-19:50:00 - INFO - Đã khởi tạo UIAutomation cho thread pipeline.
-19:50:00 - INFO - Bắt đầu xử lý hàng chờ video...
-19:50:00 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 00000000000: C:\Users\nguye\Videos\Phim4\tap24.mp4
-19:50:00 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim4\tap24.mp4 ===
-19:50:00 - INFO - Chạy pipeline ngầm để tạo draft '00000000000'...
-19:50:00 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
-19:50:03 - INFO - Received save draft request: draft_id=00000000000, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
-19:50:03 - INFO - Task 00000000000 has been created.
-19:50:03 - INFO - Successfully retrieved draft 00000000000 from cache.
-19:50:03 - INFO - Task 00000000000 status updated to 'processing': Preparing draft files.
-19:50:03 - WARNING - Deleting existing draft folder (current working directory): 00000000000
-19:50:03 - INFO - Starting to save draft: 00000000000
-19:50:03 - INFO - Found registered draft_id '3406FEDD-67FD-4599-A18D-61839BC38442' for folder '00000000000' in root_meta_info.json
-19:50:03 - INFO - Updated draft_meta_info.json for 00000000000 with draft_id=3406FEDD-67FD-4599-A18D-61839BC38442
-19:50:03 - INFO - Task 00000000000 progress 5%: Updating media file metadata.
-19:50:03 - INFO - No audio files found in the draft.
-19:50:03 - INFO - Successfully set video video_e594a74cf061e964.mp4 dimensions: 1920x1080.
-19:50:03 - INFO - Successfully obtained video video_e594a74cf061e964.mp4 duration: 260.67 seconds (260666667 microseconds).
-19:50:03 - INFO - Adjusted video segment 6b30fea1840840b2b12e353827021b0c timerange to fit the new video duration.
-19:50:03 - INFO - Checking track segment time range conflicts...
-19:50:03 - INFO - Updated script total duration to: 338528138 microseconds.
-19:50:03 - INFO - Processing pending keyframes...
-19:50:03 - INFO - Task 00000000000 progress 10%: Collected 1 download tasks in total.
-19:50:03 - INFO - Starting concurrent download of 1 files...
-19:50:03 - INFO - Task 00000000000: Successfully downloaded video file, progress 70.
-19:50:03 - INFO - Task 00000000000: Concurrent download completed, downloaded 1 files in total.
-19:50:03 - INFO - Task 00000000000 progress 70%: Saving draft information.
-19:50:03 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\00000000000/draft_info.json.
-19:50:03 - INFO - Task 00000000000 completed, draft URL: 
-19:50:03 - INFO - Đã chỉnh canvas 16:9 (1920x1080) trên 2 file draft.
-19:50:03 - INFO - Đã bật mirror ngang video trên 1 segment / 1 file draft.
-19:50:03 - INFO - Đã khóa 3 track/segment (video, effect) trên 1 file draft.
-19:50:03 - INFO - Đã mở khóa 0 track/segment (text, audio) trên 0 file draft.
-19:50:03 - INFO - Đang kiểm tra và khởi động CapCut...
-19:50:03 - INFO - Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...
-19:50:03 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
-19:50:07 - INFO - Khởi chạy CapCut từ shortcut: C:\Users\nguye\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\CapCut\CapCut.lnk
-19:50:10 - INFO - Đang kết nối với cửa sổ CapCut...
-19:50:14 - INFO - Đã kết nối thành công tới cửa sổ CapCut (Trạng thái: home)
-19:50:14 - INFO - Đang tìm và mở dự án '00000000000' trên màn hình CapCut...
-19:50:19 - INFO - Đang dùng ảnh project_title_marker.png để mở dự án, click lên trên 1.0cm ở giữa ảnh...
-19:50:19 - INFO - Đã thấy template project marker score=1.0000 và click tại (290, 605).
-19:50:19 - INFO - Đã click project marker. Chuyển ngay sang bước kế tiếp, workflow ảnh sẽ tự chờ nút cần bấm.
-19:50:19 - INFO - Chạy workflow nhận diện ảnh: Auto Captions (rpa_auto_captions.sample.json) lần 1/4
-19:50:19 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_auto_captions.sample.json
-19:50:38 - INFO - Đã khôi phục 24 item hàng chờ từ cache.
-19:50:38 - INFO - Khởi động server CapCut Automation Studio tại http://127.0.0.1:5000
-19:50:38 - WARNING - Không bật được overlay điều khiển pipeline: name 'psutil' is not defined
-19:50:41 - INFO - Đã khởi tạo UIAutomation cho thread pipeline.
-19:50:41 - INFO - Bắt đầu xử lý hàng chờ video...
-19:50:41 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 00000000000: C:\Users\nguye\Videos\Phim4\tap24.mp4
-19:50:41 - INFO - Theo dõi file export trong các thư mục: C:\Users\nguye\Videos
-19:50:41 - INFO - Đang kiểm tra và khởi động CapCut...
-19:50:42 - INFO - Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...
-19:50:42 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
-19:50:45 - INFO - Khởi chạy CapCut từ shortcut: C:\Users\nguye\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\CapCut\CapCut.lnk
-19:50:49 - INFO - Đang kết nối với cửa sổ CapCut...
-19:50:52 - INFO - Đã kết nối thành công tới cửa sổ CapCut (Trạng thái: home)
-19:50:52 - INFO - Đang tìm và mở dự án '00000000000' trên màn hình CapCut...
-19:50:57 - INFO - Đang dùng ảnh project_title_marker.png để mở dự án, click lên trên 1.0cm ở giữa ảnh...
-19:50:58 - INFO - Đã thấy template project marker score=1.0000 và click tại (290, 605).
-19:50:58 - INFO - Đã click project marker. Chuyển ngay sang bước kế tiếp, workflow ảnh sẽ tự chờ nút cần bấm.
-19:50:58 - INFO - Chạy workflow nhận diện ảnh: Export (rpa_export.sample.json) lần 1/1
-19:50:58 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_export.sample.json
-19:51:17 - INFO - run_workflow hoàn tất: rpa_export.sample.json
-19:51:17 - INFO - RPA step 1: clicked export_button.png score=1.0000 at (1770, 19)
-19:51:17 - INFO - RPA step 2: clicked export_confirm_button.png score=1.0000 at (1188, 821)
-19:51:17 - INFO - RPA step 3: wait
-19:51:17 - INFO - {"ok": true, "steps": [{"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\export_button.png", "score": 0.9999992847442627, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1770, "y": 19, "dry_run": false, "step": 1}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\export_confirm_button.png", "score": 0.9999991059303284, "window": "CapCut", "search_region": null, "x": 1188, "y": 821, "dry_run": false, "step": 2}, {"action": "wait", "mode": "gone", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\exporting.png", "threshold": 0.82, "score": 0.5625816583633423, "elapsed": 14.398, "dry_run": false, "require_seen": true, "seen_once": true, "step": 3}]}
-19:51:17 - INFO - Đóng CapCut để nhả file export trước khi đổi tên và chuyển thư mục...
-19:51:17 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
-19:51:51 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
-19:52:25 - INFO - Đã thêm 1 job vào hàng chờ cho dự án 00000000000.
-19:54:20 - WARNING - Không tìm thấy file video export mới để chuyển về folder video gốc.
-19:54:20 - INFO - === ĐÃ XỬ LÝ XONG: tap24.mp4 ===
-19:54:20 - INFO - Dự án 'C:\Users\nguye\Videos\Phim4\tap24.mp4' đã bị hủy, bỏ qua cập nhật trạng thái hoàn thành.
-19:54:20 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 00000000000: C:\Users\nguye\Videos\Phim4\tap29.mp4
-19:54:20 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim4\tap29.mp4 ===
-19:54:21 - INFO - Chạy pipeline ngầm để tạo draft '00000000000'...
-19:54:21 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
-19:54:23 - INFO - Received save draft request: draft_id=00000000000, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
-19:54:23 - INFO - Task 00000000000 has been created.
-19:54:23 - INFO - Successfully retrieved draft 00000000000 from cache.
-19:54:23 - INFO - Task 00000000000 status updated to 'processing': Preparing draft files.
-19:54:23 - WARNING - Deleting existing draft folder (current working directory): 00000000000
-19:54:23 - INFO - Starting to save draft: 00000000000
-19:54:23 - INFO - Found registered draft_id '3406FEDD-67FD-4599-A18D-61839BC38442' for folder '00000000000' in root_meta_info.json
-19:54:23 - INFO - Updated draft_meta_info.json for 00000000000 with draft_id=3406FEDD-67FD-4599-A18D-61839BC38442
-19:54:23 - INFO - Task 00000000000 progress 5%: Updating media file metadata.
-19:54:23 - INFO - No audio files found in the draft.
-19:54:23 - INFO - Successfully set video video_089835ac3048fd68.mp4 dimensions: 1920x1080.
-19:54:23 - INFO - Successfully obtained video video_089835ac3048fd68.mp4 duration: 280.87 seconds (280866667 microseconds).
-19:54:23 - INFO - Adjusted video segment a1cb70521d8d42ce89cf45b15607522b timerange to fit the new video duration.
-19:54:23 - INFO - Checking track segment time range conflicts...
-19:54:23 - INFO - Updated script total duration to: 364761905 microseconds.
-19:54:23 - INFO - Processing pending keyframes...
-19:54:23 - INFO - Task 00000000000 progress 10%: Collected 1 download tasks in total.
-19:54:23 - INFO - Starting concurrent download of 1 files...
-19:54:23 - INFO - Task 00000000000: Successfully downloaded video file, progress 70.
-19:54:23 - INFO - Task 00000000000: Concurrent download completed, downloaded 1 files in total.
-19:54:23 - INFO - Task 00000000000 progress 70%: Saving draft information.
-19:54:23 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\00000000000/draft_info.json.
-19:54:23 - INFO - Task 00000000000 completed, draft URL: 
-19:54:24 - INFO - Đã chỉnh canvas 16:9 (1920x1080) trên 2 file draft.
-19:54:24 - INFO - Đã bật mirror ngang video trên 1 segment / 1 file draft.
-19:54:24 - INFO - Đã khóa 3 track/segment (video, effect) trên 1 file draft.
-19:54:24 - INFO - Đã mở khóa 0 track/segment (text, audio) trên 0 file draft.
-19:54:24 - INFO - Đang kiểm tra và khởi động CapCut...
-19:54:24 - INFO - Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...
-19:54:24 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
-19:54:27 - INFO - Khởi chạy CapCut từ shortcut: C:\Users\nguye\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\CapCut\CapCut.lnk
-19:54:31 - INFO - Đang kết nối với cửa sổ CapCut...
-19:54:35 - INFO - Đã kết nối thành công tới cửa sổ CapCut (Trạng thái: home)
-19:54:35 - INFO - Đang tìm và mở dự án '00000000000' trên màn hình CapCut...
-19:54:40 - INFO - Đang dùng ảnh project_title_marker.png để mở dự án, click lên trên 1.0cm ở giữa ảnh...
-19:54:41 - INFO - Đã thấy template project marker score=1.0000 và click tại (290, 605).
-19:54:41 - INFO - Đã click project marker. Chuyển ngay sang bước kế tiếp, workflow ảnh sẽ tự chờ nút cần bấm.
-19:54:41 - INFO - Chạy workflow nhận diện ảnh: Auto Captions (rpa_auto_captions.sample.json) lần 1/4
-19:54:41 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_auto_captions.sample.json
-19:55:28 - INFO - run_workflow hoàn tất: rpa_auto_captions.sample.json
-19:55:28 - INFO - RPA step 1: clicked captions_tab.png score=1.0000 at (343, 55)
-19:55:28 - INFO - RPA step 2: clicked generate_button.png score=1.0000 at (561, 437)
-19:55:28 - INFO - RPA step 3: wait
-19:55:28 - INFO - {"ok": true, "steps": [{"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\captions_tab.png", "score": 0.9999977350234985, "window": "CapCut", "search_region": null, "x": 343, "y": 55, "dry_run": false, "step": 1}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\generate_button.png", "score": 1.0, "window": "CapCut", "search_region": null, "x": 561, "y": 437, "dry_run": false, "step": 2}, {"action": "wait", "mode": "gone", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\generating_caption.png", "threshold": 0.82, "score": 0.43332749605178833, "elapsed": 43.083, "dry_run": false, "require_seen": true, "seen_once": true, "step": 3}]}
-19:55:28 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
-19:55:31 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\draft_content.json để dịch và cập nhật font/màu sắc...
-19:55:31 - INFO - Đang dùng AI lấy video_context và asr_text từ 169 dòng phụ đề...
-19:55:31 - INFO - Đã lưu prompt/context request AI vào: C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\asr_context_request.json
-19:56:20 - INFO - Đã khôi phục 23 item hàng chờ từ cache.
-19:56:20 - INFO - Khởi động server CapCut Automation Studio tại http://127.0.0.1:5000
-19:56:20 - INFO - Đã bật overlay điều khiển pipeline.
-20:01:59 - INFO - Đã khởi tạo UIAutomation cho thread pipeline.
-20:01:59 - INFO - Bắt đầu xử lý hàng chờ video...
-20:01:59 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 00000000000: C:\Users\nguye\Videos\Phim4\tap29.mp4
-20:01:59 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim4\tap29.mp4 ===
-20:01:59 - INFO - Chạy pipeline ngầm để tạo draft '00000000000'...
-20:01:59 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
-20:02:02 - INFO - Received save draft request: draft_id=00000000000, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
-20:02:02 - INFO - Task 00000000000 has been created.
-20:02:02 - INFO - Successfully retrieved draft 00000000000 from cache.
-20:02:02 - INFO - Task 00000000000 status updated to 'processing': Preparing draft files.
-20:02:02 - WARNING - Deleting existing draft folder (current working directory): 00000000000
-20:02:02 - INFO - Starting to save draft: 00000000000
-20:02:02 - INFO - Found registered draft_id '3406FEDD-67FD-4599-A18D-61839BC38442' for folder '00000000000' in root_meta_info.json
-20:02:02 - INFO - Updated draft_meta_info.json for 00000000000 with draft_id=3406FEDD-67FD-4599-A18D-61839BC38442
-20:02:02 - INFO - Task 00000000000 progress 5%: Updating media file metadata.
-20:02:02 - INFO - No audio files found in the draft.
-20:02:02 - INFO - Successfully set video video_089835ac3048fd68.mp4 dimensions: 1920x1080.
-20:02:02 - INFO - Successfully obtained video video_089835ac3048fd68.mp4 duration: 280.87 seconds (280866667 microseconds).
-20:02:02 - INFO - Adjusted video segment d257c856405b4aecbea8d2c16dc18545 timerange to fit the new video duration.
-20:02:02 - INFO - Checking track segment time range conflicts...
-20:02:02 - INFO - Updated script total duration to: 364761905 microseconds.
-20:02:02 - INFO - Processing pending keyframes...
-20:02:02 - INFO - Task 00000000000 progress 10%: Collected 1 download tasks in total.
-20:02:02 - INFO - Starting concurrent download of 1 files...
-20:02:02 - INFO - Task 00000000000: Successfully downloaded video file, progress 70.
-20:02:02 - INFO - Task 00000000000: Concurrent download completed, downloaded 1 files in total.
-20:02:02 - INFO - Task 00000000000 progress 70%: Saving draft information.
-20:02:02 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\00000000000/draft_info.json.
-20:02:02 - INFO - Task 00000000000 completed, draft URL: 
-20:02:02 - INFO - Đã chỉnh canvas 16:9 (1920x1080) trên 2 file draft.
-20:02:02 - INFO - Đã bật mirror ngang video trên 1 segment / 1 file draft.
-20:02:02 - INFO - Đã khóa 3 track/segment (video, effect) trên 1 file draft.
-20:02:02 - INFO - Đã mở khóa 0 track/segment (text, audio) trên 0 file draft.
-20:02:02 - INFO - Đang kiểm tra và khởi động CapCut...
-20:02:02 - INFO - Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...
-20:02:02 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
-20:02:06 - INFO - Khởi chạy CapCut từ shortcut: C:\Users\nguye\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\CapCut\CapCut.lnk
-20:02:09 - INFO - Đang kết nối với cửa sổ CapCut...
-20:02:13 - INFO - Đã kết nối thành công tới cửa sổ CapCut (Trạng thái: home)
-20:02:13 - INFO - Đang tìm và mở dự án '00000000000' trên màn hình CapCut...
-20:02:17 - INFO - Đang dùng ảnh project_title_marker.png để mở dự án, click lên trên 1.0cm ở giữa ảnh...
-20:02:18 - INFO - Đã thấy template project marker score=1.0000 và click tại (290, 605).
-20:02:18 - INFO - Đã click project marker. Chuyển ngay sang bước kế tiếp, workflow ảnh sẽ tự chờ nút cần bấm.
-20:02:18 - INFO - Chạy workflow nhận diện ảnh: Auto Captions (rpa_auto_captions.sample.json) lần 1/4
-20:02:18 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_auto_captions.sample.json
-20:02:50 - INFO - run_workflow hoàn tất: rpa_auto_captions.sample.json
-20:02:50 - INFO - RPA step 1: clicked captions_tab.png score=1.0000 at (343, 55)
-20:02:50 - INFO - RPA step 2: clicked generate_button.png score=0.8273 at (561, 437)
-20:02:50 - INFO - RPA step 3: wait
-20:02:50 - INFO - {"ok": true, "steps": [{"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\captions_tab.png", "score": 0.9999974966049194, "window": "CapCut", "search_region": null, "x": 343, "y": 55, "dry_run": false, "step": 1}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\generate_button.png", "score": 0.827336311340332, "window": "CapCut", "search_region": null, "x": 561, "y": 437, "dry_run": false, "step": 2}, {"action": "wait", "mode": "gone", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\generating_caption.png", "threshold": 0.82, "score": 0.43332749605178833, "elapsed": 21.329, "dry_run": false, "require_seen": true, "seen_once": true, "step": 3}]}
-20:02:50 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
-20:02:53 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\draft_content.json để dịch và cập nhật font/màu sắc...
-20:02:53 - INFO - Đang dùng AI lấy video_context và asr_text từ 169 dòng phụ đề...
-20:02:53 - INFO - Đã lưu prompt/context request AI vào: C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\asr_context_request.json
-20:03:11 - INFO - AI context/ASR xong: context='主角陈无敌在坐骑乘巴卡尔前往血月城，旨在收服第九使徒噩梦魔神卢克（卢克）。陈无敌通过职业转换和高额输出击败了卢克，但因卢克拒绝投降而被击杀，导致收服任务失败，仅获得首杀奖励。战斗结束后，陈无敌触发了诅咒效果，并感知到有新力量接近。', asr_text='1. 角色名误识别：'无克'应为'卢克'；'全无敌'、'神无敌'应为'陈无敌'；'米希尔'、'米歇尔'应统一为同一角色名。2. 术语误识别：'通掘'可能为'统御'或'掌控'；'磅头一击'应为'爆头一击'；'继继灭斩'应为'极灭斩'或类似技能名；'戈比亚星'可能为地名或特定术语，需核实。3. 语病：'话音落响'应为'话音'.
-20:03:11 - INFO - Đang dịch 168/169 dòng phụ đề tiếng Trung chưa có cache (dùng lại cache 1 dòng) sang tiếng Việt...
-20:03:11 - INFO - Dịch AI bằng openai model google/gemma-4-31b-it theo batch 20 dòng...
-20:03:30 - INFO - Dịch AI batch 1: OK (20/20)
-20:03:56 - WARNING - Dịch AI batch 20 dòng thất bại (ultra_short=False): Dòng 10 còn ký tự nguồn: Ta nhớ ngươi có khả năng thống御 các sinh vật gương ma
-20:04:08 - WARNING - Dịch AI batch 20 dòng thất bại (ultra_short=True): Dòng 10 còn ký tự nguồn: Ta nhớ ngươi có khả năng thống御 các sinh vật gương ma
-20:04:35 - WARNING - Dịch AI batch 10 dòng thất bại (ultra_short=False): Dòng 10 còn ký tự nguồn: Ta nhớ ngươi có khả năng thống御 các sinh vật gương ma
-20:04:44 - WARNING - Dịch AI batch 10 dòng thất bại (ultra_short=True): Dòng 10 còn ký tự nguồn: Ta nhớ ngươi có khả năng thống御 các sinh vật gương ma
-20:04:50 - WARNING - Dịch AI batch 5 dòng thất bại (ultra_short=False): Dòng 5 còn ký tự nguồn: Ta nhớ ngươi có khả năng thống御 các sinh vật Ma Kính
-20:05:46 - WARNING - Dịch AI batch 5 dòng thất bại (ultra_short=True): Dòng 5 còn ký tự nguồn: Ta nhớ ngươi có khả năng thống御 các sinh vật gương ma
-20:05:58 - WARNING - Dịch AI batch 3 dòng thất bại (ultra_short=False): Dòng 3 còn ký tự nguồn: Ta nhớ ngươi có khả năng thống御 các sinh vật gương ma
-20:06:00 - WARNING - Dịch AI batch 3 dòng thất bại (ultra_short=True): Dòng 3 còn ký tự nguồn: Ta nhớ ngươi có khả năng thống御 các sinh vật gương ma
-20:06:38 - WARNING - Dịch AI batch 2 dòng thất bại (ultra_short=False): Dòng 2 còn ký tự nguồn: Ta nhớ ngươi có khả năng thống御 các sinh vật gương ma
-20:06:41 - WARNING - Dịch AI batch 2 dòng thất bại (ultra_short=True): Dòng 2 còn ký tự nguồn: Ta nhớ ngươi có khả năng thống御 các sinh vật gương ma
-20:07:40 - WARNING - Dịch AI batch 1 dòng thất bại (ultra_short=False): Dòng 1 còn ký tự nguồn: Ta nhớ ngươi có khả năng thống御 các sinh vật gương ma...
-20:07:41 - WARNING - Dịch AI batch 1 dòng thất bại (ultra_short=True): Dòng 1 còn ký tự nguồn: Ta nhớ ngươi có khả năng thống御 các sinh vật gương ma kính
-20:07:41 - WARNING - Dịch AI dòng đơn thất bại hoàn toàn, thử repair dòng đơn: 我记得你对魔镜生物生物通掘的
-20:07:45 - WARNING - Dịch lại dòng đơn thất bại (ultra_short=False): Dòng 1 còn ký tự nguồn: Ta nhớ ngươi có khả năng thống御 các sinh vật gương ma...
-20:07:49 - WARNING - Dịch lại dòng đơn thất bại (ultra_short=True): Dòng 1 còn ký tự nguồn: Ta nhớ ngươi có khả năng thống御 các sinh vật gương ma
-20:08:31 - INFO - Dịch AI batch 2: OK (20/20)
-20:08:46 - WARNING - Dịch AI batch 20 dòng thất bại (ultra_short=False): Dòng 14 còn ký tự nguồn: ngươi lại có thể khiến Mi希尔 và Bakal trung thành
-20:08:47 - INFO - Đã hủy và xóa item đang chạy khỏi hàng chờ: C:\Users\nguye\Videos\Phim4\tap29.mp4
-20:08:47 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
-20:09:01 - INFO - Dịch AI batch 3: OK (20/20)
+﻿22:21:13 - WARNING - Dịch AI batch 19 dòng thất bại (ultra_short=True): HTTPSConnectionPool(host='integrate.api.nvidia.com', port=443): Read timed out. (read timeout=90)
+22:23:26 - INFO - Đã khôi phục 17 item hàng chờ từ cache.
+22:23:26 - INFO - Khởi động server CapCut Automation Studio tại http://127.0.0.1:5000
+22:24:24 - INFO - Đã khôi phục 17 item hàng chờ từ cache.
+22:24:24 - INFO - Khởi động server CapCut Automation Studio tại http://127.0.0.1:5000
+22:24:24 - INFO - Đã bật overlay điều khiển pipeline.
+22:24:43 - INFO - Đã thêm 1 job vào hàng chờ cho dự án .recycle_bin.
+22:24:43 - WARNING - Phát hiện trạng thái pipeline bị kẹt (is_processing=True, current_index=-1, thread_alive=True). Tự reset runtime state.
+22:24:43 - INFO - Đã khởi tạo UIAutomation cho thread pipeline.
+22:24:43 - INFO - Bắt đầu xử lý hàng chờ video...
+22:24:43 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 00000000000: C:\Users\nguye\Videos\Phim4\tap22.mp4
+22:24:43 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim4\tap22.mp4 ===
+22:24:44 - INFO - Chạy pipeline ngầm để tạo draft '00000000000'...
+22:24:44 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+22:24:46 - INFO - Đã khởi tạo UIAutomation cho thread pipeline.
+22:24:46 - INFO - Bắt đầu xử lý hàng chờ video...
+22:24:46 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 00000000000: C:\Users\nguye\Videos\Phim4\tap22.mp4
+22:24:46 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim4\tap22.mp4 ===
+22:24:46 - INFO - Chạy pipeline ngầm để tạo draft '00000000000'...
+22:24:46 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+22:24:46 - INFO - Received save draft request: draft_id=00000000000, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
+22:24:46 - INFO - Task 00000000000 has been created.
+22:24:46 - INFO - Successfully retrieved draft 00000000000 from cache.
+22:24:46 - INFO - Task 00000000000 status updated to 'processing': Preparing draft files.
+22:24:46 - WARNING - Deleting existing draft folder (current working directory): 00000000000
+22:24:46 - INFO - Starting to save draft: 00000000000
+22:24:46 - INFO - Found registered draft_id '3406FEDD-67FD-4599-A18D-61839BC38442' for folder '00000000000' in root_meta_info.json
+22:24:46 - INFO - Updated draft_meta_info.json for 00000000000 with draft_id=3406FEDD-67FD-4599-A18D-61839BC38442
+22:24:46 - INFO - Task 00000000000 progress 5%: Updating media file metadata.
+22:24:46 - INFO - No audio files found in the draft.
+22:24:47 - INFO - Successfully set video video_88fd4ff86cdb7c04.mp4 dimensions: 1920x1080.
+22:24:47 - INFO - Successfully obtained video video_88fd4ff86cdb7c04.mp4 duration: 318.87 seconds (318866667 microseconds).
+22:24:47 - INFO - Adjusted video segment bf570d2c68904f67a123ada75bcc67a7 timerange to fit the new video duration.
+22:24:47 - INFO - Checking track segment time range conflicts...
+22:24:47 - INFO - Updated script total duration to: 414112554 microseconds.
+22:24:47 - INFO - Processing pending keyframes...
+22:24:47 - INFO - Task 00000000000 progress 10%: Collected 1 download tasks in total.
+22:24:47 - INFO - Starting concurrent download of 1 files...
+22:24:47 - INFO - Task 00000000000: Successfully downloaded video file, progress 70.
+22:24:47 - INFO - Task 00000000000: Concurrent download completed, downloaded 1 files in total.
+22:24:47 - INFO - Task 00000000000 progress 70%: Saving draft information.
+22:24:47 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\00000000000/draft_info.json.
+22:24:47 - INFO - Task 00000000000 completed, draft URL: 
+22:24:47 - INFO - Đã chỉnh canvas 16:9 (1920x1080) trên 2 file draft.
+22:24:47 - INFO - Đã bật mirror ngang video trên 1 segment / 1 file draft.
+22:24:47 - INFO - Đã khóa 3 track/segment (video, effect) trên 1 file draft.
+22:24:47 - INFO - Đã mở khóa 0 track/segment (text, audio) trên 0 file draft.
+22:24:47 - INFO - Dùng local Whisper nên chưa mở CapCut ở bước 2. Sẽ mở sau khi dịch/patch xong.
+22:24:47 - INFO - Chạy local faster-whisper GPU để tạo phụ đề: draft=00000000000, language=zh, video=C:\Users\nguye\Videos\Phim4\tap22.mp4
+22:24:47 - INFO - Whisper local: Đã thêm NVIDIA DLL dirs vào PATH: C:\Users\nguye\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\site-packages\nvidia\cublas\bin; C:\Users\nguye\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\site-packages\nvidia\cudnn\bin; C:\Users\nguye\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\site-packages\nvidia\cuda_nvrtc\bin; C:\Users\nguye\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\site-packages\ctranslate2
+22:24:47 - INFO - Whisper local: Đang load faster-whisper model=large-v3-turbo, device=cuda, compute=float16...
+22:24:48 - INFO - Received save draft request: draft_id=00000000000, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
+22:24:48 - INFO - Task 00000000000 has been created.
+22:24:48 - INFO - Successfully retrieved draft 00000000000 from cache.
+22:24:48 - INFO - Task 00000000000 status updated to 'processing': Preparing draft files.
+22:24:48 - WARNING - Deleting existing draft folder (current working directory): 00000000000
+22:24:48 - INFO - Starting to save draft: 00000000000
+22:24:49 - INFO - Found registered draft_id '3406FEDD-67FD-4599-A18D-61839BC38442' for folder '00000000000' in root_meta_info.json
+22:24:49 - INFO - Updated draft_meta_info.json for 00000000000 with draft_id=3406FEDD-67FD-4599-A18D-61839BC38442
+22:24:49 - INFO - Task 00000000000 progress 5%: Updating media file metadata.
+22:24:49 - INFO - No audio files found in the draft.
+22:24:49 - INFO - Successfully set video video_88fd4ff86cdb7c04.mp4 dimensions: 1920x1080.
+22:24:49 - INFO - Successfully obtained video video_88fd4ff86cdb7c04.mp4 duration: 318.87 seconds (318866667 microseconds).
+22:24:49 - INFO - Adjusted video segment 06fb97e7ed114f76ab0381b779998512 timerange to fit the new video duration.
+22:24:49 - INFO - Checking track segment time range conflicts...
+22:24:49 - INFO - Updated script total duration to: 414112554 microseconds.
+22:24:49 - INFO - Processing pending keyframes...
+22:24:49 - INFO - Task 00000000000 progress 10%: Collected 1 download tasks in total.
+22:24:49 - INFO - Starting concurrent download of 1 files...
+22:24:49 - INFO - Task 00000000000: Successfully downloaded video file, progress 70.
+22:24:49 - INFO - Task 00000000000: Concurrent download completed, downloaded 1 files in total.
+22:24:49 - INFO - Task 00000000000 progress 70%: Saving draft information.
+22:24:49 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\00000000000/draft_info.json.
+22:24:49 - INFO - Task 00000000000 completed, draft URL: 
+22:24:49 - INFO - Đã chỉnh canvas 16:9 (1920x1080) trên 2 file draft.
+22:24:49 - INFO - Đã bật mirror ngang video trên 1 segment / 1 file draft.
+22:24:49 - INFO - Đã khóa 3 track/segment (video, effect) trên 1 file draft.
+22:24:49 - INFO - Đã mở khóa 0 track/segment (text, audio) trên 0 file draft.
+22:24:49 - INFO - Dùng local Whisper nên chưa mở CapCut ở bước 2. Sẽ mở sau khi dịch/patch xong.
+22:24:49 - INFO - Chạy local faster-whisper GPU để tạo phụ đề: draft=00000000000, language=zh, video=C:\Users\nguye\Videos\Phim4\tap22.mp4
+22:24:49 - INFO - Whisper local: Đang load faster-whisper model=large-v3-turbo, device=cuda, compute=float16...
+22:24:55 - INFO - Whisper local: Đang trích audio đã làm chậm speed=0.77 trước khi Whisper...
+22:24:55 - INFO - Whisper local: Đang trích audio đã làm chậm speed=0.77 trước khi Whisper...
+22:24:56 - INFO - Whisper local: Đang chạy Whisper local cho audio/video: C:\Users\nguye\AppData\Local\Temp\tmp72p5ywd2.wav
+22:24:56 - INFO - Whisper local: Đang chạy Whisper local cho audio/video: C:\Users\nguye\AppData\Local\Temp\tmp7c6rcyx1.wav
+22:25:40 - INFO - Whisper local: Whisper hoàn thành: 240 dòng, language=zh, duration=414.11s.
+22:25:40 - INFO - Whisper local: Đang tiến hành ghép các segment thô thành câu hoàn chỉnh...
+22:25:41 - INFO - Whisper local: Whisper hoàn thành: 240 dòng, language=zh, duration=414.11s.
+22:25:41 - INFO - Whisper local: Đang tiến hành ghép các segment thô thành câu hoàn chỉnh...
+22:25:43 - INFO - Whisper local: Ghép câu thành công: từ 240 segments thô còn 17 câu.
+22:25:43 - INFO - Whisper local: Đã lưu output Whisper để test ghép câu: C:\Users\nguye\Projects\CapCutAPI\logs\whisper\00000000000_tap22.unfiltered.json
+22:25:43 - INFO - Whisper local: Ghép câu thành công: từ 240 segments thô còn 17 câu.
+22:25:43 - INFO - Đã patch phụ đề Whisper local vào draft: segments=17, added_texts=17, srt=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\whisper_zh.srt
+22:25:43 - INFO - CapCut chưa được mở trong luồng Whisper local, patch draft trực tiếp.
+22:25:43 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\draft_info.json để dịch và cập nhật font/màu sắc...
+22:25:43 - INFO - Đang dùng AI lấy video_context và asr_text từ 17 dòng phụ đề...
+22:25:43 - INFO - Đã lưu prompt/context request AI vào: C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\asr_context_request.json
+22:25:43 - INFO - Whisper local: Đã lưu output Whisper để test ghép câu: C:\Users\nguye\Projects\CapCutAPI\logs\whisper\00000000000_tap22.unfiltered.json
+22:25:43 - ERROR - Lỗi khi tự động hóa video 'C:\Users\nguye\Videos\Phim4\tap22.mp4': New segment overlaps with existing segment [start: 139000, end: 6976000]
+22:25:43 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 00000000000: C:\Users\nguye\Videos\Phim4\tap25.mp4
+22:25:43 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim4\tap25.mp4 ===
+22:25:43 - INFO - Chạy pipeline ngầm để tạo draft '00000000000'...
+22:25:43 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+22:25:46 - INFO - Received save draft request: draft_id=00000000000, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
+22:25:46 - INFO - Task 00000000000 has been created.
+22:25:46 - INFO - Successfully retrieved draft 00000000000 from cache.
+22:25:46 - INFO - Task 00000000000 status updated to 'processing': Preparing draft files.
+22:25:46 - WARNING - Deleting existing draft folder (current working directory): 00000000000
+22:25:46 - INFO - Starting to save draft: 00000000000
+22:25:46 - INFO - Found registered draft_id '3406FEDD-67FD-4599-A18D-61839BC38442' for folder '00000000000' in root_meta_info.json
+22:25:46 - INFO - Updated draft_meta_info.json for 00000000000 with draft_id=3406FEDD-67FD-4599-A18D-61839BC38442
+22:25:46 - INFO - Task 00000000000 progress 5%: Updating media file metadata.
+22:25:46 - INFO - No audio files found in the draft.
+22:25:46 - INFO - Successfully set video video_c08a727c4d6d1589.mp4 dimensions: 1920x1080.
+22:25:46 - INFO - Successfully obtained video video_c08a727c4d6d1589.mp4 duration: 274.63 seconds (274633333 microseconds).
+22:25:46 - INFO - Adjusted video segment c705bc5a5d14415bb41e726504495686 timerange to fit the new video duration.
+22:25:46 - INFO - Checking track segment time range conflicts...
+22:25:46 - INFO - Updated script total duration to: 356666666 microseconds.
+22:25:46 - INFO - Processing pending keyframes...
+22:25:46 - INFO - Task 00000000000 progress 10%: Collected 1 download tasks in total.
+22:25:46 - INFO - Starting concurrent download of 1 files...
+22:25:46 - INFO - Task 00000000000: Successfully downloaded video file, progress 70.
+22:25:46 - INFO - Task 00000000000: Concurrent download completed, downloaded 1 files in total.
+22:25:46 - INFO - Task 00000000000 progress 70%: Saving draft information.
+22:25:46 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\00000000000/draft_info.json.
+22:25:46 - INFO - Task 00000000000 completed, draft URL: 
+22:25:46 - INFO - Đã chỉnh canvas 16:9 (1920x1080) trên 2 file draft.
+22:25:46 - INFO - Đã bật mirror ngang video trên 1 segment / 1 file draft.
+22:25:46 - INFO - Đã khóa 3 track/segment (video, effect) trên 1 file draft.
+22:25:46 - INFO - Đã mở khóa 0 track/segment (text, audio) trên 0 file draft.
+22:25:46 - INFO - Dùng local Whisper nên chưa mở CapCut ở bước 2. Sẽ mở sau khi dịch/patch xong.
+22:25:46 - INFO - Chạy local faster-whisper GPU để tạo phụ đề: draft=00000000000, language=zh, video=C:\Users\nguye\Videos\Phim4\tap25.mp4
+22:25:47 - INFO - Whisper local: Đang trích audio đã làm chậm speed=0.77 trước khi Whisper...
+22:25:47 - INFO - Whisper local: Đang chạy Whisper local cho audio/video: C:\Users\nguye\AppData\Local\Temp\tmp6xhnioxs.wav
+22:26:06 - INFO - Whisper local: Whisper hoàn thành: 151 dòng, language=zh, duration=356.69s.
+22:26:06 - INFO - Whisper local: Đang tiến hành ghép các segment thô thành câu hoàn chỉnh...
+22:26:09 - INFO - Whisper local: Ghép câu thành công: từ 151 segments thô còn 14 câu.
+22:26:09 - INFO - Whisper local: Đã lưu output Whisper để test ghép câu: C:\Users\nguye\Projects\CapCutAPI\logs\whisper\00000000000_tap25.unfiltered.json
+22:26:09 - INFO - Đã patch phụ đề Whisper local vào draft: segments=14, added_texts=14, srt=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\whisper_zh.srt
+22:26:09 - INFO - CapCut chưa được mở trong luồng Whisper local, patch draft trực tiếp.
+22:26:09 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\draft_info.json để dịch và cập nhật font/màu sắc...
+22:26:09 - INFO - Đang dùng AI lấy video_context và asr_text từ 14 dòng phụ đề...
+22:26:09 - INFO - Đã lưu prompt/context request AI vào: C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\asr_context_request.json
+22:26:23 - INFO - AI context/ASR xong: context='视频讲述了游戏玩家陈无敌在被傲视工会伏击秒杀后，触发“魔神庇护”满血复活并反杀。随后，傲视工会与黑暗君主等公会联合宣战，陈无敌则与永恒地乃等人协作，通过封锁玄武城门牵制敌方，并亲自前往雷霆之都摧毁附和工会“低山流水”。最终陈无敌以绝对实力逼', asr_text='1. “割几个”应为“赶紧”；2. “腹虎”应为“复活”；3. “罢品”应为“霸屏”；4. “搞失了”应为“搞事情”；5. “比吉尔”可能为角色名，需统一；6. “苟带”应为“挂掉”；7. “永恒地乃”应为角色名（可能为永恒之乃）；8. “轻调”应为“清掉”；9. “左下脚”及后续关于手机、红包的段落为植入广告，与剧情'.
+22:26:23 - INFO - Đang dịch 17/17 dòng phụ đề tiếng Trung chưa có cache (dùng lại cache 0 dòng) sang tiếng Việt...
+22:26:23 - INFO - Dịch AI bằng openai model google/gemma-4-31b-it theo batch 20 dòng...
+22:26:24 - INFO - AI context/ASR xong: context='在游戏世界中，实力强大的主角陈无敌被Boss奥兹马变成哥布林并失去装备，但在圣者米歇尔的帮助下反击。陈无敌利用“蓝色圣经”提升闪避并切换职业为枪神机械师，与米歇尔合力将奥兹马打跑。随后，黑暗君主公会会长比基尔为了任务决定帮助奥兹马，并与陈无', asr_text='“蓝色神经”应为“蓝色圣经”；“四维属性”可能指“四维属性；“奥兹你且退后”中“奥兹”可能是对奥兹马的误称或特定称呼；“连刻五平”应为“连嗑五瓶”；“闪避绿”应为“闪避率”；“站立朝卷”应为“战立朝卷”或类似权力术语；“逃穿”应为“逃窜”；“丢恋”应为“丢脸”；“血脂诅咒”应为“血之诅咒”；“属性赵力”应为“属性之力”'.
+22:26:24 - INFO - Đang dịch 14/14 dòng phụ đề tiếng Trung chưa có cache (dùng lại cache 0 dòng) sang tiếng Việt...
+22:26:24 - INFO - Dịch AI bằng openai model google/gemma-4-31b-it theo batch 20 dòng...
+22:27:54 - WARNING - Dịch AI batch 17 dòng thất bại (ultra_short=False): HTTPSConnectionPool(host='integrate.api.nvidia.com', port=443): Read timed out. (read timeout=90)
+22:27:54 - WARNING - Dịch AI batch 14 dòng thất bại (ultra_short=False): HTTPSConnectionPool(host='integrate.api.nvidia.com', port=443): Read timed out. (read timeout=90)
+22:29:07 - INFO - Dịch AI batch 1: OK (14/14)
+22:29:07 - ERROR - Lỗi khi tự động hóa video 'C:\Users\nguye\Videos\Phim4\tap25.mp4': 'NoneType' object has no attribute 'get'
+22:29:07 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 00000000000: C:\Users\nguye\Videos\Phim4\tap26.mp4
+22:29:07 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim4\tap26.mp4 ===
+22:29:07 - INFO - Chạy pipeline ngầm để tạo draft '00000000000'...
+22:29:07 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+22:29:10 - INFO - Received save draft request: draft_id=00000000000, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
+22:29:10 - INFO - Task 00000000000 has been created.
+22:29:10 - INFO - Successfully retrieved draft 00000000000 from cache.
+22:29:10 - INFO - Task 00000000000 status updated to 'processing': Preparing draft files.
+22:29:10 - WARNING - Deleting existing draft folder (current working directory): 00000000000
+22:29:10 - INFO - Starting to save draft: 00000000000
+22:29:10 - INFO - Found registered draft_id '3406FEDD-67FD-4599-A18D-61839BC38442' for folder '00000000000' in root_meta_info.json
+22:29:10 - INFO - Updated draft_meta_info.json for 00000000000 with draft_id=3406FEDD-67FD-4599-A18D-61839BC38442
+22:29:10 - INFO - Task 00000000000 progress 5%: Updating media file metadata.
+22:29:10 - INFO - No audio files found in the draft.
+22:29:10 - INFO - Successfully set video video_fe5f809d9068633f.mp4 dimensions: 1920x1080.
+22:29:10 - INFO - Successfully obtained video video_fe5f809d9068633f.mp4 duration: 253.17 seconds (253166667 microseconds).
+22:29:10 - INFO - Adjusted video segment cbb8be53ef5f448d9e90e6c75d14499d timerange to fit the new video duration.
+22:29:10 - INFO - Checking track segment time range conflicts...
+22:29:10 - INFO - Updated script total duration to: 328787879 microseconds.
+22:29:10 - INFO - Processing pending keyframes...
+22:29:10 - INFO - Task 00000000000 progress 10%: Collected 1 download tasks in total.
+22:29:10 - INFO - Starting concurrent download of 1 files...
+22:29:10 - INFO - Task 00000000000: Successfully downloaded video file, progress 70.
+22:29:10 - INFO - Task 00000000000: Concurrent download completed, downloaded 1 files in total.
+22:29:10 - INFO - Task 00000000000 progress 70%: Saving draft information.
+22:29:10 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\00000000000/draft_info.json.
+22:29:10 - INFO - Task 00000000000 completed, draft URL: 
+22:29:10 - INFO - Đã chỉnh canvas 16:9 (1920x1080) trên 2 file draft.
+22:29:10 - INFO - Đã bật mirror ngang video trên 1 segment / 1 file draft.
+22:29:10 - INFO - Đã khóa 3 track/segment (video, effect) trên 1 file draft.
+22:29:10 - INFO - Đã mở khóa 0 track/segment (text, audio) trên 0 file draft.
+22:29:10 - INFO - Dùng local Whisper nên chưa mở CapCut ở bước 2. Sẽ mở sau khi dịch/patch xong.
+22:29:10 - INFO - Chạy local faster-whisper GPU để tạo phụ đề: draft=00000000000, language=zh, video=C:\Users\nguye\Videos\Phim4\tap26.mp4
+22:29:10 - INFO - Whisper local: Đang trích audio đã làm chậm speed=0.77 trước khi Whisper...
+22:29:11 - INFO - Whisper local: Đang chạy Whisper local cho audio/video: C:\Users\nguye\AppData\Local\Temp\tmp_ur2iukg.wav
+22:29:24 - WARNING - Dịch AI batch 17 dòng thất bại (ultra_short=True): HTTPSConnectionPool(host='integrate.api.nvidia.com', port=443): Read timed out. (read timeout=90)
+22:29:29 - INFO - Whisper local: Whisper hoàn thành: 176 dòng, language=zh, duration=328.77s.
+22:29:29 - INFO - Whisper local: Đang tiến hành ghép các segment thô thành câu hoàn chỉnh...
+22:29:31 - INFO - Whisper local: Ghép câu thành công: từ 176 segments thô còn 12 câu.
+22:29:31 - INFO - Whisper local: Đã lưu output Whisper để test ghép câu: C:\Users\nguye\Projects\CapCutAPI\logs\whisper\00000000000_tap26.unfiltered.json
+22:29:31 - INFO - Đã patch phụ đề Whisper local vào draft: segments=12, added_texts=12, srt=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\whisper_zh.srt
+22:29:31 - INFO - CapCut chưa được mở trong luồng Whisper local, patch draft trực tiếp.
+22:29:31 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\draft_info.json để dịch và cập nhật font/màu sắc...
+22:29:31 - INFO - Đang dùng AI lấy video_context và asr_text từ 12 dòng phụ đề...
+22:29:31 - INFO - Đã lưu prompt/context request AI vào: C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\asr_context_request.json
+22:29:50 - INFO - AI context/ASR xong: context='讲述了玩家“陈无敌”在游戏中追杀并击杀了强力BOSS“混沌之神奥兹马”，获得了顶级装备、技能“血之诅咒”及“使徒猎杀者称号。期间他击败了企图阻拦的黑暗公会成员比吉尔，随后摧毁了黑暗君主公会。之后陈无敌前往人族帝国皇城，被城主邀请担任“帝国守', asr_text='1. “最强暴”应为“最强BOSS”；2. “功分”应为“公愤”；3. “狂乱吐子”应为“狂乱输出”；4. “奥氏群兄”应为“奥兹马”；5. “比试一次”应为“毙掉一次”或“击杀一次”；6. “陈乌迪”应为“陈无敌”；7. “米歇尔两次”应为“再次”；8. “新程号”应为“新称号”；9. “不缠合”应为“不缠合”或“不'.
+22:29:50 - INFO - Đang dịch 12/12 dòng phụ đề tiếng Trung chưa có cache (dùng lại cache 0 dòng) sang tiếng Việt...
+22:29:50 - INFO - Dịch AI bằng openai model google/gemma-4-31b-it theo batch 20 dòng...
+22:30:54 - WARNING - Dịch AI batch 8 dòng thất bại (ultra_short=False): HTTPSConnectionPool(host='integrate.api.nvidia.com', port=443): Read timed out. (read timeout=90)
+22:31:20 - WARNING - Dịch AI batch 12 dòng thất bại (ultra_short=False): HTTPSConnectionPool(host='integrate.api.nvidia.com', port=443): Read timed out. (read timeout=90)
+22:32:29 - WARNING - Dịch AI batch 12 dòng thất bại (ultra_short=True): Không parse được JSON dịch AI: {"translations":["Hắn rõ ràng là Hỗn Độn Chi Thần Ozma khiến mọi người chơi phải khiếp sợ, chỉ phất tay một cái là có thể dễ dàng hủy diệt cả một thành trì, vậy mà hôm nay lại bị m
+22:32:41 - INFO - Dịch AI batch 1: OK (17/17)
+22:32:41 - ERROR - Lỗi khi tự động hóa video 'C:\Users\nguye\Videos\Phim4\tap22.mp4': 'NoneType' object has no attribute 'get'
+22:32:41 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 00000000000: C:\Users\nguye\Videos\Phim4\tap27.mp4
+22:32:41 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim4\tap27.mp4 ===
+22:32:41 - INFO - Chạy pipeline ngầm để tạo draft '00000000000'...
+22:32:41 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+22:32:43 - INFO - Received save draft request: draft_id=00000000000, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
+22:32:43 - INFO - Task 00000000000 has been created.
+22:32:43 - INFO - Successfully retrieved draft 00000000000 from cache.
+22:32:43 - INFO - Task 00000000000 status updated to 'processing': Preparing draft files.
+22:32:43 - WARNING - Deleting existing draft folder (current working directory): 00000000000
+22:32:44 - INFO - Starting to save draft: 00000000000
+22:32:44 - INFO - Found registered draft_id '3406FEDD-67FD-4599-A18D-61839BC38442' for folder '00000000000' in root_meta_info.json
+22:32:44 - INFO - Updated draft_meta_info.json for 00000000000 with draft_id=3406FEDD-67FD-4599-A18D-61839BC38442
+22:32:44 - INFO - Task 00000000000 progress 5%: Updating media file metadata.
+22:32:44 - INFO - No audio files found in the draft.
+22:32:44 - INFO - Successfully set video video_db1bc40f40303444.mp4 dimensions: 1920x1080.
+22:32:44 - INFO - Successfully obtained video video_db1bc40f40303444.mp4 duration: 272.73 seconds (272733333 microseconds).
+22:32:44 - INFO - Adjusted video segment 0e432dc242ee458ea11e72e5c1ec7868 timerange to fit the new video duration.
+22:32:44 - INFO - Checking track segment time range conflicts...
+22:32:44 - INFO - Updated script total duration to: 354199133 microseconds.
+22:32:44 - INFO - Processing pending keyframes...
+22:32:44 - INFO - Task 00000000000 progress 10%: Collected 1 download tasks in total.
+22:32:44 - INFO - Starting concurrent download of 1 files...
+22:32:44 - INFO - Task 00000000000: Successfully downloaded video file, progress 70.
+22:32:44 - INFO - Task 00000000000: Concurrent download completed, downloaded 1 files in total.
+22:32:44 - INFO - Task 00000000000 progress 70%: Saving draft information.
+22:32:44 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\00000000000/draft_info.json.
+22:32:44 - INFO - Task 00000000000 completed, draft URL: 
+22:32:44 - INFO - Đã chỉnh canvas 16:9 (1920x1080) trên 2 file draft.
+22:32:44 - INFO - Đã bật mirror ngang video trên 1 segment / 1 file draft.
+22:32:44 - INFO - Đã khóa 3 track/segment (video, effect) trên 1 file draft.
+22:32:44 - INFO - Đã mở khóa 0 track/segment (text, audio) trên 0 file draft.
+22:32:44 - INFO - Dùng local Whisper nên chưa mở CapCut ở bước 2. Sẽ mở sau khi dịch/patch xong.
+22:32:44 - INFO - Chạy local faster-whisper GPU để tạo phụ đề: draft=00000000000, language=zh, video=C:\Users\nguye\Videos\Phim4\tap27.mp4
+22:32:44 - INFO - Whisper local: Đang trích audio đã làm chậm speed=0.77 trước khi Whisper...
+22:32:45 - INFO - Whisper local: Đang chạy Whisper local cho audio/video: C:\Users\nguye\AppData\Local\Temp\tmpp8krbis4.wav
+22:33:02 - INFO - Whisper local: Whisper hoàn thành: 172 dòng, language=zh, duration=354.21s.
+22:33:02 - INFO - Whisper local: Đang tiến hành ghép các segment thô thành câu hoàn chỉnh...
+22:33:04 - INFO - Whisper local: Ghép câu thành công: từ 172 segments thô còn 14 câu.
+22:33:04 - INFO - Whisper local: Đã lưu output Whisper để test ghép câu: C:\Users\nguye\Projects\CapCutAPI\logs\whisper\00000000000_tap27.unfiltered.json
+22:33:04 - INFO - Đã patch phụ đề Whisper local vào draft: segments=14, added_texts=14, srt=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\whisper_zh.srt
+22:33:04 - INFO - CapCut chưa được mở trong luồng Whisper local, patch draft trực tiếp.
+22:33:04 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\draft_info.json để dịch và cập nhật font/màu sắc...
+22:33:04 - INFO - Đang dùng AI lấy video_context và asr_text từ 14 dòng phụ đề...
+22:33:04 - INFO - Đã lưu prompt/context request AI vào: C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\asr_context_request.json
+22:33:22 - INFO - AI context/ASR xong: context='视频讲述了玩家“陈无敌”在游戏世界中完成任务，获得“帝国守护者”称号及“装备合成器”并带回工会分享。随后，随后他计划收服第十使徒暴龙王巴卡尔，在天族领土与当地势力发生冲突，面对天族最强武器“魔精大炮”的攻击，巴卡尔展现出极强的防御力，引发直', asr_text='“主通攻击”应为“普通攻击”；“奖斐”应为“奖励”；“变异的主线任务”可能为“必要的”或“特定的”；“枯气之眼”应为“库基之眼”或特定专有名词“赫尔德”相关的称谓；“吃法酒”应为“吃罚酒”；“顺秒”应为“瞬秒”；“之类可”应为“之势”或类似描述词。'.
+22:33:22 - INFO - Đang dịch 14/14 dòng phụ đề tiếng Trung chưa có cache (dùng lại cache 0 dòng) sang tiếng Việt...
+22:33:22 - INFO - Dịch AI bằng openai model google/gemma-4-31b-it theo batch 20 dòng...
+22:34:52 - WARNING - Dịch AI batch 14 dòng thất bại (ultra_short=False): HTTPSConnectionPool(host='integrate.api.nvidia.com', port=443): Read timed out. (read timeout=90)
+22:35:06 - INFO - Dịch AI batch 1: OK (12/12)
+22:35:06 - ERROR - Lỗi khi tự động hóa video 'C:\Users\nguye\Videos\Phim4\tap26.mp4': 'NoneType' object has no attribute 'get'
+22:35:06 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 00000000000: C:\Users\nguye\Videos\Phim4\tap28.mp4
+22:35:06 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim4\tap28.mp4 ===
+22:35:06 - INFO - Chạy pipeline ngầm để tạo draft '00000000000'...
+22:35:06 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+22:35:08 - INFO - Received save draft request: draft_id=00000000000, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
+22:35:08 - INFO - Task 00000000000 has been created.
+22:35:08 - INFO - Successfully retrieved draft 00000000000 from cache.
+22:35:08 - INFO - Task 00000000000 status updated to 'processing': Preparing draft files.
+22:35:08 - WARNING - Deleting existing draft folder (current working directory): 00000000000
+22:35:08 - INFO - Starting to save draft: 00000000000
+22:35:08 - INFO - Found registered draft_id '3406FEDD-67FD-4599-A18D-61839BC38442' for folder '00000000000' in root_meta_info.json
+22:35:08 - INFO - Updated draft_meta_info.json for 00000000000 with draft_id=3406FEDD-67FD-4599-A18D-61839BC38442
+22:35:08 - INFO - Task 00000000000 progress 5%: Updating media file metadata.
+22:35:08 - INFO - No audio files found in the draft.
+22:35:09 - INFO - Successfully set video video_6f25c862eb986f48.mp4 dimensions: 1920x1080.
+22:35:09 - INFO - Successfully obtained video video_6f25c862eb986f48.mp4 duration: 244.47 seconds (244466667 microseconds).
+22:35:09 - INFO - Adjusted video segment b0d1cd582d2e4f648ed008ee6b823e02 timerange to fit the new video duration.
+22:35:09 - INFO - Checking track segment time range conflicts...
+22:35:09 - INFO - Updated script total duration to: 317489177 microseconds.
+22:35:09 - INFO - Processing pending keyframes...
+22:35:09 - INFO - Task 00000000000 progress 10%: Collected 1 download tasks in total.
+22:35:09 - INFO - Starting concurrent download of 1 files...
+22:35:09 - INFO - Task 00000000000: Successfully downloaded video file, progress 70.
+22:35:09 - INFO - Task 00000000000: Concurrent download completed, downloaded 1 files in total.
+22:35:09 - INFO - Task 00000000000 progress 70%: Saving draft information.
+22:35:09 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\00000000000/draft_info.json.
+22:35:09 - INFO - Task 00000000000 completed, draft URL: 
+22:35:09 - INFO - Đã chỉnh canvas 16:9 (1920x1080) trên 2 file draft.
+22:35:09 - INFO - Đã bật mirror ngang video trên 1 segment / 1 file draft.
+22:35:09 - INFO - Đã khóa 3 track/segment (video, effect) trên 1 file draft.
+22:35:09 - INFO - Đã mở khóa 0 track/segment (text, audio) trên 0 file draft.
+22:35:09 - INFO - Dùng local Whisper nên chưa mở CapCut ở bước 2. Sẽ mở sau khi dịch/patch xong.
+22:35:09 - INFO - Chạy local faster-whisper GPU để tạo phụ đề: draft=00000000000, language=zh, video=C:\Users\nguye\Videos\Phim4\tap28.mp4
+22:35:09 - INFO - Whisper local: Đang trích audio đã làm chậm speed=0.77 trước khi Whisper...
+22:35:09 - INFO - Whisper local: Đang chạy Whisper local cho audio/video: C:\Users\nguye\AppData\Local\Temp\tmp0v7spjrx.wav
+22:35:30 - INFO - Whisper local: Whisper hoàn thành: 156 dòng, language=zh, duration=317.49s.
+22:35:30 - INFO - Whisper local: Đang tiến hành ghép các segment thô thành câu hoàn chỉnh...
+22:35:33 - INFO - Whisper local: Ghép câu thành công: từ 156 segments thô còn 14 câu.
+22:35:33 - INFO - Whisper local: Đã lưu output Whisper để test ghép câu: C:\Users\nguye\Projects\CapCutAPI\logs\whisper\00000000000_tap28.unfiltered.json
+22:35:33 - INFO - Đã patch phụ đề Whisper local vào draft: segments=14, added_texts=14, srt=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\whisper_zh.srt
+22:35:33 - INFO - CapCut chưa được mở trong luồng Whisper local, patch draft trực tiếp.
+22:35:33 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\draft_content.json để dịch và cập nhật font/màu sắc...
+22:35:33 - WARNING - Không tìm thấy phụ đề nào trong bản nháp.
+22:35:33 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\draft_info.json để dịch và cập nhật font/màu sắc...
+22:35:33 - INFO - Đang dùng AI lấy video_context và asr_text từ 14 dòng phụ đề...
+22:35:33 - INFO - Đã lưu prompt/context request AI vào: C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\asr_context_request.json
+22:35:54 - INFO - AI context/ASR xong: context='主角陈无敌在巨龙围城期间，利用飞行能力与暴龙王巴卡尔交战，最终将其收服为坐骑并获得强大的上古神话光环。随后他被任命为天族的守护神，获得新称号“天人守护神”。故事最后，陈无敌在收到恶魔族玩家求救后，前往血月城处理使徒卢克复苏引发的危机。', asr_text='部分专有名词疑似误识别：'拼似抵抗'应为'拼死抵抗'，'飞行人'应为'飞行能力'，'枯其之眼'应为'库库鲁之眼'或类似设定词，'古墓老头'应为'古墓老头'（或特定NPC名），'蓝色圣经'应为'蓝色药剂'，'打凹着马'应为'打奥兹马'，'上午的暗精'应为'上古的暗精'，'血肠'应为'血槽'。'.
+22:35:54 - INFO - Đang dịch 14/14 dòng phụ đề tiếng Trung chưa có cache (dùng lại cache 0 dòng) sang tiếng Việt...
+22:35:54 - INFO - Dịch AI bằng openai model google/gemma-4-31b-it theo batch 20 dòng...
+22:35:55 - INFO - Dịch AI batch 1: OK (14/14)
+22:35:55 - ERROR - Lỗi khi tự động hóa video 'C:\Users\nguye\Videos\Phim4\tap27.mp4': 'NoneType' object has no attribute 'get'
+22:35:55 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 00000000000: C:\Users\nguye\Videos\Phim4\tap30.mp4
+22:35:55 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim4\tap30.mp4 ===
+22:35:55 - INFO - Chạy pipeline ngầm để tạo draft '00000000000'...
+22:35:55 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+22:35:58 - INFO - Received save draft request: draft_id=00000000000, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
+22:35:58 - INFO - Task 00000000000 has been created.
+22:35:58 - INFO - Successfully retrieved draft 00000000000 from cache.
+22:35:58 - INFO - Task 00000000000 status updated to 'processing': Preparing draft files.
+22:35:58 - WARNING - Deleting existing draft folder (current working directory): 00000000000
+22:35:58 - INFO - Starting to save draft: 00000000000
+22:35:58 - INFO - Found registered draft_id '3406FEDD-67FD-4599-A18D-61839BC38442' for folder '00000000000' in root_meta_info.json
+22:35:58 - INFO - Updated draft_meta_info.json for 00000000000 with draft_id=3406FEDD-67FD-4599-A18D-61839BC38442
+22:35:58 - INFO - Task 00000000000 progress 5%: Updating media file metadata.
+22:35:58 - INFO - No audio files found in the draft.
+22:35:58 - INFO - Successfully set video video_d5f4389475c5bbab.mp4 dimensions: 1920x1080.
+22:35:58 - INFO - Successfully obtained video video_d5f4389475c5bbab.mp4 duration: 300.40 seconds (300400000 microseconds).
+22:35:58 - INFO - Adjusted video segment a1b583ec1c514ec8955cdba08c30c33b timerange to fit the new video duration.
+22:35:58 - INFO - Checking track segment time range conflicts...
+22:35:58 - INFO - Updated script total duration to: 390129870 microseconds.
+22:35:58 - INFO - Processing pending keyframes...
+22:35:58 - INFO - Task 00000000000 progress 10%: Collected 1 download tasks in total.
+22:35:58 - INFO - Starting concurrent download of 1 files...
+22:35:58 - INFO - Task 00000000000: Successfully downloaded video file, progress 70.
+22:35:58 - INFO - Task 00000000000: Concurrent download completed, downloaded 1 files in total.
+22:35:58 - INFO - Task 00000000000 progress 70%: Saving draft information.
+22:35:58 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\00000000000/draft_info.json.
+22:35:58 - INFO - Task 00000000000 completed, draft URL: 
+22:35:58 - INFO - Đã chỉnh canvas 16:9 (1920x1080) trên 2 file draft.
+22:35:58 - INFO - Đã bật mirror ngang video trên 1 segment / 1 file draft.
+22:35:58 - INFO - Đã khóa 3 track/segment (video, effect) trên 1 file draft.
+22:35:58 - INFO - Đã mở khóa 0 track/segment (text, audio) trên 0 file draft.
+22:35:58 - INFO - Dùng local Whisper nên chưa mở CapCut ở bước 2. Sẽ mở sau khi dịch/patch xong.
+22:35:58 - INFO - Chạy local faster-whisper GPU để tạo phụ đề: draft=00000000000, language=zh, video=C:\Users\nguye\Videos\Phim4\tap30.mp4
+22:35:58 - INFO - Whisper local: Đang trích audio đã làm chậm speed=0.77 trước khi Whisper...
+22:35:59 - INFO - Whisper local: Đang chạy Whisper local cho audio/video: C:\Users\nguye\AppData\Local\Temp\tmp6gui55dh.wav
+22:36:22 - INFO - Whisper local: Whisper hoàn thành: 181 dòng, language=zh, duration=390.16s.
+22:36:22 - INFO - Whisper local: Đang tiến hành ghép các segment thô thành câu hoàn chỉnh...
+22:36:27 - INFO - Whisper local: Ghép câu thành công: từ 181 segments thô còn 20 câu.
+22:36:28 - INFO - Whisper local: Đã lưu output Whisper để test ghép câu: C:\Users\nguye\Projects\CapCutAPI\logs\whisper\00000000000_tap30.unfiltered.json
+22:36:28 - INFO - Đã patch phụ đề Whisper local vào draft: segments=20, added_texts=20, srt=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\whisper_zh.srt
+22:36:28 - INFO - CapCut chưa được mở trong luồng Whisper local, patch draft trực tiếp.
+22:36:28 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\draft_content.json để dịch và cập nhật font/màu sắc...
+22:36:28 - WARNING - Không tìm thấy phụ đề nào trong bản nháp.
+22:36:28 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\draft_info.json để dịch và cập nhật font/màu sắc...
+22:36:28 - INFO - Đang dùng AI lấy video_context và asr_text từ 20 dòng phụ đề...
+22:36:28 - INFO - Đã lưu prompt/context request AI vào: C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\asr_context_request.json
+22:37:25 - WARNING - Dịch AI batch 14 dòng thất bại (ultra_short=False): HTTPSConnectionPool(host='integrate.api.nvidia.com', port=443): Read timed out. (read timeout=90)
+22:38:28 - WARNING - AI lấy context/ASR thất bại, tiếp tục dịch bằng context hiện có: HTTPSConnectionPool(host='integrate.api.nvidia.com', port=443): Read timed out. (read timeout=120)
+22:38:28 - INFO - Đang dịch 20/20 dòng phụ đề tiếng Trung chưa có cache (dùng lại cache 0 dòng) sang tiếng Việt...
+22:38:28 - INFO - Dịch AI bằng openai model google/gemma-4-31b-it theo batch 20 dòng...
+22:38:55 - WARNING - Dịch AI batch 14 dòng thất bại (ultra_short=True): HTTPSConnectionPool(host='integrate.api.nvidia.com', port=443): Read timed out. (read timeout=90)
+22:39:58 - WARNING - Dịch AI batch 20 dòng thất bại (ultra_short=False): HTTPSConnectionPool(host='integrate.api.nvidia.com', port=443): Read timed out. (read timeout=90)
+22:40:25 - WARNING - Dịch AI batch 7 dòng thất bại (ultra_short=False): HTTPSConnectionPool(host='integrate.api.nvidia.com', port=443): Read timed out. (read timeout=90)
+22:41:28 - WARNING - Dịch AI batch 20 dòng thất bại (ultra_short=True): HTTPSConnectionPool(host='integrate.api.nvidia.com', port=443): Read timed out. (read timeout=90)
+22:42:32 - INFO - Dịch AI batch 1: OK (14/14)
+22:42:32 - ERROR - Lỗi khi tự động hóa video 'C:\Users\nguye\Videos\Phim4\tap28.mp4': 'NoneType' object has no attribute 'get'
+22:42:32 - INFO - Đã tạm dừng hàng chờ video.
+22:42:32 - INFO - Quá trình chạy hàng chờ hoàn tất.
+22:43:40 - WARNING - Dịch AI batch 10 dòng thất bại (ultra_short=False): HTTPSConnectionPool(host='integrate.api.nvidia.com', port=443): Read timed out. (read timeout=90)
+22:45:10 - WARNING - Dịch AI batch 10 dòng thất bại (ultra_short=True): HTTPSConnectionPool(host='integrate.api.nvidia.com', port=443): Read timed out. (read timeout=90)
+22:47:31 - WARNING - Dịch AI batch 5 dòng thất bại (ultra_short=False): HTTPSConnectionPool(host='integrate.api.nvidia.com', port=443): Read timed out. (read timeout=90)
+22:49:01 - WARNING - Dịch AI batch 5 dòng thất bại (ultra_short=True): HTTPSConnectionPool(host='integrate.api.nvidia.com', port=443): Read timed out. (read timeout=90)
+22:50:23 - INFO - Dịch AI batch 1: OK (20/20)
+22:50:23 - ERROR - Lỗi khi tự động hóa video 'C:\Users\nguye\Videos\Phim4\tap30.mp4': 'NoneType' object has no attribute 'get'
+22:50:23 - INFO - Đã tạm dừng hàng chờ video.
+22:50:23 - INFO - Quá trình chạy hàng chờ hoàn tất.
