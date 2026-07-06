@@ -793,6 +793,56 @@ def count_subtitle_text_items_in_json(draft_path):
         "files": scanned_files,
     }
 
+
+def config_bool(value, default=False):
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    return str(value).strip().lower() in {"1", "true", "yes", "on", "y"}
+
+
+def should_use_local_whisper(item_config):
+    if "use_local_whisper" in item_config:
+        return config_bool(item_config.get("use_local_whisper"), True)
+    if "use_whisper_captions" in item_config:
+        return config_bool(item_config.get("use_whisper_captions"), True)
+    return config_bool(os.environ.get("CAPCUT_USE_LOCAL_WHISPER"), True)
+
+
+def run_local_whisper_captions_for_draft(draft_full_path, draft_id, video_path, item_config, font_name, font_size, font_color_hex):
+    from local_whisper_captions import patch_draft_with_local_whisper
+
+    language = (
+        item_config.get("whisper_language")
+        or item_config.get("source_language_code")
+        or item_config.get("source_lang")
+        or "zh"
+    )
+    logger.info(
+        f"Chạy local faster-whisper GPU để tạo phụ đề: draft={draft_id}, "
+        f"language={language}, video={video_path}"
+    )
+    result = patch_draft_with_local_whisper(
+        draft_path=draft_full_path,
+        draft_id=draft_id,
+        video_path=video_path,
+        repo_root=Path(__file__).resolve().parent,
+        language=language,
+        speed=float(item_config.get("speed", 1.0) or 1.0),
+        font=normalize_draft_font_name(font_name),
+        font_size=font_size,
+        font_color=font_color_hex,
+        width=int(item_config.get("canvas_width", item_config.get("width", 1920))),
+        height=int(item_config.get("canvas_height", item_config.get("height", 1080))),
+        progress_callback=lambda message: logger.info(f"Whisper local: {message}"),
+    )
+    logger.info(
+        f"Đã patch phụ đề Whisper local vào draft: segments={result['segments']}, "
+        f"added_texts={result['added_texts']}, srt={result['srt_path']}"
+    )
+    return result
+
 def translate_google(text: str, source_lang: str = "zh-CN", target_lang: str = "vi") -> str:
     import requests
 
@@ -874,6 +924,17 @@ def resolve_font_path(font_name=None):
     if "/" in font_name or "\\" in font_name or font_name.lower().endswith(".ttf"):
         return font_name.replace("\\", "/")
     return DEFAULT_SUBTITLE_FONT_PATH
+
+
+def normalize_draft_font_name(font_name=None):
+    if not font_name:
+        return "HarmonyOS_Sans_SC_Regular"
+    font_value = str(font_name).strip()
+    if not font_value:
+        return "HarmonyOS_Sans_SC_Regular"
+    if "/" in font_value or "\\" in font_value or font_value.lower().endswith((".ttf", ".otf")):
+        return "HarmonyOS_Sans_SC_Regular"
+    return font_value
 
 
 def apply_default_text_style_to_content(content_json, translated, font_size=None, font_color=None, font_name=None):
@@ -2601,7 +2662,41 @@ class QueueRunner:
         except Exception as e:
             logger.warning(f"Không thể lưu queue cache: {str(e)}")
 
+    def repair_runtime_state(self):
+        thread_alive = bool(self.thread and self.thread.is_alive())
+        invalid_running_state = (
+            self.is_processing
+            and not thread_alive
+        )
+        invalid_index_state = (
+            self.is_processing
+            and self.current_index < 0
+            and not any(item.get("status") == "running" for item in self.queue)
+        )
+        if not (invalid_running_state or invalid_index_state):
+            return False
+
+        logger.warning(
+            "Phát hiện trạng thái pipeline bị kẹt "
+            f"(is_processing={self.is_processing}, current_index={self.current_index}, "
+            f"thread_alive={thread_alive}). Tự reset runtime state."
+        )
+        self.is_processing = False
+        self.is_paused = False
+        self.pause_requested = False
+        self.current_index = -1
+        changed = False
+        for item in self.queue:
+            if item.get("status") == "running":
+                item["status"] = "failed"
+                item["message"] = "Lỗi: Pipeline bị gián đoạn. Bấm Chạy/Thử lại để chạy lại từ bước 1."
+                changed = True
+        if changed:
+            self.save_cache()
+        return True
+
     def get_state(self):
+        self.repair_runtime_state()
         if not self.is_processing:
             changed = False
             for item in self.queue:
@@ -2631,6 +2726,7 @@ class QueueRunner:
         item.pop("exported_path", None)
 
     def set_queue(self, videos):
+        self.repair_runtime_state()
         if self.is_processing:
             return
         self.queue = []
@@ -2641,6 +2737,7 @@ class QueueRunner:
         self.save_cache()
 
     def start(self, config):
+        self.repair_runtime_state()
         if self.is_processing:
             return
         self.config = dict(config or {})
@@ -2681,6 +2778,11 @@ class QueueRunner:
         self.thread.start()
 
     def pause(self):
+        self.repair_runtime_state()
+        if not self.is_processing:
+            self.pause_requested = False
+            self.is_paused = False
+            return
         self.pause_requested = True
 
     def cancel_item(self, idx):
@@ -2704,6 +2806,7 @@ class QueueRunner:
         return item
 
     def resume(self, config=None):
+        self.repair_runtime_state()
         if self.is_processing:
             return
         if config:
@@ -2955,6 +3058,7 @@ class QueueRunner:
 
             logger.info(f"Chạy pipeline ngầm để tạo draft '{draft_id}'...")
             draft_full_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, draft_id)
+            pipeline_font_name = normalize_draft_font_name(font_name)
             run_pipeline_with_file_lock_retry(
                 run_pipeline,
                 draft_full_path,
@@ -2965,7 +3069,7 @@ class QueueRunner:
                 height=int(item_config.get("height", 1920)),
                 speed=speed,
                 clip_seconds=None, # Process FULL video
-                font=font_name,
+                font=pipeline_font_name,
                 font_size=font_size,
                 copy_to_capcut=True,
                 draft_id=draft_id,
@@ -2991,7 +3095,12 @@ class QueueRunner:
         if resume_from_step <= 2:
             self._check_cancel(item)
             item["progress"] = 25
-            item["message"] = "Bước 2: Mở dự án trong CapCut..."
+            prefer_local_whisper = should_use_local_whisper(item_config)
+            item["message"] = (
+                "Bước 2: Patch cấu hình draft trước khi chạy Whisper..."
+                if prefer_local_whisper
+                else "Bước 2: Mở dự án trong CapCut..."
+            )
             try:
                 patch_canvas_config_in_json(
                     draft_full_path,
@@ -3008,23 +3117,52 @@ class QueueRunner:
             except Exception as e:
                 logger.warning(f"Không thể chỉnh trạng thái khóa track trước khi mở dự án: {str(e)}")
 
-            controller = launch_capcut()
-            open_project_in_gui(controller, draft_id)
-            self._check_cancel(item)
-            project_opened_this_run = True
+            if prefer_local_whisper:
+                logger.info("Dùng local Whisper nên chưa mở CapCut ở bước 2. Sẽ mở sau khi dịch/patch xong.")
+            else:
+                controller = launch_capcut()
+                open_project_in_gui(controller, draft_id)
+                self._check_cancel(item)
+                project_opened_this_run = True
             item["resume_from_step"] = 3
             self._checkpoint_pause(item, next_step=3, progress=30)
 
         if resume_from_step <= 3:
             self._check_cancel(item)
             item["progress"] = 45
-            item["message"] = "Bước 3: Đang tự động tạo phụ đề (Auto Captions)..."
+            use_local_whisper = should_use_local_whisper(item_config)
+            local_whisper_video = item.get("video")
+            if use_local_whisper and not (local_whisper_video and Path(str(local_whisper_video)).is_file()):
+                logger.warning(
+                    f"Không có file video thật để chạy local Whisper ({local_whisper_video}). "
+                    "Fallback sang Auto Captions bằng CapCut."
+                )
+                use_local_whisper = False
+            item["message"] = (
+                "Bước 3: Đang tạo phụ đề bằng local Whisper GPU..."
+                if use_local_whisper
+                else "Bước 3: Đang tự động tạo phụ đề (Auto Captions)..."
+            )
             existing_subtitles = count_subtitle_text_items_in_json(draft_full_path)
             if existing_subtitles["total"] > 0:
                 logger.info(
-                    f"Draft đã có subtitle/text trước bước Auto Captions "
+                    f"Draft đã có subtitle/text trước bước tạo phụ đề "
                     f"(materials={existing_subtitles['materials']}, segments={existing_subtitles['segments']}). "
-                    "Bỏ qua bước Captions và đi tiếp."
+                    "Bỏ qua bước tạo phụ đề và đi tiếp."
+                )
+            elif use_local_whisper:
+                if project_opened_this_run:
+                    kill_capcut()
+                    project_opened_this_run = False
+                    time.sleep(1)
+                run_local_whisper_captions_for_draft(
+                    draft_full_path,
+                    draft_id,
+                    local_whisper_video,
+                    item_config,
+                    font_name,
+                    font_size,
+                    font_color_hex,
                 )
             else:
                 if not project_opened_this_run:
@@ -3039,9 +3177,14 @@ class QueueRunner:
         if resume_from_step <= 4:
             self._check_cancel(item)
             item["progress"] = 60
-            item["message"] = "Bước 4 & 5: Đang đóng CapCut để lưu draft, sau đó dịch phụ đề và chỉnh âm lượng..."
-            kill_capcut()
-            time.sleep(1)
+            item["message"] = "Bước 4 & 5: Đang dịch phụ đề và chỉnh âm lượng trong draft..."
+            if project_opened_this_run:
+                logger.info("Đóng CapCut để flush draft trước khi dịch/patch.")
+                kill_capcut()
+                project_opened_this_run = False
+                time.sleep(1)
+            else:
+                logger.info("CapCut chưa được mở trong luồng Whisper local, patch draft trực tiếp.")
 
             patch_subtitles_in_json(
                 draft_full_path,
