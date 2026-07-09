@@ -4,13 +4,17 @@
 
 # 从local模块导入所有配置，local模块已经导入了env和base模块的配置
 from .local import *
+from .prompts import *
 
 __all__ = [
     "IS_CAPCUT_ENV",
     "API_KEYS",
     "MODEL_CONFIG",
     "PURCHASE_LINKS",
-    "LICENSE_CONFIG"
+    "LICENSE_CONFIG",
+    "TRANSLATION_ULTRA_SHORT_PROMPT_TEMPLATE",
+    "TRANSLATION_SYSTEM_PROMPT_TEMPLATE",
+    "FULL_CONTEXT_PROMPT"
 ]
 
 # 提供一个获取平台信息的辅助函数

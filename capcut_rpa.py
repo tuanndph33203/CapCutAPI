@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 from __future__ import annotations
 
 import argparse
@@ -13,9 +13,11 @@ import cv2
 import numpy as np
 import psutil
 import pyautogui
+import win32con
 import win32gui
 import win32process
-from PIL import ImageGrab
+import win32ui
+from PIL import Image, ImageGrab
 
 try:
     from pyJianYingDraft.capcut_controller import capcut_main_hwnd_and_rect
@@ -183,8 +185,75 @@ def activate_window(window: WindowBox) -> None:
 
 
 def screenshot_window(window: WindowBox) -> np.ndarray:
-    image = ImageGrab.grab(bbox=(window.left, window.top, window.right, window.bottom), all_screens=True)
-    return cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+    errors: list[str] = []
+    try:
+        image = ImageGrab.grab(bbox=(window.left, window.top, window.right, window.bottom), all_screens=True)
+        return cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+    except Exception as exc:
+        errors.append(f"ImageGrab: {exc}")
+
+    width = max(1, window.right - window.left)
+    height = max(1, window.bottom - window.top)
+    try:
+        image = pyautogui.screenshot(region=(window.left, window.top, width, height))
+        return cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+    except Exception as exc:
+        errors.append(f"pyautogui: {exc}")
+
+    hwnd_dc = None
+    mfc_dc = None
+    save_dc = None
+    bitmap = None
+    try:
+        hwnd_dc = win32gui.GetWindowDC(window.hwnd)
+        mfc_dc = win32ui.CreateDCFromHandle(hwnd_dc)
+        save_dc = mfc_dc.CreateCompatibleDC()
+        bitmap = win32ui.CreateBitmap()
+        bitmap.CreateCompatibleBitmap(mfc_dc, width, height)
+        save_dc.SelectObject(bitmap)
+
+        # PW_RENDERFULLCONTENT helps with modern Chromium/DirectComposition
+        # windows; fall back to a plain BitBlt if the app refuses PrintWindow.
+        rendered = win32gui.PrintWindow(window.hwnd, save_dc.GetSafeHdc(), 2)
+        if not rendered:
+            save_dc.BitBlt((0, 0), (width, height), mfc_dc, (0, 0), win32con.SRCCOPY)
+
+        info = bitmap.GetInfo()
+        bits = bitmap.GetBitmapBits(True)
+        image = Image.frombuffer(
+            "RGB",
+            (info["bmWidth"], info["bmHeight"]),
+            bits,
+            "raw",
+            "BGRX",
+            0,
+            1,
+        )
+        return cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+    except Exception as exc:
+        errors.append(f"PrintWindow: {exc}")
+        raise OSError("screen grab failed; " + "; ".join(errors)) from exc
+    finally:
+        try:
+            if bitmap is not None:
+                win32gui.DeleteObject(bitmap.GetHandle())
+        except Exception:
+            pass
+        try:
+            if save_dc is not None:
+                save_dc.DeleteDC()
+        except Exception:
+            pass
+        try:
+            if mfc_dc is not None:
+                mfc_dc.DeleteDC()
+        except Exception:
+            pass
+        try:
+            if hwnd_dc is not None:
+                win32gui.ReleaseDC(window.hwnd, hwnd_dc)
+        except Exception:
+            pass
 
 
 def ensure_cursor_safe(window: WindowBox | None = None) -> None:

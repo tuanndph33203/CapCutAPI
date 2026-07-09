@@ -344,18 +344,23 @@ class Video_segment(Visual_segment):
         Raises:
             `ValueError`: 指定的或计算出的`source_timerange`超出了素材的时长范围
         """
-        # if source_timerange is not None and speed is not None:
-        #     target_timerange = Timerange(target_timerange.start, round(source_timerange.duration / speed))
-        # elif source_timerange is not None and speed is None:
-        #     speed = source_timerange.duration / target_timerange.duration
-        # else:  # source_timerange is None
-        #     speed = speed if speed is not None else 1.0
-        #     source_timerange = Timerange(0, round(target_timerange.duration * speed))
+        if source_timerange is not None and speed is not None:
+            if speed <= 0:
+                raise ValueError("speed must be greater than 0")
+            target_timerange = Timerange(target_timerange.start, round(source_timerange.duration / speed))
+        elif source_timerange is not None and speed is None:
+            if target_timerange.duration <= 0:
+                raise ValueError("target_timerange.duration must be greater than 0")
+            speed = source_timerange.duration / target_timerange.duration
+        else:  # source_timerange is None
+            speed = speed if speed is not None else 1.0
+            if speed <= 0:
+                raise ValueError("speed must be greater than 0")
+            source_timerange = Timerange(0, round(target_timerange.duration * speed))
 
-        # if source_timerange.end > material.duration:
-        #     source_timerange = Timerange(source_timerange.start, material.duration - source_timerange.start)
-        #     # 重新计算目标时间范围
-        #     target_timerange = Timerange(target_timerange.start, round(source_timerange.duration / speed))
+        if source_timerange.end > material.duration:
+            source_timerange = Timerange(source_timerange.start, max(0, material.duration - source_timerange.start))
+            target_timerange = Timerange(target_timerange.start, round(source_timerange.duration / speed))
 
         super().__init__(material.material_id, source_timerange, target_timerange, speed, volume, clip_settings=clip_settings)
 
