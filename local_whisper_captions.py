@@ -322,19 +322,7 @@ def transcribe_video_to_segments(
             except OSError:
                 pass
 
-    if abs(speed - 1.0) > 0.001:
-        for seg in segments:
-            seg["start"] *= speed
-            seg["end"] *= speed
-            for word in seg.get("words") or []:
-                word["start"] *= speed
-                word["end"] *= speed
-        for seg in all_raw_segments:
-            seg["start"] *= speed
-            seg["end"] *= speed
-            for word in seg.get("words") or []:
-                word["start"] *= speed
-                word["end"] *= speed
+
 
     if progress_callback:
         progress_callback(
@@ -633,10 +621,8 @@ def patch_draft_with_local_whisper(
         raise RuntimeError("Whisper không tạo ra dòng phụ đề nào.")
 
     raw_segments = segments
-    merged_segments = merge_segments_with_ai(
-        raw_segments,
-        progress_callback=progress_callback,
-    )
+    merged_segments = raw_segments
+
 
     duration = max((float(segment.get("end", 0) or 0) for segment in raw_segments), default=0.0)
     all_raw_segments = raw_whisper_output.get("all_raw_segments") or []
