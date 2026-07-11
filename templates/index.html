@@ -1087,6 +1087,19 @@
                             chờ</button>
                     </div>
                 </div>
+                <!-- Queue Diagnostics Panel -->
+                <div id="diagnostics-panel" style="margin-bottom: 12px; font-size: 0.82rem; padding: 10px; border-radius: 6px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 6px;">
+                    <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                        <div>⚙️ <strong>Workers:</strong> 
+                            <span id="worker-preprocess-status" style="margin-right: 15px; font-weight: 500;">Preprocess: <span style="color: var(--text-muted);">INACTIVE</span></span>
+                            <span id="worker-gui-status" style="font-weight: 500;">GUI: <span style="color: var(--text-muted);">INACTIVE</span></span>
+                        </div>
+                        <div>📁 <strong>Buffers:</strong> 
+                            <span id="buffer-a-status" style="margin-right: 15px; font-weight: 500;">A (00000000000): <span style="color: #6fcf97;">FREE</span></span>
+                            <span id="buffer-b-status" style="font-weight: 500;">B (111111111111111111): <span style="color: #6fcf97;">FREE</span></span>
+                        </div>
+                    </div>
+                </div>
                 <div id="queue-status-tabs" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
                     <button type="button" class="btn btn-secondary queue-filter-btn active" data-status="active"
                         style="width:auto; height:auto; padding:6px 10px; font-size:0.78rem;">Tất cả</button>
@@ -2288,6 +2301,40 @@
                         systemStatusDot.className = 'status-dot active';
                         systemStatusText.innerText = 'Máy chủ Hoạt động';
                         isProcessing = data.is_processing;
+                        
+                        // Update diagnostics UI
+                        const workers = data.workers || { preprocess: 'inactive', gui: 'inactive' };
+                        const preprocessStatusEl = document.getElementById('worker-preprocess-status');
+                        const guiStatusEl = document.getElementById('worker-gui-status');
+                        if (preprocessStatusEl) {
+                            preprocessStatusEl.innerHTML = `Preprocess: <span style="color: ${workers.preprocess === 'active' ? '#6fcf97' : 'var(--text-muted)'};">${workers.preprocess.toUpperCase()}</span>`;
+                        }
+                        if (guiStatusEl) {
+                            guiStatusEl.innerHTML = `GUI: <span style="color: ${workers.gui === 'active' ? '#6fcf97' : 'var(--text-muted)'};">${workers.gui.toUpperCase()}</span>`;
+                        }
+
+                        const buffers = data.buffer_status || {};
+                        const bufA = buffers["00000000000"] || { occupied: false, owner_video: '', owner_status: 'free' };
+                        const bufB = buffers["111111111111111111"] || { occupied: false, owner_video: '', owner_status: 'free' };
+                        
+                        const bufAEl = document.getElementById('buffer-a-status');
+                        const bufBEl = document.getElementById('buffer-b-status');
+                        
+                        if (bufAEl) {
+                            if (bufA.occupied) {
+                                bufAEl.innerHTML = `A (00000000000): <span style="color: #f2994a; font-weight: 500;">${bufA.owner_video} (${bufA.owner_status})</span>`;
+                            } else {
+                                bufAEl.innerHTML = `A (00000000000): <span style="color: #6fcf97;">FREE</span>`;
+                            }
+                        }
+                        if (bufBEl) {
+                            if (bufB.occupied) {
+                                bufBEl.innerHTML = `B (111111111111111111): <span style="color: #f2994a; font-weight: 500;">${bufB.owner_video} (${bufB.owner_status})</span>`;
+                            } else {
+                                bufBEl.innerHTML = `B (111111111111111111): <span style="color: #6fcf97;">FREE</span>`;
+                            }
+                        }
+
                         const isPaused = !!data.is_paused;
                         if (typeof data.auto_shutdown !== 'undefined' && data.auto_shutdown !== autoShutdownEnabled) {
                             autoShutdownEnabled = !!data.auto_shutdown;

@@ -620,13 +620,17 @@ def open_project_in_gui(controller, project_name, cancel_check=None):
     try:
         from capcut_rpa import click_template
 
+        template_file = PROJECT_TITLE_MARKER_TEMPLATE
+        if str(project_name) == "111111111111111111" or "111111111111111111" in str(project_name):
+            template_file = PROJECT_TITLE_MARKER_TEMPLATE.parent / "project_title_marker_2.png"
+
         click_above_px = -int(PROJECT_TITLE_MARKER_CLICK_ABOVE_CM / 2.54 * PROJECT_TITLE_MARKER_DPI)
         logger.info(
-            f"Đang dùng ảnh {PROJECT_TITLE_MARKER_TEMPLATE.name} để mở dự án, "
+            f"Đang dùng ảnh {template_file.name} để mở dự án, "
             f"click lên trên {PROJECT_TITLE_MARKER_CLICK_ABOVE_CM}cm ở giữa ảnh..."
         )
         click_result = click_template(
-            PROJECT_TITLE_MARKER_TEMPLATE,
+            template_file,
             threshold=0.82,
             dry_run=False,
             timeout=90,
@@ -644,7 +648,7 @@ def open_project_in_gui(controller, project_name, cancel_check=None):
             )
             return controller
         raise Exception(
-            f"Khong mo duoc project '{project_name}' bang template anh {PROJECT_TITLE_MARKER_TEMPLATE}. "
+            f"Khong mo duoc project '{project_name}' bang template anh {template_file.name}. "
             f"Da chan fallback sang project dau tien. Chi tiet: {str(e)}."
         ) from e
 
@@ -1125,7 +1129,7 @@ def default_global_settings():
         "label": "GEMMA",
         "provider": "openai",
         "api_key": "env:GEMMA_API_KEY",
-        "model": "google/gemma-4-31b-it",
+        "model": "gemma-4-31b-it",
         "base_url": "https://integrate.api.nvidia.com/v1",
     }
     return {
@@ -1407,7 +1411,7 @@ def build_ai_translation_config(item_config=None, purpose="translation"):
         item_config.get("ai_fallback_model")
         or item_config.get("aiFallbackModel")
         or profile.get("fallback_model")
-        or "google/gemma-4-31b-it"
+        or ("gemini-1.5-flash" if provider == "gemini" else "gemma-4-31b-it")
     )
 
     if not item_config.get(profile_key) and not item_config.get("contextAiProfileId" if purpose == "context" else "translationAiProfileId"):
@@ -1791,17 +1795,35 @@ def call_ai_translation_once(lines, config, previous_context=None, next_context=
 
     response = None
     last_error = None
-    for attempt in range(1, 4):
+    max_attempts = 8
+    for attempt in range(1, max_attempts + 1):
         try:
             response = requests.post(url, headers=headers, json=payload, timeout=90)
             if response.ok:
                 break
+            
             last_error = f"HTTP {response.status_code}: {response.text[:500]}"
+            if response.status_code == 429:
+                import re
+                wait_time = 10.0
+                match = re.search(r"Please retry in (\d+\.?\d*)s", response.text)
+                if match:
+                    wait_time = float(match.group(1)) + 0.5
+                else:
+                    match_ms = re.search(r"Please retry in (\d+\.?\d*)ms", response.text)
+                    if match_ms:
+                        wait_time = float(match_ms.group(1)) / 1000.0 + 0.1
+                logger.warning(
+                    f"Gặp lỗi rate limit HTTP 429. Đang ngủ {wait_time:.2f} giây (lần {attempt}/{max_attempts})..."
+                )
+                time.sleep(wait_time)
+                continue
+                
             if response.status_code < 500:
                 break
         except Exception as exc:
             last_error = str(exc)
-        logger.warning(f"AI translation request failed attempt {attempt}/3: {last_error}")
+        logger.warning(f"AI translation request failed attempt {attempt}/{max_attempts}: {last_error}")
         time.sleep(2 * attempt)
 
     if response is None or not response.ok:
@@ -2464,7 +2486,9 @@ def detect_hardsub_blur_config(video_path, sample_count=10, blur_radius=24):
         red = rgb[:, :, 0].astype(np.int16)
         green = rgb[:, :, 1].astype(np.int16)
         blue = rgb[:, :, 2].astype(np.int16)
-        mask = (red >= 170) & (green >= 135) & (blue <= 165) & ((red - green) <= 105)
+        yellow_mask = (red >= 170) & (green >= 135) & (blue <= 165) & ((red - green) <= 105)
+        white_mask = (red >= 225) & (green >= 225) & (blue >= 225)
+        mask = yellow_mask | white_mask
         mask[:, :width // 10] = False
         mask[:, width * 9 // 10:] = False
         # Ignore the upper edge of the search area and the very bottom UI/border.
@@ -2510,7 +2534,8 @@ def detect_hardsub_blur_config(video_path, sample_count=10, blur_radius=24):
     if len(consistent) < minimum_hits:
         return {"enabled": False, "detected_frames": len(consistent), "sampled_frames": int(sample_count)}
 
-    padding_y = max(6, height // 180)
+    # Fixed padding of 5px above/below the detected subtitle band — detection is already precise
+    padding_y = 5
     # Keep horizontal blur full-width, but tighten the subtitle band vertically.
     y1 = max(lower_y, int(np.percentile([box[1] for box in consistent], 35)) - padding_y)
     y2 = min(height, int(np.percentile([box[3] for box in consistent], 65)) + padding_y)
@@ -2532,6 +2557,34 @@ def detect_hardsub_blur_config(video_path, sample_count=10, blur_radius=24):
     }
     logger.info(f"Đã tự phát hiện vùng hardsub từ {len(consistent)}/{sample_count} frame: {result}")
     return result
+
+_FFMPEG_H264_NVENC_AVAILABLE = None
+
+
+def ffmpeg_has_h264_nvenc():
+    global _FFMPEG_H264_NVENC_AVAILABLE
+    if _FFMPEG_H264_NVENC_AVAILABLE is not None:
+        return _FFMPEG_H264_NVENC_AVAILABLE
+    try:
+        completed = subprocess.run(
+            ["ffmpeg", "-hide_banner", "-encoders"],
+            text=True,
+            capture_output=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=10,
+        )
+        _FFMPEG_H264_NVENC_AVAILABLE = completed.returncode == 0 and "h264_nvenc" in completed.stdout
+    except Exception:
+        _FFMPEG_H264_NVENC_AVAILABLE = False
+    return _FFMPEG_H264_NVENC_AVAILABLE
+
+
+def ffmpeg_video_encode_args():
+    if ffmpeg_has_h264_nvenc():
+        return ["-c:v", "h264_nvenc", "-preset", "p4", "-cq", "23", "-b:v", "0", "-pix_fmt", "yuv420p"]
+    return ["-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p"]
+
 
 def render_preprocessed_video(source, output_path, speed=1.0, blur_config=None):
     source = Path(source)
@@ -2586,6 +2639,8 @@ def render_preprocessed_video(source, output_path, speed=1.0, blur_config=None):
         filter_complex += f";[0:a]{build_atempo_filter(speed)}[a]"
         maps.append("[a]")
         audio_args = ["-c:a", "aac", "-b:a", "192k"]
+    video_encode_args = ffmpeg_video_encode_args()
+    logger.info("FFmpeg video encoder: " + " ".join(video_encode_args))
     command = [
         "ffmpeg",
         "-y",
@@ -2593,9 +2648,7 @@ def render_preprocessed_video(source, output_path, speed=1.0, blur_config=None):
         "-filter_complex",
         filter_complex,
         *sum((["-map", item] for item in maps), []),
-        "-c:v", "libx264",
-        "-preset", "veryfast",
-        "-crf", "18",
+        *video_encode_args,
         *audio_args,
         "-movflags", "+faststart",
         str(temp_path),
@@ -2623,7 +2676,7 @@ def render_preprocessed_video(source, output_path, speed=1.0, blur_config=None):
 def render_speed_adjusted_video(source, output_path, speed):
     return render_preprocessed_video(source, output_path, speed=speed)
 
-def ensure_video_track_in_draft(draft_path, video_path, speed=1.0, volume=1.0, blur_config=None):
+def ensure_video_track_in_draft(draft_path, video_path, speed=1.0, volume=1.0, blur_config=None, wait_if_exporting=None):
     root = Path(draft_path)
     source = Path(video_path)
     if not source.exists() or not source.is_file():
@@ -2650,6 +2703,9 @@ def ensure_video_track_in_draft(draft_path, video_path, speed=1.0, volume=1.0, b
     asset_path = asset_dir / material_name
     if abs(speed - 1.0) > 0.0001 or blur_enabled:
         if not asset_path.exists() or asset_path.stat().st_size <= 0:
+            # Wait for CapCut export to finish before starting heavy FFmpeg render
+            if callable(wait_if_exporting):
+                wait_if_exporting()
             logger.info(f"Đang render video đã làm chậm thật bằng ffmpeg: speed={speed}, output={asset_path}")
             render_preprocessed_video(source, asset_path, speed=speed, blur_config=blur_config)
     else:
@@ -2853,48 +2909,6 @@ def patch_audio_speed_in_json(draft_path, target_speed=1.17):
         speeds = data.get("materials", {}).get("speeds", [])
         updated_count = 0
         audio_speed_ids = set()
-
-        for track in data.get("tracks", []):
-            if track.get("type") != "audio":
-                continue
-            for seg in track.get("segments", []):
-                seg["speed"] = target_speed
-
-                target_tr = seg.get("target_timerange", {})
-                source_tr = seg.get("source_timerange", {})
-                orig_duration = source_tr.get("duration", target_tr.get("duration", 0))
-                if orig_duration:
-                    target_tr["duration"] = int(orig_duration / target_speed)
-
-                for ref in seg.get("extra_material_refs", []):
-                    audio_speed_ids.add(ref)
-                updated_count += 1
-
-        updated_speed_objs = 0
-        for speed_obj in speeds:
-            if speed_obj.get("id") in audio_speed_ids:
-                speed_obj["speed"] = target_speed
-                updated_speed_objs += 1
-
-        if updated_count:
-            with open(content_path, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=4)
-            patched_files += 1
-            total_updated += updated_count
-            logger.info(
-                f"Đã tăng tốc {updated_count} đoạn audio trong {content_path} "
-                f"(speed materials={updated_speed_objs})."
-            )
-
-    if total_updated == 0:
-        logger.warning("Không tìm thấy audio track để tăng tốc trên các file draft/timeline.")
-        return False
-
-    logger.info(f"Đã hoàn thành tăng tốc audio TTS lên {target_speed}: {total_updated} đoạn trên {patched_files} file.")
-    return True
-
-# --- Background Task Queue Thread-safe Processor ---
-
 class PipelineCancelled(RuntimeError):
     pass
 
@@ -2907,6 +2921,14 @@ class QueueRunner:
         self.pause_requested = False
         self.thread = None
         self.config = {}
+        
+        # Concurrency & double buffering additions
+        self.gui_lock = threading.Lock()
+        self.queue_lock = threading.RLock()  # RLock so save_cache() can be called inside locked sections
+        self.is_gui_exporting = False
+        self.preprocess_thread = None
+        self.gui_thread = None
+        
         self.load_cache()
 
     def _check_cancel(self, item):
@@ -2921,8 +2943,41 @@ class QueueRunner:
             cached_queue = data.get("queue", [])
             if isinstance(cached_queue, list):
                 self.queue = cached_queue
+                
+                # Dynamic buffer owners tracking to resolve conflicts on load
+                buffer_owners = {"00000000000": None, "111111111111111111": None}
                 for item in self.queue:
-                    if item.get("status") == "running":
+                    # If item is success, it doesn't need a buffer anymore
+                    if item.get("status") == "success":
+                        item["draft_id"] = None
+                        item["project_folder"] = None
+                        continue
+                        
+                    buf = item.get("draft_id")
+                    if buf:
+                        if buf in buffer_owners:
+                            if buffer_owners[buf] is None:
+                                # This item owns the buffer successfully
+                                buffer_owners[buf] = item
+                            else:
+                                # Duplicate claim! Clear subsequent duplicate's buffer so it doesn't corrupt files
+                                logger.warning(f"Phát hiện trùng lặp buffer {buf} ở item {item.get('video') or item.get('draft_id')}. Reset buffer.")
+                                item["draft_id"] = None
+                                item["project_folder"] = None
+                                item["resume_from_step"] = 1
+                                if item.get("status") in ("preprocessing", "ready_for_capcut", "gui_processing"):
+                                    item["status"] = "failed"
+                                    item["message"] = "Trùng lặp buffer với item khác. Đã reset về Bước 1."
+                        else:
+                            # Invalid buffer format, clear it
+                            item["draft_id"] = None
+                            item["project_folder"] = None
+                            item["resume_from_step"] = 1
+                            if item.get("status") in ("preprocessing", "ready_for_capcut", "gui_processing"):
+                                item["status"] = "failed"
+                                item["message"] = "Định dạng buffer không hợp lệ. Đã reset."
+
+                    if item.get("status") in ("running", "preprocessing", "gui_processing"):
                         item["status"] = "failed"
                         item["message"] = "Lỗi: Pipeline bị gián đoạn khi server/máy tính tắt. Bấm Thử lại nếu muốn chạy lại mục này."
                     item.pop("cancel_requested", None)
@@ -2934,63 +2989,93 @@ class QueueRunner:
             logger.warning(f"Không thể đọc queue cache: {str(e)}")
 
     def save_cache(self):
-        try:
-            payload = {
-                "queue": self.queue,
-                "config": self.config,
-                "saved_at": int(time.time()),
-            }
-            tmp_path = QUEUE_CACHE_PATH.with_suffix(".json.tmp")
-            tmp_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-            tmp_path.replace(QUEUE_CACHE_PATH)
-        except Exception as e:
-            logger.warning(f"Không thể lưu queue cache: {str(e)}")
+        """Persist queue state to disk. Thread-safe: acquires queue_lock (RLock, reentrant)."""
+        with self.queue_lock:
+            try:
+                payload = {
+                    "queue": self.queue,
+                    "config": self.config,
+                    "saved_at": int(time.time()),
+                }
+                tmp_path = QUEUE_CACHE_PATH.with_suffix(".json.tmp")
+                tmp_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+                tmp_path.replace(QUEUE_CACHE_PATH)
+            except Exception as e:
+                logger.warning(f"Không thể lưu queue cache: {str(e)}")
+
+    def _get_buffer_owners(self):
+        owners = {"00000000000": None, "111111111111111111": None}
+        with self.queue_lock:
+            for item in self.queue:
+                buf = item.get("draft_id")
+                if buf in owners and item.get("status") != "success":
+                    owners[buf] = item
+        return owners
 
     def repair_runtime_state(self):
-        thread_alive = bool(self.thread and self.thread.is_alive())
-        invalid_running_state = (
-            self.is_processing
-            and not thread_alive
-        )
-        invalid_index_state = (
-            self.is_processing
-            and self.current_index < 0
-            and not thread_alive
-            and not any(item.get("status") == "running" for item in self.queue)
-        )
-        if not (invalid_running_state or invalid_index_state):
-            return False
-
-        logger.warning(
-            "Phát hiện trạng thái pipeline bị kẹt "
-            f"(is_processing={self.is_processing}, current_index={self.current_index}, "
-            f"thread_alive={thread_alive}). Tự reset runtime state."
-        )
-        self.is_processing = False
-        self.is_paused = False
-        self.pause_requested = False
-        self.current_index = -1
+        pp_alive = bool(self.preprocess_thread and self.preprocess_thread.is_alive())
+        gui_alive = bool(self.gui_thread and self.gui_thread.is_alive())
+        thread_alive = pp_alive or gui_alive
+        
         changed = False
-        for item in self.queue:
-            if item.get("status") == "running":
-                item["status"] = "failed"
-                item["message"] = "Lỗi: Pipeline bị gián đoạn. Bấm Chạy/Thử lại để chạy lại từ bước 1."
-                changed = True
+        if self.is_processing and not thread_alive:
+            logger.warning(
+                "Phát hiện is_processing=True nhưng các luồng background đã dừng. Reset is_processing."
+            )
+            self.is_processing = False
+            self.is_paused = False
+            self.pause_requested = False
+            self.current_index = -1
+            changed = True
+
+        if not thread_alive:
+            for item in self.queue:
+                if item.get("status") in ("running", "preprocessing", "gui_processing"):
+                    logger.warning(f"Reset trạng thái kẹt của item {item.get('video') or item.get('draft_id')} thành failed.")
+                    item["status"] = "failed"
+                    item["message"] = "Lỗi: Tiến trình bị gián đoạn. Vui lòng bấm Thử lại."
+                    changed = True
+        
         if changed:
             self.save_cache()
-        return True
+        return changed
 
     def get_state(self):
         self.repair_runtime_state()
         if not self.is_processing:
             changed = False
             for item in self.queue:
-                if item.get("status") == "running":
+                if item.get("status") in ("running", "preprocessing", "gui_processing"):
                     item["status"] = "failed"
                     item["message"] = "Lỗi: Pipeline đã dừng khi mục này đang chạy. Bấm Thử lại để chạy lại."
                     changed = True
             if changed:
                 self.save_cache()
+                
+        owners = self._get_buffer_owners()
+        buffer_status = {}
+        for buf, item in owners.items():
+            if item:
+                buffer_status[buf] = {
+                    "occupied": True,
+                    "owner_video": os.path.basename(item.get("video") or "project"),
+                    "owner_status": item.get("status")
+                }
+            else:
+                buffer_status[buf] = {
+                    "occupied": False,
+                    "owner_video": "",
+                    "owner_status": "free"
+                }
+
+        pp_alive = bool(self.preprocess_thread and self.preprocess_thread.is_alive())
+        gui_alive = bool(self.gui_thread and self.gui_thread.is_alive())
+        
+        workers = {
+            "preprocess": "active" if pp_alive else "inactive",
+            "gui": "active" if gui_alive else "inactive"
+        }
+        
         return {
             "queue": self.queue,
             "is_processing": self.is_processing,
@@ -2998,6 +3083,8 @@ class QueueRunner:
             "pause_requested": self.pause_requested,
             "current_index": self.current_index,
             "auto_shutdown": bool(self.config.get("auto_shutdown", False)),
+            "buffer_status": buffer_status,
+            "workers": workers,
         }
 
     def reset_item_for_fresh_run(self, item, message=None):
@@ -3037,10 +3124,10 @@ class QueueRunner:
             if restart_all:
                 self.reset_item_for_fresh_run(item)
                 continue
-            if item.get("status") == "running":
+            if item.get("status") in ("running", "preprocessing", "gui_processing"):
                 item["status"] = "failed"
                 item["message"] = "Lỗi: Pipeline bị gián đoạn trước đó. Bấm Thử lại nếu muốn chạy lại mục này."
-            elif item.get("status") == "pending":
+            elif item.get("status") in ("pending", "ready_for_capcut"):
                 item["progress"] = int(item.get("progress", 0) or 0)
                 item.setdefault("message", "Đang chờ...")
                 item["resume_from_step"] = int(item.get("resume_from_step", 1) or 1)
@@ -3059,8 +3146,14 @@ class QueueRunner:
         self.is_paused = False
         self.is_processing = True
         self.save_cache()
-        self.thread = threading.Thread(target=self._run_loop, daemon=True)
-        self.thread.start()
+        
+        self.preprocess_thread = threading.Thread(target=self._preprocess_loop, daemon=True)
+        self.preprocess_thread.start()
+        
+        self.gui_thread = threading.Thread(target=self._gui_loop, daemon=True)
+        self.gui_thread.start()
+        
+        self.thread = self.preprocess_thread
 
     def pause(self):
         self.repair_runtime_state()
@@ -3076,7 +3169,7 @@ class QueueRunner:
         item = self.queue[idx]
         item["cancel_requested"] = True
         video = item.get("video")
-        was_running = item.get("status") == "running" or idx == self.current_index
+        was_running = item.get("status") in ("running", "preprocessing", "gui_processing") or idx == self.current_index
         self.queue.pop(idx)
         if was_running:
             logger.info(f"Đã hủy và xóa item đang chạy khỏi hàng chờ: {video}")
@@ -3099,14 +3192,30 @@ class QueueRunner:
             if "auto_shutdown" in config:
                 self.config["auto_shutdown"] = bool(config.get("auto_shutdown"))
             self.save_cache()
-        has_resumable = any(item.get("status") in ("paused", "pending") for item in self.queue)
+            
+        for item in self.queue:
+            if item.get("status") == "failed" and item.get("resume_from_step"):
+                resume_step = int(item.get("resume_from_step", 1) or 1)
+                if resume_step < 5:
+                    item["status"] = "pending"
+                else:
+                    item["status"] = "ready_for_capcut"
+                item["message"] = f"Chuẩn bị tiếp tục từ Bước {resume_step}..."
+                
+        has_resumable = any(item.get("status") in ("paused", "pending", "ready_for_capcut") for item in self.queue)
         if not has_resumable:
             return
         self.pause_requested = False
         self.is_paused = False
         self.is_processing = True
-        self.thread = threading.Thread(target=self._run_loop, daemon=True)
-        self.thread.start()
+        
+        self.preprocess_thread = threading.Thread(target=self._preprocess_loop, daemon=True)
+        self.preprocess_thread.start()
+        
+        self.gui_thread = threading.Thread(target=self._gui_loop, daemon=True)
+        self.gui_thread.start()
+        
+        self.thread = self.preprocess_thread
 
     def set_auto_shutdown(self, enabled):
         self.config["auto_shutdown"] = bool(enabled)
@@ -3141,143 +3250,313 @@ class QueueRunner:
             message=f"Tạm dừng. Tiếp tục sẽ chạy từ Bước {next_step}."
         )
 
-    def _run_loop(self):
+    def _all_jobs_done(self):
+        with self.queue_lock:
+            for item in self.queue:
+                if item.get("status") in ("pending", "preprocessing", "ready_for_capcut", "gui_processing", "paused"):
+                    return False
+        return True
 
-        uia_initializer = None
+    def _restore_original_folders(self):
+        restored = set()
+        for item in self.queue:
+            orig = item.get("original_project_folder")
+            if orig and orig not in restored:
+                backup_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, f"{orig}_backup")
+                orig_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, orig)
+                if os.path.exists(backup_path):
+                    logger.info(f"Đang hoàn trả dự án gốc {orig} từ backup...")
+                    try:
+                        if os.path.exists(orig_path):
+                            shutil.rmtree(orig_path)
+                        shutil.copytree(backup_path, orig_path)
+                        shutil.rmtree(backup_path)
+                        restored.add(orig)
+                    except Exception as e:
+                        logger.error(f"Lỗi khi hoàn trả dự án gốc {orig}: {e}")
 
+    def _prepare_draft_files(self, item):
+        original_folder = item.get("original_project_folder")
+        if not original_folder:
+            return
+        
+        backup_name = f"{original_folder}_backup"
+        backup_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, backup_name)
+        target_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, item.get("draft_id"))
+        
+        if os.path.exists(backup_path):
+            logger.info(f"Khôi phục dự án từ backup {backup_name} sang buffer {item.get('draft_id')}...")
+            try:
+                if os.path.exists(target_path):
+                    try:
+                        shutil.rmtree(target_path)
+                    except Exception:
+                        for root, dirs, files in os.walk(target_path):
+                            for file in files:
+                                try:
+                                    os.unlink(os.path.join(root, file))
+                                except Exception:
+                                    pass
+                
+                if not os.path.exists(target_path):
+                    shutil.copytree(backup_path, target_path)
+                else:
+                    for root, dirs, files in os.walk(backup_path):
+                        rel_path = os.path.relpath(root, backup_path)
+                        target_dir = target_path if rel_path == "." else os.path.join(target_path, rel_path)
+                        os.makedirs(target_dir, exist_ok=True)
+                        for file in files:
+                            shutil.copy2(os.path.join(root, file), os.path.join(target_dir, file))
+            except Exception as e:
+                logger.error(f"Lỗi khi copy backup sang buffer {target_path}: {e}")
+
+    def _check_all_done_and_shutdown(self):
+        if self._all_jobs_done():
+            self.is_processing = False
+            self.current_index = -1
+            try:
+                self._restore_original_folders()
+            except Exception as e:
+                logger.error(f"Failed to restore original folders: {e}")
+            self.save_cache()
+            if self.config.get("auto_shutdown"):
+                logger.info("Tất cả video trong hàng chờ đã xử lý xong. Hệ thống sẽ tự động tắt máy sau 10 giây (lệnh: shutdown /s /f /t 10)...")
+                subprocess.run(["shutdown.exe", "/s", "/f", "/t", "10"])
+
+    def _wait_if_exporting(self):
+        if not config_bool(self.config.get("pause_preprocess_during_export", False), False):
+            return
+        while self.is_gui_exporting and self.is_processing:
+            logger.info("Worker CapCut GUI đang export. Preprocess worker tạm ngủ để nhường tài nguyên...")
+            time.sleep(3)
+
+    def _preprocess_loop(self):
         com_initialized = False
-
         try:
-
-            uia_initializer = auto.UIAutomationInitializerInThread()
-
-            uia_initializer.__enter__()
-
-            logger.info("Đã khởi tạo UIAutomation cho thread pipeline.")
-
-        except Exception as init_error:
-
             import ctypes
-
-            logger.warning(f"UIAutomationInitializerInThread thất bại, fallback CoInitialize: {init_error}")
-
             ctypes.windll.ole32.CoInitialize(None)
-
             com_initialized = True
-        logger.info("Bắt đầu xử lý hàng chờ video...")
-        try:
-            while True:
-                if self.pause_requested:
-                    self.is_paused = True
-                    logger.info("Đã tạm dừng hàng chờ video.")
-                    break
+        except Exception as e:
+            logger.warning(f"CoInitialize in preprocess thread failed: {e}")
 
-                # Find the first paused or pending item
-                pending_item = None
-                pending_idx = -1
+        logger.info("Worker 1 (Preprocess) đã bắt đầu...")
+        
+        while self.is_processing:
+            if self.pause_requested:
+                break
+                
+            pending_item = None
+            pending_idx = -1
+            with self.queue_lock:
                 for i, item in enumerate(self.queue):
-                    if item["status"] in ("paused", "pending"):
+                    if item.get("status") == "pending" or (item.get("status") == "paused" and int(item.get("resume_from_step", 1) or 1) < 5):
                         pending_item = item
                         pending_idx = i
                         break
-
-                if pending_item is None:
-                    if self.config.get("auto_shutdown"):
-                        logger.info("Tất cả video trong hàng chờ đã xử lý xong. Hệ thống sẽ tự động tắt máy sau 10 giây (lệnh: shutdown /s /f /t 10)...")
-                        result = subprocess.run(
-                            ["shutdown.exe", "/s", "/f", "/t", "10"],
-                            capture_output=True,
-                            text=True,
-                            errors="replace",
-                        )
-                        if result.returncode == 0:
-                            logger.info("Đã gửi lệnh shutdown thành công cho Windows.")
-                        else:
-                            logger.error(
-                                f"Lệnh shutdown thất bại, code={result.returncode}: "
-                                f"{(result.stderr or result.stdout or '').strip()}"
-                            )
-                    else:
-                        logger.info("Tất cả video trong hàng chờ đã xử lý xong. Không tắt máy vì người dùng không bật tùy chọn tự tắt.")
+                        
+            if pending_item is None:
+                time.sleep(2)
+                if self._all_jobs_done():
                     break
-
-                self.current_index = pending_idx
-                pending_item["status"] = "running"
-                pending_item["progress"] = max(5, int(pending_item.get("progress", 0) or 0))
-                resume_from_step = int(pending_item.get("resume_from_step", 1) or 1)
-                pending_item["message"] = (
-                    f"Đang tiếp tục từ Bước {resume_from_step}..."
-                    if resume_from_step > 1
-                    else "Đang xử lý..."
-                )
-                self.save_cache()
-
-                try:
-                    self._process_item(pending_item)
-                    if pending_item.get("cancel_requested"):
-                        logger.info(f"Dự án '{pending_item.get('video')}' đã bị hủy, bỏ qua cập nhật trạng thái hoàn thành.")
-                    else:
-                        pending_item["status"] = "success"
-                        pending_item["progress"] = 100
-                        pending_item["message"] = "Hoàn thành!"
-                        pending_item["resume_from_step"] = None
-                        self.save_cache()
-                except PipelineCancelled:
-                    logger.info(f"Dự án '{pending_item.get('video')}' đã bị hủy, chuyển sang item kế tiếp.")
-                    kill_capcut()
+                continue
+                
+            assigned_buffer = None
+            if pending_item.get("draft_id") and pending_item.get("status") == "paused":
+                # Resuming from a paused step, reuse its already claimed buffer if valid
+                assigned_buffer = pending_item["draft_id"]
+                with self.queue_lock:
+                    pending_item["status"] = "preprocessing"
+                    pending_item["progress"] = max(5, int(pending_item.get("progress", 0) or 0))
+                    pending_item["message"] = "Đang chuẩn bị (Preprocess)..."
                     self.save_cache()
+            else:
+                while self.is_processing and not self.pause_requested:
+                    with self.queue_lock:
+                        owners = {"00000000000": None, "111111111111111111": None}
+                        for item in self.queue:
+                            buf = item.get("draft_id")
+                            if buf in owners and item.get("status") != "success" and item != pending_item:
+                                owners[buf] = item
+                        
+                        free_buffers = [buf for buf, owner in owners.items() if owner is None]
+                        if free_buffers:
+                            assigned_buffer = free_buffers[0]
+                        else:
+                            # No free buffers, try to steal from the oldest failed item
+                            failed_owners = [(buf, owner) for buf, owner in owners.items() if owner and owner.get("status") == "failed"]
+                            if failed_owners:
+                                # Steal buffer
+                                assigned_buffer, owner_to_steal = failed_owners[0]
+                                logger.info(
+                                    f"Giải phóng buffer {assigned_buffer} từ item lỗi '{owner_to_steal.get('video')}' "
+                                    f"để cấp phát cho '{pending_item.get('video')}'..."
+                                )
+                                owner_to_steal["draft_id"] = None
+                                owner_to_steal["project_folder"] = None
+                                owner_to_steal["resume_from_step"] = 1
+                                owner_to_steal["message"] = "Đã giải phóng buffer cho tiến trình mới. Cần chạy lại từ bước 1."
+                        
+                        if assigned_buffer:
+                            pending_item["draft_id"] = assigned_buffer
+                            pending_item["project_folder"] = assigned_buffer
+                            pending_item["status"] = "preprocessing"
+                            pending_item["progress"] = max(5, int(pending_item.get("progress", 0) or 0))
+                            pending_item["message"] = "Đang chuẩn bị (Preprocess)..."
+                            self.save_cache()
+                            break
+                    time.sleep(3)
+                    
+            if not self.is_processing or self.pause_requested:
+                break
+                
+            try:
+                self._preprocess_item(pending_item)
+                if pending_item.get("status") == "paused":
                     continue
-                except RuntimeError as e:
-                    if str(e) == "__PIPELINE_PAUSED__":
-                        logger.info(f"Đã tạm dừng dự án '{pending_item.get('video')}' tại checkpoint an toàn.")
-                        break
-                    if pending_item.get("cancel_requested"):
-                        logger.info(f"Dự án '{pending_item.get('video')}' đã bị hủy.")
+                elif pending_item.get("cancel_requested"):
+                    logger.info(f"Preprocess video '{pending_item.get('video')}' đã bị hủy.")
+                else:
+                    with self.queue_lock:
+                        pending_item["status"] = "ready_for_capcut"
+                        pending_item["progress"] = 70
+                        pending_item["message"] = "Đã tiền xử lý xong, chờ chạy CapCut GUI..."
+                        pending_item["resume_from_step"] = 5
                         self.save_cache()
-                        continue
-                    logger.error(f"Lỗi khi tự động hóa video '{pending_item['video']}': {str(e)}")
+            except PipelineCancelled:
+                logger.info(f"Preprocess video '{pending_item.get('video')}' đã bị hủy.")
+                with self.queue_lock:
                     pending_item["status"] = "failed"
-                    pending_item["message"] = f"Lỗi: {str(e)}"
+                    pending_item["message"] = "Hủy bỏ."
                     self.save_cache()
-                except Exception as e:
-                    if pending_item.get("cancel_requested"):
-                        logger.info(f"Dự án '{pending_item.get('video')}' đã bị hủy.")
-                        self.save_cache()
-                        continue
-                    logger.error(f"Lỗi khi tự động hóa video '{pending_item['video']}': {str(e)}")
+            except RuntimeError as e:
+                if str(e) == "__PIPELINE_PAUSED__":
+                    logger.info(f"Đã tạm dừng preprocess dự án '{pending_item.get('video')}' tại checkpoint.")
+                    continue
+                logger.error(f"Lỗi preprocess video '{pending_item['video']}': {str(e)}")
+                with self.queue_lock:
                     pending_item["status"] = "failed"
-                    pending_item["message"] = f"Lỗi: {str(e)}"
+                    pending_item["message"] = f"Lỗi Preprocess: {str(e)}"
                     self.save_cache()
-                except BaseException as e:
-                    logger.exception(f"Lỗi nghiêm trọng ngoài Exception khi tự động hóa video '{pending_item.get('video')}': {e}")
+            except Exception as e:
+                logger.error(f"Lỗi preprocess video '{pending_item['video']}': {str(e)}")
+                with self.queue_lock:
                     pending_item["status"] = "failed"
-                    pending_item["message"] = f"Lỗi nghiêm trọng: {type(e).__name__}: {e}"
+                    pending_item["message"] = f"Lỗi Preprocess: {str(e)}"
                     self.save_cache()
-        finally:
-            self.is_processing = False
-            self.current_index = -1
-            self.save_cache()
-            if uia_initializer is not None:
-                try:
-                    uia_initializer.__exit__(None, None, None)
-                except Exception as exit_error:
-                    logger.warning(f"Không giải phóng được UIAutomation initializer: {exit_error}")
-            elif com_initialized:
-                import ctypes
-                ctypes.windll.ole32.CoUninitialize()
-            logger.info("Quá trình chạy hàng chờ hoàn tất.")
+                    
+        if com_initialized:
+            import ctypes
+            ctypes.windll.ole32.CoUninitialize()
+        logger.info("Worker 1 (Preprocess) đã dừng.")
+        self._check_all_done_and_shutdown()
 
-    def _process_item(self, item):
+    def _gui_loop(self):
+        uia_initializer = None
+        com_initialized = False
+        try:
+            uia_initializer = auto.UIAutomationInitializerInThread()
+            uia_initializer.__enter__()
+            logger.info("Worker 2 (GUI) đã khởi tạo UIAutomation.")
+        except Exception as init_error:
+            import ctypes
+            logger.warning(f"UIAutomationInitializerInThread in GUI worker failed, fallback CoInitialize: {init_error}")
+            ctypes.windll.ole32.CoInitialize(None)
+            com_initialized = True
+
+        logger.info("Worker 2 (CapCut GUI) đã bắt đầu...")
+        
+        while self.is_processing:
+            if self.pause_requested:
+                break
+                
+            gui_item = None
+            gui_idx = -1
+            with self.queue_lock:
+                for i, item in enumerate(self.queue):
+                    if item.get("status") == "ready_for_capcut" or (item.get("status") == "paused" and int(item.get("resume_from_step", 1) or 1) >= 5):
+                        gui_item = item
+                        gui_idx = i
+                        break
+                        
+            if gui_item is None:
+                time.sleep(2)
+                if self._all_jobs_done():
+                    break
+                continue
+                
+            self.current_index = gui_idx
+            with self.queue_lock:
+                gui_item["status"] = "gui_processing"
+                gui_item["progress"] = max(72, int(gui_item.get("progress", 0) or 0))
+                gui_item["message"] = "Đang chạy CapCut GUI (TTS & Export)..."
+                self.save_cache()
+                
+            try:
+                with self.gui_lock:
+                    self._gui_process_item(gui_item)
+                    
+                if gui_item.get("status") == "paused":
+                    continue
+                elif gui_item.get("cancel_requested"):
+                    logger.info(f"CapCut GUI video '{gui_item.get('video')}' đã bị hủy.")
+                else:
+                    with self.queue_lock:
+                        gui_item["status"] = "success"
+                        gui_item["progress"] = 100
+                        gui_item["message"] = "Hoàn thành!"
+                        gui_item["resume_from_step"] = None
+                        gui_item["draft_id"] = None
+                        gui_item["project_folder"] = None
+                        self.save_cache()
+            except PipelineCancelled:
+                logger.info(f"CapCut GUI video '{gui_item.get('video')}' đã bị hủy.")
+                kill_capcut()
+                with self.queue_lock:
+                    gui_item["status"] = "failed"
+                    gui_item["message"] = "Hủy bỏ."
+                    self.save_cache()
+            except RuntimeError as e:
+                if str(e) == "__PIPELINE_PAUSED__":
+                    logger.info(f"Đã tạm dừng GUI dự án '{gui_item.get('video')}' tại checkpoint.")
+                    continue
+                logger.error(f"Lỗi CapCut GUI video '{gui_item['video']}': {str(e)}")
+                kill_capcut()
+                with self.queue_lock:
+                    gui_item["status"] = "failed"
+                    gui_item["message"] = f"Lỗi GUI: {str(e)}"
+                    self.save_cache()
+            except Exception as e:
+                logger.error(f"Lỗi CapCut GUI video '{gui_item['video']}': {str(e)}")
+                kill_capcut()
+                with self.queue_lock:
+                    gui_item["status"] = "failed"
+                    gui_item["message"] = f"Lỗi GUI: {str(e)}"
+                    self.save_cache()
+                    
+        if uia_initializer is not None:
+            try:
+                uia_initializer.__exit__(None, None, None)
+            except Exception as exit_error:
+                logger.warning(f"Failed to exit UIAutomation initializer: {exit_error}")
+        elif com_initialized:
+            import ctypes
+            ctypes.windll.ole32.CoUninitialize()
+            
+        logger.info("Worker 2 (CapCut GUI) đã dừng.")
+        self._check_all_done_and_shutdown()
+
+    def _preprocess_item(self, item):
         is_existing_project = item.get("type") == "project"
+        if is_existing_project:
+            self._prepare_draft_files(item)
+            
         draft_id = item.get("draft_id")
         resume_from_step = int(item.get("resume_from_step", 1) or 1)
 
-        # Determine config for this item (either item-specific or runner global config)
         item_config = apply_global_settings_to_config(item.get("config") or self.config or {})
 
         speed = float(item_config.get("speed", 0.77))
         volume_db = float(item_config.get("volume_db", -15.5))
-        tts_speed = float(item_config.get("tts_speed", 1.17))
         font_size = float(item_config.get("font_size", 5.0))
         font_color_hex = item_config.get("font_color", DEFAULT_SUBTITLE_COLOR_HEX)
         font_name = item_config.get("font_name", DEFAULT_SUBTITLE_FONT_PATH)
@@ -3303,7 +3582,6 @@ class QueueRunner:
                     f"Candidates đã thử: {configured_candidates or missing_candidates}"
                 )
 
-        # Convert hex color to RGB normalized float tuple (R, G, B)
         try:
             hex_val = font_color_hex.lstrip('#')
             r = int(hex_val[0:2], 16) / 255.0
@@ -3316,9 +3594,7 @@ class QueueRunner:
         if resume_from_step <= 1 and is_existing_project:
             self._check_cancel(item)
             logger.info(f"=== BẮT ĐẦU AUTOMATION CHO DỰ ÁN CÓ SẴN: {video_name} ({draft_id}) ===")
-            clean_name = "".join([c if c.isalnum() else "_" for c in video_name])
 
-            # Step 1 is skipped
             item["progress"] = 15
             item["message"] = "Bước 1: Bỏ qua (Dự án đã tồn tại)..."
             time.sleep(1)
@@ -3329,7 +3605,6 @@ class QueueRunner:
             video_path = item["video"]
             logger.info(f"=== BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: {video_path} ===")
 
-            # Step 1: Run background pipeline to load video
             item["progress"] = 10
             item["message"] = "Bước 1: Khởi tạo dự án & load video..."
 
@@ -3344,26 +3619,30 @@ class QueueRunner:
             logger.info(f"Chạy pipeline ngầm để tạo draft '{draft_id}'...")
             draft_full_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, draft_id)
             pipeline_font_name = normalize_draft_font_name(font_name)
-            run_pipeline_with_file_lock_retry(
-                run_pipeline,
-                draft_full_path,
-                video=Path(video_path),
-                capcut_drafts=Path(DEFAULT_CAPCUT_DRAFTS),
-                srt=None,
-                width=int(item_config.get("width", 1080)),
-                height=int(item_config.get("height", 1920)),
-                speed=speed,
-                clip_seconds=None, # Process FULL video
-                font=pipeline_font_name,
-                font_size=font_size,
-                copy_to_capcut=True,
-                draft_id=draft_id,
-                volume=1.0,
-                preserve_blur_effect=False,
-            )
+            
+            self._wait_if_exporting()
+
+            logger.info("Preprocess Step 1 needs CapCut file access; waiting for GUI lock before save-draft patch...")
+            with self.gui_lock:
+                run_pipeline_with_file_lock_retry(
+                    run_pipeline,
+                    draft_full_path,
+                    video=Path(video_path),
+                    capcut_drafts=Path(DEFAULT_CAPCUT_DRAFTS),
+                    srt=None,
+                    width=int(item_config.get("width", 1080)),
+                    height=int(item_config.get("height", 1920)),
+                    speed=speed,
+                    clip_seconds=None,
+                    font=pipeline_font_name,
+                    font_size=font_size,
+                    copy_to_capcut=True,
+                    draft_id=draft_id,
+                    volume=1.0,
+                    preserve_blur_effect=False,
+                )
             self._check_cancel(item)
 
-            # Save pipeline_config.json inside the newly created project folder
             try:
                 new_project_folder = os.path.join(DEFAULT_CAPCUT_DRAFTS, draft_id)
                 os.makedirs(new_project_folder, exist_ok=True)
@@ -3382,6 +3661,7 @@ class QueueRunner:
             blur_enabled = config_bool(item_config.get("hardsub_blur_enabled", True), True)
             blur_auto = config_bool(item_config.get("hardsub_blur_auto", True), True)
             if blur_enabled and blur_auto:
+                self._wait_if_exporting()
                 blur_config = detect_hardsub_blur_config(
                     video_source_for_patch,
                     sample_count=int(item_config.get("hardsub_blur_samples", 10)),
@@ -3404,7 +3684,9 @@ class QueueRunner:
                 speed=speed,
                 volume=1.0,
                 blur_config=blur_config,
+                wait_if_exporting=lambda: self._wait_if_exporting(),
             )
+
         project_opened_this_run = False
         if resume_from_step <= 2:
             self._check_cancel(item)
@@ -3416,11 +3698,31 @@ class QueueRunner:
                 else "Bước 2: Mở dự án trong CapCut..."
             )
             try:
+                # Auto-detect canvas ratio from source video if available
+                canvas_ratio = item_config.get("canvas_ratio")
+                canvas_width = item_config.get("canvas_width")
+                canvas_height = item_config.get("canvas_height")
+                _src_video = item_config.get("video_path") or (item.get("video") if item.get("video") and Path(str(item.get("video"))).is_file() else None)
+                if _src_video and not (canvas_ratio and canvas_width and canvas_height):
+                    try:
+                        _meta = probe_video_metadata(_src_video)
+                        _vw = int(_meta.get("width", 0))
+                        _vh = int(_meta.get("height", 0))
+                        if _vw > 0 and _vh > 0:
+                            from math import gcd
+                            _g = gcd(_vw, _vh)
+                            _rw, _rh = _vw // _g, _vh // _g
+                            canvas_ratio = canvas_ratio or f"{_rw}:{_rh}"
+                            canvas_width = canvas_width or _vw
+                            canvas_height = canvas_height or _vh
+                            logger.info(f"Auto-detect canvas t\u1eeb video g\u1ed1c: {_vw}x{_vh} -> ratio={canvas_ratio}")
+                    except Exception as _e:
+                        logger.warning(f"Kh\u00f4ng th\u1ec3 auto-detect canvas t\u1eeb video: {_e}")
                 patch_canvas_config_in_json(
                     draft_full_path,
-                    ratio=item_config.get("canvas_ratio", "16:9"),
-                    width=int(item_config.get("canvas_width", 1920)),
-                    height=int(item_config.get("canvas_height", 1080)),
+                    ratio=canvas_ratio or "16:9",
+                    width=int(canvas_width or 1920),
+                    height=int(canvas_height or 1080),
                 )
                 patch_video_mirror_in_json(
                     draft_full_path,
@@ -3434,29 +3736,23 @@ class QueueRunner:
             if prefer_local_whisper:
                 logger.info("Dùng local Whisper nên chưa mở CapCut ở bước 2. Sẽ mở sau khi dịch/patch xong.")
             else:
-                controller = launch_capcut()
-                open_project_in_gui(controller, draft_id)
-                self._check_cancel(item)
-                project_opened_this_run = True
+                # Non-Whisper path: preprocess worker MUST acquire gui_lock to block gui_thread
+                # so that Auto Captions & GUI steps run sequentially, never in parallel.
+                logger.info("Chế độ Auto Captions (không dùng Whisper): chờ để gui_lock trước khi mở CapCut...")
+                with self.gui_lock:
+                    controller = launch_capcut(cancel_check=lambda: self._check_cancel(item))
+                    open_project_in_gui(controller, draft_id, cancel_check=lambda: self._check_cancel(item))
+                    self._check_cancel(item)
+                    project_opened_this_run = True
+                    self._preprocess_steps_3_4_gui(item, draft_full_path, item_config, font_name, font_size, font_color_hex, font_color_rgb, volume_db, controller)
+                    return
             item["resume_from_step"] = 3
             self._checkpoint_pause(item, next_step=3, progress=30)
 
         if resume_from_step <= 3:
             self._check_cancel(item)
             item["progress"] = 45
-            use_local_whisper = should_use_local_whisper(item_config)
-            local_whisper_video = item.get("video")
-            if use_local_whisper and not (local_whisper_video and Path(str(local_whisper_video)).is_file()):
-                logger.warning(
-                    f"Không có file video thật để chạy local Whisper ({local_whisper_video}). "
-                    "Fallback sang Auto Captions bằng CapCut."
-                )
-                use_local_whisper = False
-            item["message"] = (
-                "Bước 3: Đang tạo phụ đề bằng local Whisper GPU..."
-                if use_local_whisper
-                else "Bước 3: Đang tự động tạo phụ đề (Auto Captions)..."
-            )
+            item["message"] = "Bước 3: Đang tạo phụ đề bằng local Whisper GPU..."
             existing_subtitles = count_subtitle_text_items_in_json(draft_full_path)
             if existing_subtitles["total"] > 0:
                 logger.info(
@@ -3464,26 +3760,35 @@ class QueueRunner:
                     f"(materials={existing_subtitles['materials']}, segments={existing_subtitles['segments']}). "
                     "Bỏ qua bước tạo phụ đề và đi tiếp."
                 )
-            elif use_local_whisper:
-                if project_opened_this_run:
-                    kill_capcut()
-                    project_opened_this_run = False
-                    time.sleep(1)
-                run_local_whisper_captions_for_draft(
-                    draft_full_path,
-                    draft_id,
-                    local_whisper_video,
-                    item_config,
-                    font_name,
-                    font_size,
-                    font_color_hex,
-                )
             else:
-                if not project_opened_this_run:
-                    controller = launch_capcut(cancel_check=lambda: self._check_cancel(item))
-                    open_project_in_gui(controller, draft_id, cancel_check=lambda: self._check_cancel(item))
-                    project_opened_this_run = True
-                run_image_workflow("rpa_auto_captions.sample.json", "Auto Captions", attempts=4, retry_delay=5)
+                try:
+                    self._wait_if_exporting()
+                    run_local_whisper_captions_for_draft(
+                        draft_full_path,
+                        draft_id,
+                        video_source_for_patch,
+                        item_config,
+                        font_name,
+                        font_size,
+                        font_color_hex,
+                    )
+                except Exception as whisper_err:
+                    fallback_enabled = config_bool(item_config.get("whisper_fallback_auto_captions", True), True)
+                    if fallback_enabled:
+                        logger.warning(
+                            f"Whisper local thất bại: {whisper_err}. "
+                            f"Đang chuyển sang chế độ fallback Auto Captions bằng CapCut GUI..."
+                        )
+                        with self.gui_lock:
+                            controller = launch_capcut(cancel_check=lambda: self._check_cancel(item))
+                            open_project_in_gui(controller, draft_id, cancel_check=lambda: self._check_cancel(item))
+                            self._preprocess_steps_3_4_gui(
+                                item, draft_full_path, item_config, font_name, font_size,
+                                font_color_hex, font_color_rgb, volume_db, controller
+                            )
+                            return
+                    else:
+                        raise whisper_err
             self._check_cancel(item)
             item["resume_from_step"] = 4
             self._checkpoint_pause(item, next_step=4, progress=50)
@@ -3492,13 +3797,7 @@ class QueueRunner:
             self._check_cancel(item)
             item["progress"] = 60
             item["message"] = "Bước 4 & 5: Đang dịch phụ đề và chỉnh âm lượng trong draft..."
-            if project_opened_this_run:
-                logger.info("Đóng CapCut để flush draft trước khi dịch/patch.")
-                kill_capcut()
-                project_opened_this_run = False
-                time.sleep(1)
-            else:
-                logger.info("CapCut chưa được mở trong luồng Whisper local, patch draft trực tiếp.")
+            logger.info("CapCut chưa được mở trong luồng Whisper local, patch draft trực tiếp.")
 
             patch_subtitles_in_json(
                 draft_full_path,
@@ -3519,26 +3818,77 @@ class QueueRunner:
                     f"Đã dừng pipeline sau bước patch theo cấu hình stop_after_patch=true. "
                     f"Draft: {draft_full_path}"
                 )
-                return
+                item["status"] = "paused"
+                item["resume_from_step"] = 5
+                self.save_cache()
+                raise RuntimeError("__PIPELINE_PAUSED__")
 
+    def _preprocess_steps_3_4_gui(self, item, draft_full_path, item_config, font_name, font_size, font_color_hex, font_color_rgb, volume_db, controller):
+        item["progress"] = 45
+        item["message"] = "Bước 3: Đang tự động tạo phụ đề (Auto Captions)..."
+        self.save_cache()
+        existing_subtitles = count_subtitle_text_items_in_json(draft_full_path)
+        if existing_subtitles["total"] == 0:
+            run_image_workflow("rpa_auto_captions.sample.json", "Auto Captions", attempts=4, retry_delay=5)
+        self._check_cancel(item)
+        
+        item["progress"] = 60
+        item["message"] = "Bước 4 & 5: Đang dịch phụ đề và chỉnh âm lượng trong draft..."
+        self.save_cache()
+        logger.info("Đóng CapCut để flush draft trước khi dịch/patch.")
+        kill_capcut()
+        time.sleep(1)
+        
+        patch_subtitles_in_json(
+            draft_full_path,
+            font_size=font_size,
+            font_color=font_color_rgb,
+            font_name=font_name,
+            item_config=item_config
+        )
+        patch_track_volume_in_json(draft_full_path, volume_db=volume_db, track_types=["video"])
+        patch_track_lock_in_json(draft_full_path, track_types=["video", "effect"], locked=True)
+        self._check_cancel(item)
+        
+        if item_config.get("stop_after_patch"):
+            item["progress"] = 70
+            item["message"] = "Đã patch bản dịch/âm lượng xong và dừng để kiểm tra draft."
+            item["stopped_after_patch"] = True
+            item["status"] = "paused"
             item["resume_from_step"] = 5
-            self._checkpoint_pause(item, next_step=5, progress=68)
+            self.save_cache()
 
+    def _gui_process_item(self, item):
+        draft_id = item.get("draft_id")
+        resume_from_step = int(item.get("resume_from_step", 5) or 5)
+        item_config = apply_global_settings_to_config(item.get("config") or self.config or {})
+        
+        tts_speed = float(item_config.get("tts_speed", 1.17))
+        video_name = os.path.basename(str(item.get("video") or draft_id or "project"))
+        draft_full_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, draft_id)
+        
+        project_opened_this_run = False
+        
         if resume_from_step <= 5:
             self._check_cancel(item)
             logger.info("Đợi 1 giây sau khi patch âm lượng trước khi mở lại CapCut...")
             time.sleep(1)
+            item["progress"] = 72
             item["message"] = "Bước 5.5: Đang mở lại dự án sau khi patch bản dịch và âm lượng..."
+            self.save_cache()
+            
             controller = launch_capcut(cancel_check=lambda: self._check_cancel(item))
             open_project_in_gui(controller, draft_id, cancel_check=lambda: self._check_cancel(item))
             project_opened_this_run = True
             item["resume_from_step"] = 6
             self._checkpoint_pause(item, next_step=6, progress=72)
-
+            
         if resume_from_step <= 6:
             self._check_cancel(item)
             item["progress"] = 75
             item["message"] = "Bước 6: Đang tạo giọng nói (TTS) cho sub trên dự án đang mở..."
+            self.save_cache()
+            
             if not project_opened_this_run:
                 controller = launch_capcut(cancel_check=lambda: self._check_cancel(item))
                 open_project_in_gui(controller, draft_id, cancel_check=lambda: self._check_cancel(item))
@@ -3552,6 +3902,7 @@ class QueueRunner:
 
             for attempt in range(1, max_tts_attempts + 1):
                 item["message"] = f"Bước 6: Đang tạo giọng nói TTS, lần {attempt}/{max_tts_attempts}..."
+                self.save_cache()
                 logger.info(f"Chạy TTS lần {attempt}/{max_tts_attempts}...")
                 if attempt == 1:
                     run_image_workflow("rpa_tts.sample.json", "Text to speech", attempts=4, retry_delay=5)
@@ -3603,6 +3954,8 @@ class QueueRunner:
             self._check_cancel(item)
             item["progress"] = 85
             item["message"] = f"Bước 7: Đang tăng tốc độ giọng đọc lên {tts_speed}..."
+            self.save_cache()
+            
             patch_audio_speed_in_json(draft_full_path, target_speed=tts_speed)
             item["resume_from_step"] = 8
             self._checkpoint_pause(item, next_step=8, progress=88)
@@ -3611,6 +3964,8 @@ class QueueRunner:
             self._check_cancel(item)
             item["progress"] = 90
             item["message"] = "Bước 8: Đang xuất video thành phẩm..."
+            self.save_cache()
+            
             export_source_video = item_config.get("video_path") or item.get("video")
             export_scan_dirs = get_export_scan_dirs(export_source_video, item_config)
             export_before_snapshot = snapshot_video_files(export_scan_dirs)
@@ -3620,7 +3975,13 @@ class QueueRunner:
             )
             controller = launch_capcut(cancel_check=lambda: self._check_cancel(item))
             open_project_in_gui(controller, draft_id, cancel_check=lambda: self._check_cancel(item))
-            run_image_workflow("rpa_export.sample.json", "Export", attempts=1, retry_delay=5)
+            
+            self.is_gui_exporting = True
+            try:
+                run_image_workflow("rpa_export.sample.json", "Export", attempts=1, retry_delay=5)
+            finally:
+                self.is_gui_exporting = False
+                
             self._check_cancel(item)
             logger.info("Đóng CapCut để nhả file export trước khi đổi tên và chuyển thư mục...")
             kill_capcut()
@@ -3968,6 +4329,18 @@ def create_project():
         logger.error(f"Failed to create project: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
+def create_project_backup(folder_name):
+    source_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, folder_name)
+    backup_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, f"{folder_name}_backup")
+    if os.path.exists(source_path):
+        logger.info(f"Tạo/Cập nhật bản sao lưu cho dự án {folder_name} tại {backup_path}...")
+        try:
+            if os.path.exists(backup_path):
+                shutil.rmtree(backup_path)
+            shutil.copytree(source_path, backup_path)
+        except Exception as e:
+            logger.error(f"Lỗi khi sao lưu dự án {folder_name}: {e}")
+
 @app.route('/api/queue/add', methods=['POST'])
 def add_to_queue():
     try:
@@ -3975,6 +4348,8 @@ def add_to_queue():
         folder = data.get("folder")
         if not folder:
             return jsonify({"error": "Folder is required"}), 400
+
+        create_project_backup(folder)
 
         folder_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, folder)
         meta_path = os.path.join(folder_path, "draft_meta_info.json")
@@ -4003,8 +4378,10 @@ def add_to_queue():
             item = {
                 "type": "project",
                 "video": video_path or name,
-                "draft_id": folder,
-                "project_folder": folder,
+                # draft_id intentionally left None — _preprocess_loop assigns Buffer A/B dynamically
+                "draft_id": None,
+                "project_folder": None,
+                "original_project_folder": folder,  # remembered so runner knows which CapCut project
                 "config": item_config,
                 "status": "pending",
                 "progress": 0,
