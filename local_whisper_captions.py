@@ -622,109 +622,10 @@ def patch_draft_with_local_whisper(
     if not segments:
         raise RuntimeError("Whisper không tạo ra dòng phụ đề nào.")
 
-    raw_segments = segments
-    merged_segments = raw_segments
-
-
-    duration = max((float(segment.get("end", 0) or 0) for segment in raw_segments), default=0.0)
-    all_raw_segments = raw_whisper_output.get("all_raw_segments") or []
-
-    unfiltered_whisper_dump = {
-        "draft_id": draft_id,
-        "video_path": str(video_path),
-        "language": language,
-        "speed": speed,
-        "duration": duration,
-        "segment_count": len(all_raw_segments),
-        "raw_segment_count": len(raw_whisper_output.get("segments_repr") or []),
-        "filtered_counts": raw_whisper_output.get("filtered_counts") or {},
-        "segments": all_raw_segments,
-    }
-
-    raw_whisper_dump = {
-        "draft_id": draft_id,
-        "video_path": str(video_path),
-        "language": language,
-        "speed": speed,
-        "duration": duration,
-        "segment_count": len(raw_segments),
-        "raw_segment_count": len(raw_whisper_output.get("segments_repr") or []),
-        "filtered_counts": raw_whisper_output.get("filtered_counts") or {},
-        "segments": raw_segments,
-    }
-
-    merged_whisper_dump = {
-        "draft_id": draft_id,
-        "video_path": str(video_path),
-        "language": language,
-        "speed": speed,
-        "duration": duration,
-        "segment_count": len(merged_segments),
-        "raw_segment_count": len(raw_whisper_output.get("segments_repr") or []),
-        "filtered_counts": raw_whisper_output.get("filtered_counts") or {},
-        "segments": merged_segments,
-    }
-
-    dump_unfiltered_json = draft_path / "whisper_unfiltered_segments.json"
-    dump_raw_json = draft_path / "whisper_raw_segments.json"
-    dump_merged_json = draft_path / "whisper_merged_segments.json"
-    dump_txt = draft_path / "whisper_segments_for_ai.txt"
-    dump_raw_txt = draft_path / "whisper_raw_segments_numbered.txt"
-    dump_raw = draft_path / "whisper_raw_object_repr.txt"
-    
-    dump_unfiltered_json.write_text(json.dumps(unfiltered_whisper_dump, ensure_ascii=False, indent=2), encoding="utf-8")
-    dump_raw_json.write_text(json.dumps(raw_whisper_dump, ensure_ascii=False, indent=2), encoding="utf-8")
-    dump_merged_json.write_text(json.dumps(merged_whisper_dump, ensure_ascii=False, indent=2), encoding="utf-8")
-    dump_txt.write_text(segments_to_numbered_text(merged_segments), encoding="utf-8")
-    dump_raw_txt.write_text(segments_to_numbered_text(raw_segments), encoding="utf-8")
-    dump_raw.write_text(
-        "INFO\n"
-        f"{raw_whisper_output.get('info_repr', '')}\n\n"
-        "SEGMENTS\n"
-        + "\n".join(raw_whisper_output.get("segments_repr") or [])
-        + "\n",
-        encoding="utf-8",
-    )
-
-    logs_dir = repo_root / "logs" / "whisper"
-    logs_dir.mkdir(parents=True, exist_ok=True)
-    safe_video_name = "".join(ch if ch.isalnum() or ch in {"-", "_"} else "_" for ch in Path(video_path).stem)[:80]
-    log_base = logs_dir / f"{draft_id}_{safe_video_name}"
-    
-    log_base.with_suffix(".unfiltered.json").write_text(
-        json.dumps(unfiltered_whisper_dump, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-    log_base.with_suffix(".raw.json").write_text(
-        json.dumps(raw_whisper_dump, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-    log_base.with_suffix(".merged.json").write_text(
-        json.dumps(merged_whisper_dump, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-    log_base.with_suffix(".segments.txt").write_text(segments_to_numbered_text(merged_segments), encoding="utf-8")
-    log_base.with_suffix(".raw_object.txt").write_text(
-        "INFO\n"
-        f"{raw_whisper_output.get('info_repr', '')}\n\n"
-        "SEGMENTS\n"
-        + "\n".join(raw_whisper_output.get("segments_repr") or [])
-        + "\n",
-        encoding="utf-8",
-    )
-    if progress_callback:
-        progress_callback(f"Đã lưu output Whisper để test ghép câu: {log_base.with_suffix('.unfiltered.json')}")
-
-    srt_text_raw = segments_to_srt(raw_segments)
+    merged_segments = segments
     srt_text_merged = segments_to_srt(merged_segments)
     
-    srt_path_raw = draft_path / "whisper_zh_raw.srt"
-    srt_path_merged = draft_path / "whisper_zh_merged.srt"
     srt_path = draft_path / "whisper_zh.srt"
-
-    srt_path_raw.write_text(srt_text_raw, encoding="utf-8")
-    srt_path_merged.write_text(srt_text_merged, encoding="utf-8")
-    srt_path.write_text(srt_text_merged, encoding="utf-8")
 
     added = _import_srt_to_content(
         content_path,
@@ -740,8 +641,6 @@ def patch_draft_with_local_whisper(
     repo_content_path = repo_draft_path / content_path.name
     if repo_content_path.exists():
         repo_content_path.write_text(content_path.read_text(encoding="utf-8"), encoding="utf-8")
-        (repo_draft_path / "whisper_zh_raw.srt").write_text(srt_text_raw, encoding="utf-8")
-        (repo_draft_path / "whisper_zh_merged.srt").write_text(srt_text_merged, encoding="utf-8")
         (repo_draft_path / "whisper_zh.srt").write_text(srt_text_merged, encoding="utf-8")
 
     return {

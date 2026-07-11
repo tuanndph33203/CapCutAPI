@@ -1788,30 +1788,6 @@ def call_ai_translation_once(lines, config, previous_context=None, next_context=
     else:
         payload = build_ai_request_payload(config, user_payload, system_prompt, len(lines))
 
-    try:
-        debug_dir = Path(__file__).with_name("scratch") / "ai_translation_payloads"
-        debug_dir.mkdir(parents=True, exist_ok=True)
-        safe_model = re.sub(r"[^a-zA-Z0-9_.-]+", "_", str(config.get("model") or "model")).strip("_") or "model"
-        debug_path = debug_dir / f"{int(time.time())}_{safe_model}_{len(lines)}lines.json"
-        debug_headers = dict(headers)
-        for key in list(debug_headers.keys()):
-            if key.lower() in {"authorization", "x-goog-api-key", "x-api-key"}:
-                value = str(debug_headers[key] or "")
-                debug_headers[key] = f"{value[:6]}...{value[-4:]}" if len(value) > 12 else "***"
-        debug_payload = {
-            "url": url,
-            "headers": debug_headers,
-            "payload": payload,
-            "provider": provider,
-            "model": config.get("model"),
-            "line_count": len(lines),
-            "ultra_short": ultra_short,
-            "created_at": time.strftime("%Y-%m-%d %H:%M:%S"),
-        }
-        debug_path.write_text(json.dumps(debug_payload, ensure_ascii=False, indent=2), encoding="utf-8")
-        logger.info(f"Saved AI translation payload for Postman: {debug_path}")
-    except Exception as exc:
-        logger.warning(f"Could not save AI translation payload debug file: {exc}")
 
     response = None
     last_error = None
