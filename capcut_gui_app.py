@@ -11,9 +11,13 @@ import re
 import shutil
 import socket
 import uuid
+import io
+import random
 from pathlib import Path
 from flask import Flask, render_template, request, jsonify, Response
 import psutil
+import numpy as np
+from PIL import Image
 
 # Add current dir to python path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -2270,10 +2274,27 @@ def patch_track_volume_in_json(draft_path, volume_db=-15.5, track_types=None):
             data = json.load(f)
 
         updated_count = 0
+        if "video" in track_types:
+            config = data.setdefault("config", {})
+            if config.get("video_mute") is not False:
+                config["video_mute"] = False
+                updated_count += 1
         for track in data.get("tracks", []):
             if track.get("type") not in track_types:
                 continue
+            if track.get("type") == "video":
+                current_attr = int(track.get("attribute", 0) or 0)
+                new_attr = current_attr & ~1
+                if new_attr != current_attr:
+                    track["attribute"] = new_attr
+                    updated_count += 1
             for seg in track.get("segments", []):
+                if track.get("type") == "video":
+                    current_seg_attr = int(seg.get("track_attribute", 0) or 0)
+                    new_seg_attr = current_seg_attr & ~1
+                    if new_seg_attr != current_seg_attr:
+                        seg["track_attribute"] = new_seg_attr
+                        updated_count += 1
                 seg["volume"] = volume
                 seg["last_nonzero_volume"] = volume
                 updated_count += 1
@@ -2396,8 +2417,8 @@ def probe_video_metadata(video_path):
         [
             "ffprobe",
             "-v", "error",
-            "-select_streams", "v:0",
-            "-show_entries", "stream=width,height,duration",
+        "-show_streams",
+            "-show_entries", "stream=codec_type,width,height,duration",
             "-show_entries", "format=duration",
             "-of", "json",
             str(video_path),
@@ -2407,12 +2428,14 @@ def probe_video_metadata(video_path):
         check=True,
     )
     info = json.loads(completed.stdout or "{}")
-    stream = (info.get("streams") or [{}])[0]
+    streams = info.get("streams") or []
+    stream = next((item for item in streams if item.get("codec_type") == "video"), {})
     duration = float(stream.get("duration") or info.get("format", {}).get("duration") or 0)
     return {
         "duration_us": int(round(duration * 1_000_000)),
         "width": int(stream.get("width") or 0),
         "height": int(stream.get("height") or 0),
+        "has_audio": any(item.get("codec_type") == "audio" for item in streams),
     }
 
 def build_atempo_filter(speed):
@@ -2427,7 +2450,114 @@ def build_atempo_filter(speed):
     factors.append(remaining)
     return ",".join(f"atempo={factor:.8g}" for factor in factors)
 
-def render_speed_adjusted_video(source, output_path, speed):
+
+def detect_hardsub_blur_config(video_path, sample_count=10, blur_radius=24):
+    """Detect yellow burned-in subtitles from random frames in the lower third."""
+    source = Path(video_path)
+    meta = probe_video_metadata(source)
+    width = int(meta["width"])
+    height = int(meta["height"])
+    duration = float(meta["duration_us"]) / 1_000_000
+    if width <= 0 or height <= 0 or duration <= 0:
+        return {"enabled": False}
+
+    lower_y = height * 2 // 3
+    lower_height = height - lower_y
+    stat = source.stat()
+    rng = random.Random(f"{source.resolve()}:{stat.st_size}:{stat.st_mtime_ns}")
+    start = max(0.2, duration * 0.05)
+    end = max(start, duration * 0.95)
+    timestamps = sorted(rng.uniform(start, end) for _ in range(max(1, int(sample_count))))
+    detections = []
+
+    for timestamp in timestamps:
+        command = [
+            "ffmpeg", "-v", "error", "-ss", f"{timestamp:.3f}", "-i", str(source),
+            "-frames:v", "1", "-vf", f"crop={width}:{lower_height}:0:{lower_y}",
+            "-f", "image2pipe", "-vcodec", "png", "pipe:1",
+        ]
+        completed = subprocess.run(command, capture_output=True)
+        if completed.returncode != 0 or not completed.stdout:
+            continue
+
+        try:
+            rgb = np.asarray(Image.open(io.BytesIO(completed.stdout)).convert("RGB"))
+        except Exception:
+            continue
+
+        red = rgb[:, :, 0].astype(np.int16)
+        green = rgb[:, :, 1].astype(np.int16)
+        blue = rgb[:, :, 2].astype(np.int16)
+        mask = (red >= 170) & (green >= 135) & (blue <= 165) & ((red - green) <= 105)
+        mask[:, :width // 10] = False
+        mask[:, width * 9 // 10:] = False
+        # Ignore the upper edge of the search area and the very bottom UI/border.
+        search_top = int(lower_height * 0.15)
+        search_bottom = int(lower_height * 0.88)
+        mask[:search_top, :] = False
+        mask[search_bottom:, :] = False
+
+        row_counts = mask.sum(axis=1)
+        peak_row = int(row_counts.argmax())
+        peak_count = int(row_counts[peak_row])
+        if peak_count < max(12, int(width * 0.006)):
+            continue
+
+        row_threshold = max(5, int(peak_count * 0.12))
+        window_top = max(search_top, peak_row - max(45, height // 14))
+        window_bottom = min(search_bottom - 1, peak_row + max(45, height // 14))
+        active_rows = np.where(row_counts[window_top:window_bottom + 1] >= row_threshold)[0]
+        top = window_top + int(active_rows.min()) if active_rows.size else peak_row
+        bottom = window_top + int(active_rows.max()) if active_rows.size else peak_row
+        if bottom - top + 1 < 5:
+            top = max(0, peak_row - 18)
+            bottom = min(lower_height - 1, peak_row + 18)
+
+        ys, xs = np.where(mask[top:bottom + 1])
+        if xs.size < 30:
+            continue
+        xs = xs.astype(np.int32)
+        x1 = int(np.percentile(xs, 1))
+        x2 = int(np.percentile(xs, 99))
+        if x2 - x1 < width * 0.08 or x2 - x1 > width * 0.85:
+            continue
+        detections.append((x1, lower_y + top, x2, lower_y + bottom))
+
+    minimum_hits = max(2, min(4, int(sample_count) // 3))
+    if len(detections) < minimum_hits:
+        logger.info(f"Không phát hiện hardsub ổn định trong 1/3 dưới: {len(detections)}/{sample_count} frame.")
+        return {"enabled": False, "detected_frames": len(detections), "sampled_frames": int(sample_count)}
+
+    center_ys = np.array([(box[1] + box[3]) / 2 for box in detections])
+    median_y = float(np.median(center_ys))
+    consistent = [box for box in detections if abs(((box[1] + box[3]) / 2) - median_y) <= height * 0.035]
+    if len(consistent) < minimum_hits:
+        return {"enabled": False, "detected_frames": len(consistent), "sampled_frames": int(sample_count)}
+
+    padding_y = max(6, height // 180)
+    # Keep horizontal blur full-width, but tighten the subtitle band vertically.
+    y1 = max(lower_y, int(np.percentile([box[1] for box in consistent], 35)) - padding_y)
+    y2 = min(height, int(np.percentile([box[3] for box in consistent], 65)) + padding_y)
+    min_band_height = max(28, height // 45)
+    if y2 - y1 < min_band_height:
+        center_y = int(np.median([(box[1] + box[3]) / 2 for box in consistent]))
+        half_h = max(14, min_band_height // 2)
+        y1 = max(lower_y, center_y - half_h)
+        y2 = min(height, center_y + half_h)
+    result = {
+        "enabled": True,
+        "x": 0,
+        "y": y1,
+        "w": width,
+        "h": y2 - y1,
+        "radius": int(blur_radius),
+        "detected_frames": len(consistent),
+        "sampled_frames": int(sample_count),
+    }
+    logger.info(f"Đã tự phát hiện vùng hardsub từ {len(consistent)}/{sample_count} frame: {result}")
+    return result
+
+def render_preprocessed_video(source, output_path, speed=1.0, blur_config=None):
     source = Path(source)
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -2435,31 +2565,89 @@ def render_speed_adjusted_video(source, output_path, speed):
     if temp_path.exists():
         temp_path.unlink()
 
+    speed = float(speed or 1.0)
+    meta = probe_video_metadata(source)
+    blur_config = blur_config or {}
+    if blur_config.get("enabled", False):
+        video_width = int(meta.get("width") or 0)
+        video_height = int(meta.get("height") or 0)
+        x = max(0, int(blur_config.get("x", 410)))
+        y = max(0, int(blur_config.get("y", 910)))
+        w = int(blur_config.get("w", 1100))
+        h = int(blur_config.get("h", 135))
+        if video_width > 0 and video_height > 0:
+            x = min(x, max(0, video_width - 2))
+            y = min(y, max(0, video_height - 2))
+            w = max(2, min(w, video_width - x))
+            h = max(2, min(h, video_height - y))
+        # Keep crop coordinates and dimensions even for yuv420p/chroma subsampling.
+        x -= x % 2
+        y -= y % 2
+        w -= w % 2
+        h -= h % 2
+        if video_width > 0:
+            w = max(2, min(w, video_width - x))
+            w -= w % 2
+        if video_height > 0:
+            h = max(2, min(h, video_height - y))
+            h -= h % 2
+        radius = int(blur_config.get("radius", 24))
+        # boxblur validates the chroma plane on yuv420p too, so radius must also
+        # fit half-resolution chroma dimensions.
+        max_radius = max(1, min((w - 1) // 4, (h - 1) // 4))
+        radius = max(1, min(radius, max_radius))
+        if w < 4 or h < 4:
+            logger.warning(f"Vung blur qua nho, bo qua blur FFmpeg: x={x}, y={y}, w={w}, h={h}")
+            video_filter = f"[0:v]setpts={1 / speed:.12g}*PTS[v]"
+        else:
+            video_filter = f"[0:v]split=2[base][tmp];[tmp]crop={w}:{h}:{x}:{y},boxblur={radius}:2[blur];[base][blur]overlay={x}:{y},setpts={1 / speed:.12g}*PTS[v]"
+    else:
+        video_filter = f"[0:v]setpts={1 / speed:.12g}*PTS[v]"
+    filter_complex = video_filter
+    maps = ["[v]"]
+    audio_args = []
+    if meta.get("has_audio"):
+        filter_complex += f";[0:a]{build_atempo_filter(speed)}[a]"
+        maps.append("[a]")
+        audio_args = ["-c:a", "aac", "-b:a", "192k"]
     command = [
         "ffmpeg",
         "-y",
         "-i", str(source),
         "-filter_complex",
-        f"[0:v]setpts={1 / float(speed):.12g}*PTS[v];[0:a]{build_atempo_filter(speed)}[a]",
-        "-map", "[v]",
-        "-map", "[a]",
+        filter_complex,
+        *sum((["-map", item] for item in maps), []),
         "-c:v", "libx264",
         "-preset", "veryfast",
         "-crf", "18",
-        "-c:a", "aac",
-        "-b:a", "192k",
+        *audio_args,
         "-movflags", "+faststart",
         str(temp_path),
     ]
-    completed = subprocess.run(command, text=True, capture_output=True)
+    completed = subprocess.run(
+        command,
+        text=True,
+        capture_output=True,
+        encoding="utf-8",
+        errors="replace",
+    )
     if completed.returncode != 0:
         if temp_path.exists():
             temp_path.unlink()
+        if blur_config.get("enabled", False):
+            logger.warning(
+                f"FFmpeg blur failed, retrying speed-only render. "
+                f"Blur config={blur_config}; stderr={completed.stderr[-600:]}"
+            )
+            return render_preprocessed_video(source, output_path, speed=speed, blur_config={"enabled": False})
         raise RuntimeError(f"ffmpeg speed render failed: {completed.stderr[-1200:]}")
     os.replace(temp_path, output_path)
     return output_path
 
-def ensure_video_track_in_draft(draft_path, video_path, speed=1.0, volume=1.0):
+def render_speed_adjusted_video(source, output_path, speed):
+    return render_preprocessed_video(source, output_path, speed=speed)
+
+def ensure_video_track_in_draft(draft_path, video_path, speed=1.0, volume=1.0, blur_config=None):
     root = Path(draft_path)
     source = Path(video_path)
     if not source.exists() or not source.is_file():
@@ -2469,6 +2657,8 @@ def ensure_video_track_in_draft(draft_path, video_path, speed=1.0, volume=1.0):
     if speed <= 0:
         raise ValueError("Video speed must be greater than 0")
 
+    blur_config = blur_config or {}
+    blur_enabled = bool(blur_config.get("enabled", False))
     original_meta = probe_video_metadata(source)
     original_duration = int(original_meta["duration_us"])
     if original_duration <= 0:
@@ -2476,15 +2666,16 @@ def ensure_video_track_in_draft(draft_path, video_path, speed=1.0, volume=1.0):
 
     asset_dir = root / "assets" / "video"
     asset_dir.mkdir(parents=True, exist_ok=True)
-    if abs(speed - 1.0) > 0.0001:
-        material_name = f"video_{uuid.uuid5(uuid.NAMESPACE_URL, str(source.resolve()) + f':speed:{speed}').hex}_speed_{speed:.4g}.mp4"
+    if abs(speed - 1.0) > 0.0001 or blur_enabled:
+        preprocess_key = f":speed:{speed}:blur:{json.dumps(blur_config, sort_keys=True)}"
+        material_name = f"video_{uuid.uuid5(uuid.NAMESPACE_URL, str(source.resolve()) + preprocess_key).hex}_preprocessed.mp4"
     else:
         material_name = f"video_{uuid.uuid5(uuid.NAMESPACE_URL, str(source.resolve())).hex}.mp4"
     asset_path = asset_dir / material_name
-    if abs(speed - 1.0) > 0.0001:
+    if abs(speed - 1.0) > 0.0001 or blur_enabled:
         if not asset_path.exists() or asset_path.stat().st_size <= 0:
             logger.info(f"Đang render video đã làm chậm thật bằng ffmpeg: speed={speed}, output={asset_path}")
-            render_speed_adjusted_video(source, asset_path, speed)
+            render_preprocessed_video(source, asset_path, speed=speed, blur_config=blur_config)
     else:
         if not asset_path.exists() or asset_path.stat().st_size != source.stat().st_size:
             shutil.copy2(source, asset_path)
@@ -3192,7 +3383,7 @@ class QueueRunner:
                 copy_to_capcut=True,
                 draft_id=draft_id,
                 volume=1.0,
-                preserve_blur_effect=bool(item_config.get("preserve_blur_effect", True)),
+                preserve_blur_effect=False,
             )
             self._check_cancel(item)
 
@@ -3212,11 +3403,31 @@ class QueueRunner:
         video_source_for_patch = configured_video_path or (item.get("video") if item.get("video") and Path(str(item.get("video"))).is_file() else None)
         if video_source_for_patch:
             self._check_cancel(item)
+            blur_enabled = config_bool(item_config.get("hardsub_blur_enabled", True), True)
+            blur_auto = config_bool(item_config.get("hardsub_blur_auto", True), True)
+            if blur_enabled and blur_auto:
+                blur_config = detect_hardsub_blur_config(
+                    video_source_for_patch,
+                    sample_count=int(item_config.get("hardsub_blur_samples", 10)),
+                    blur_radius=int(item_config.get("hardsub_blur_radius", 24)),
+                )
+            elif blur_enabled:
+                blur_config = {
+                    "enabled": True,
+                    "x": int(item_config.get("hardsub_blur_x", 410)),
+                    "y": int(item_config.get("hardsub_blur_y", 910)),
+                    "w": int(item_config.get("hardsub_blur_w", 1100)),
+                    "h": int(item_config.get("hardsub_blur_h", 135)),
+                    "radius": int(item_config.get("hardsub_blur_radius", 24)),
+                }
+            else:
+                blur_config = {"enabled": False}
             ensure_video_track_in_draft(
                 draft_full_path,
                 video_source_for_patch,
                 speed=speed,
                 volume=1.0,
+                blur_config=blur_config,
             )
         project_opened_this_run = False
         if resume_from_step <= 2:
@@ -3321,6 +3532,7 @@ class QueueRunner:
                 item_config=item_config
             )
             patch_track_volume_in_json(draft_full_path, volume_db=volume_db, track_types=["video"])
+            patch_track_lock_in_json(draft_full_path, track_types=["video", "effect"], locked=True)
             self._check_cancel(item)
 
             if item_config.get("stop_after_patch"):

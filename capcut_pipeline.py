@@ -289,7 +289,9 @@ def run_pipeline(
         raise FileNotFoundError(f"Video not found: {video}")
 
     existing_capcut_draft = capcut_drafts / draft_id if draft_id else None
-    effect_snapshot = capture_effect_timeline_snapshot(existing_capcut_draft) if existing_capcut_draft else None
+    # Blur hardsub is handled by FFmpeg before the video is inserted into CapCut.
+    # Do not recreate CapCut Blur effect tracks here; they can cover the whole screen.
+    effect_snapshot = None
 
     source_duration = probe_duration(video)
     clip_duration = min(clip_seconds or source_duration, source_duration)
@@ -336,11 +338,7 @@ def run_pipeline(
 
     repo_draft = Path.cwd() / draft_id
     capcut_draft = capcut_drafts / draft_id
-    restored_effect_files = restore_effect_timeline_snapshot(
-        repo_draft,
-        effect_snapshot,
-        ensure_default_blur=preserve_blur_effect,
-    )
+    restored_effect_files = 0
     if copy_to_capcut:
         if capcut_draft.exists():
             shutil.rmtree(capcut_draft)

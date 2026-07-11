@@ -19,6 +19,7 @@ from collections import OrderedDict
 import time
 import requests # Import requests for making HTTP calls
 import logging
+from pathlib import Path
 # Import configuration
 from settings import IS_CAPCUT_ENV, IS_UPLOAD_DRAFT
 
@@ -28,6 +29,18 @@ logger = logging.getLogger('flask_video_generator')
 
 # Define task status enumeration type
 TaskStatus = Literal["initialized", "processing", "completed", "failed", "not_found"]
+
+def dump_script_to_path(script, output_path: str | os.PathLike) -> Path:
+    output = Path(output_path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    content = script.dumps()
+    try:
+        output.write_text(content, encoding="utf-8")
+    except OSError:
+        temp_output = output.with_name(output.name + ".tmp")
+        temp_output.write_text(content, encoding="utf-8")
+        os.replace(temp_output, output)
+    return output
 
 def build_asset_path(draft_folder: str, draft_id: str, asset_type: str, material_name: str) -> str:
     """
@@ -248,8 +261,9 @@ def save_draft_background(draft_id, draft_folder, task_id):
         update_task_field(task_id, "message", "Saving draft information")
         logger.info(f"Task {task_id} progress 70%: Saving draft information.")
         
-        script.dump(os.path.join(current_dir, f"{draft_id}/draft_info.json"))
-        logger.info(f"Draft information has been saved to {os.path.join(current_dir, draft_id)}/draft_info.json.")
+        draft_info_path = Path(current_dir) / str(draft_id) / "draft_info.json"
+        dump_script_to_path(script, draft_info_path)
+        logger.info(f"Draft information has been saved to {draft_info_path}.")
 
         draft_url = ""
         # Only upload draft information when IS_UPLOAD_DRAFT is True

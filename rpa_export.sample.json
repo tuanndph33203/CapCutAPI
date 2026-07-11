@@ -13,10 +13,20 @@
             ]
         },
         {
+            "action": "sleep",
+            "seconds": 1.5
+        },
+        {
             "template": "rpa_templates/export_confirm_button.png",
-            "threshold": 0.58,
+            "threshold": 0.68,
             "action": "click_template",
-            "timeout": 18
+            "timeout": 18,
+            "search_region": [
+                0.55,
+                0.70,
+                0.66,
+                0.82
+            ]
         },
         {
             "action": "wait",

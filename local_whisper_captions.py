@@ -192,6 +192,8 @@ def transcribe_video_to_segments(
             stdout=subprocess.DEVNULL,
             stderr=subprocess.PIPE,
             text=True,
+            encoding="utf-8",
+            errors="replace",
             check=True,
         )
         transcribe_path = temp_audio_path
