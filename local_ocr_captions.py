@@ -90,17 +90,15 @@ def extract_hardsub_from_video(
         def process_ocr_batch():
             if not batch_images:
                 return
-            try:
-                # ocr.ocr nhận danh sách ảnh và thực hiện batch inference trên GPU
-                results = ocr.ocr(batch_images, cls=False)
-            except Exception as ocr_err:
-                if progress_callback:
-                    progress_callback(f"Lỗi chạy Batch OCR: {ocr_err}")
-                results = [None] * len(batch_images)
+            for img, meta in zip(batch_images, batch_metadata):
+                try:
+                    result = ocr.ocr(img, cls=False)
+                except Exception as ocr_err:
+                    if progress_callback:
+                        progress_callback(f"Lỗi OCR frame {meta['timestamp']:.1f}s: {ocr_err}")
+                    continue
 
-            for result, meta in zip(results, batch_metadata):
                 frame_text = ""
-                # Cấu trúc kết quả của batch: result tương ứng với 1 ảnh trong batch
                 if result and result[0]:
                     valid_lines = []
                     for item in result[0]:

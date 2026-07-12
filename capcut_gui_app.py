@@ -508,7 +508,13 @@ def launch_capcut(connect_ui=True, cancel_check=None):
                 logger.info(f"Đã kết nối thành công tới cửa sổ CapCut (Trạng thái: {controller.app_status})")
                 return controller
         except Exception as e:
-            logger.warning(f"Lần thử {i+1}/25 kết nối với CapCut thất bại: {str(e)}")
+            err_str = str(e)
+            # Loi pipe tam thoi khi CapCut dang khoi dong - cho them va thu lai
+            if "EnumWindows" in err_str or "109" in err_str or "pipe" in err_str.lower():
+                logger.warning(f"Lần thử {i+1}/25: Lỗi pipe tạm thời, chờ 2s rồi thử lại: {err_str}")
+                time.sleep(2)
+                continue
+            logger.warning(f"Lần thử {i+1}/25 kết nối với CapCut thất bại: {err_str}")
         time.sleep(1)
     raise Exception("Không thể kết nối với cửa sổ CapCut. Vui lòng mở CapCut thủ công trước.")
 
@@ -3004,7 +3010,57 @@ def ensure_video_track_in_draft(draft_path, video_path, speed=1.0, volume=1.0, b
     )
     return patched
 
-def waitdef patch_audio_speed_in_json(draft_path, target_speed=1.17):
+def wait_for_draft_files_unlocked(draft_path, timeout=20):
+    root = Path(draft_path)
+    if not root.exists():
+        return True
+
+    deadline = time.time() + timeout
+    probe_files = []
+    for pattern in ("assets/video/*", "draft_content.json", "Timelines/*/draft_content.json"):
+        probe_files.extend([path for path in root.glob(pattern) if path.is_file()])
+
+    while time.time() <= deadline:
+        locked = []
+        for path in probe_files:
+            try:
+                with open(path, "ab"):
+                    pass
+            except OSError as e:
+                if getattr(e, "winerror", None) == 32:
+                    locked.append(path)
+        if not locked:
+            return True
+        logger.info(f"Đang chờ CapCut nhả khóa {len(locked)} file draft...")
+        time.sleep(1)
+
+    return False
+
+def run_pipeline_with_file_lock_retry(run_pipeline_func, draft_full_path, max_attempts=3, **kwargs):
+    last_error = None
+    for attempt in range(1, max_attempts + 1):
+        try:
+            any_gui_running = False
+            r = globals().get('runner')
+            if r:
+                with r.queue_lock:
+                    any_gui_running = any(item.get("status") == "gui_processing" for item in r.queue)
+            if not any_gui_running:
+                kill_capcut()
+            wait_for_draft_files_unlocked(draft_full_path, timeout=20)
+            if attempt > 1:
+                logger.info(f"Thử patch video lại lần {attempt}/{max_attempts} sau khi nhả khóa file...")
+            return run_pipeline_func(**kwargs)
+        except OSError as e:
+            last_error = e
+            if getattr(e, "winerror", None) != 32 or attempt >= max_attempts:
+                raise
+            logger.warning(f"Patch video gặp WinError 32 do file đang bị khóa. Đóng CapCut và thử lại...")
+            kill_capcut()
+            time.sleep(3)
+    raise last_error
+
+def patch_audio_speed_in_json(draft_path, target_speed=1.17):
     """
     Chinh toc do rieng cho cac segment audio TTS tieng Viet trong timeline JSON.
     Giu nguyen luong thoi gian cu cua ban.
@@ -3106,39 +3162,6 @@ def patch_video_speed_in_json(draft_path, speed=1.0):
             patched_files += 1
         except Exception as e:
             logger.error(f"Loi khi cap nhat toc do video file {content_path.name}: {e}")
-
-    return {"patched_files": patched_files, "total_updated": total_updated}         if abs(curr_speed - target_speed) > 0.001:
-                            seg["speed"] = target_speed
-                            src_dur = seg["source_timerange"]["duration"]
-                            seg["target_timerange"]["duration"] = int(round(src_dur / target_speed))
-                            
-                            # Dan timeline bat dau cua am thanh theo speed lam cham cua video
-                            seg["target_timerange"]["start"] = int(round(seg["target_timerange"]["start"] / speed))
-                            
-                            seg_speed_id = seg.get("extra_material_refs", [None])[0]
-                            if seg_speed_id:
-                                for sm in speeds_material:
-                                    if sm.get("id") == seg_speed_id:
-                                        sm["speed"] = target_speed
-                            modified = True
-                            
-                elif track_type == "text":
-                    for seg in segments:
-                        old_start = seg["target_timerange"]["start"]
-                        old_dur = seg["target_timerange"]["duration"]
-                        
-                        seg["target_timerange"]["start"] = int(round(old_start / speed))
-                        seg["target_timerange"]["duration"] = int(round(old_dur / speed))
-                        modified = True
-            
-            if modified:
-                with open(content_path, "w", encoding="utf-8") as f:
-                    json.dump(data, f, ensure_ascii=False, indent=4)
-                logger.info(f"[Slowdown] Da dan timeline thanh cong cho: {content_path.name}")
-                total_updated += 1
-            patched_files += 1
-        except Exception as e:
-            logger.error(f"Loi khi dan timeline file {content_path.name}: {e}")
 
     return {"patched_files": patched_files, "total_updated": total_updated}
 
@@ -3785,12 +3808,27 @@ class QueueRunner:
                     gui_item["message"] = f"Lỗi GUI: {str(e)}"
                     self.save_cache()
             except Exception as e:
-                logger.error(f"Lỗi CapCut GUI video '{gui_item['video']}': {str(e)}")
-                kill_capcut()
-                with self.queue_lock:
-                    gui_item["status"] = "failed"
-                    gui_item["message"] = f"Lỗi GUI: {str(e)}"
-                    self.save_cache()
+                err_str = str(e)
+                # Loi pipe tam thoi khi CapCut dang khoi dong: thu lai toi da 3 lan
+                is_pipe_error = "EnumWindows" in err_str or "pipe" in err_str.lower() or "109" in err_str
+                gui_retries = gui_item.get("_gui_retries", 0)
+                if is_pipe_error and gui_retries < 3:
+                    gui_item["_gui_retries"] = gui_retries + 1
+                    logger.warning(f"Lỗi EnumWindows/pipe tạm thời (lần {gui_retries+1}/3), thử lại sau 5s: {err_str}")
+                    kill_capcut()
+                    time.sleep(5)
+                    with self.queue_lock:
+                        gui_item["status"] = "ready_for_capcut"
+                        gui_item["message"] = f"Thử lại GUI (lần {gui_retries+1}/3)..."
+                        self.save_cache()
+                else:
+                    logger.error(f"Lỗi CapCut GUI video '{gui_item['video']}': {err_str}")
+                    kill_capcut()
+                    with self.queue_lock:
+                        gui_item["_gui_retries"] = 0
+                        gui_item["status"] = "failed"
+                        gui_item["message"] = f"Lỗi GUI: {err_str}"
+                        self.save_cache()
                     
         if uia_initializer is not None:
             try:
@@ -4251,10 +4289,11 @@ class QueueRunner:
             self._check_cancel(item)
             item["progress"] = 85
             speed = float(item_config.get("speed", 1.0) or 1.0)
-            item["message"] = f"Bước 7: Đang áp dụng làm chậm video ({speed}x) và chỉnh tốc độ tts ({tts_speed}x)..."
+            item["message"] = f"Bước 7: Đang chỉnh tốc độ tts ({tts_speed}x) và làm chậm video ({speed}x)..."
             self.save_cache()
             
-            apply_slowdown_and_tts_speed_to_draft(draft_full_path, speed=speed, tts_speed=tts_speed)
+            patch_audio_speed_in_json(draft_full_path, target_speed=tts_speed)
+            patch_video_speed_in_json(draft_full_path, speed=speed)
             item["resume_from_step"] = 8
             self._checkpoint_pause(item, next_step=8, progress=88)
 
