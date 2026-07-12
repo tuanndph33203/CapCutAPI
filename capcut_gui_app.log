@@ -5551,3 +5551,1731 @@ RuntimeError: CapCut window not found
 00:58:51 - INFO - Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...
 00:58:51 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
 00:58:55 - INFO - Khởi chạy CapCut từ shortcut: C:\Users\nguye\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\CapCut\CapCut.lnk
+03:45:41 - INFO - Đã khôi phục 10 item hàng chờ từ cache.
+03:45:41 - INFO - Khởi động server CapCut Automation Studio tại http://127.0.0.1:5000
+03:45:41 - INFO - Đã bật overlay điều khiển pipeline.
+03:47:26 - INFO - Worker 1 (Preprocess) đã bắt đầu...
+03:47:26 - INFO - Giải phóng buffer 00000000000 từ item lỗi 'C:\Users\nguye\Videos\Phim6\tap9.mp4' để cấp phát cho 'C:\Users\nguye\Videos\Phim6\tap8.mp4'...
+03:47:26 - INFO - Worker 2 (GUI) đã khởi tạo UIAutomation.
+03:47:26 - INFO - Worker 2 (CapCut GUI) đã bắt đầu...
+03:47:26 - INFO - Khôi phục dự án từ backup 00000000000_backup sang buffer 00000000000...
+03:47:26 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 00000000000: C:\Users\nguye\Videos\Phim6\tap8.mp4
+03:47:26 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim6\tap8.mp4 ===
+03:47:26 - INFO - Chạy pipeline ngầm để tạo draft '00000000000'...
+03:47:26 - INFO - Preprocess Step 1 needs CapCut file access; waiting for GUI lock before save-draft patch...
+03:47:26 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+03:47:29 - INFO - Received save draft request: draft_id=00000000000, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
+03:47:29 - INFO - Task 00000000000 has been created.
+03:47:29 - INFO - Successfully retrieved draft 00000000000 from cache.
+03:47:29 - INFO - Task 00000000000 status updated to 'processing': Preparing draft files.
+03:47:29 - WARNING - Deleting existing draft folder (current working directory): 00000000000
+03:47:29 - INFO - Starting to save draft: 00000000000
+03:47:29 - INFO - Found registered draft_id '3D08E8DD-C0CD-4d71-B5AA-CD868B1B6C83' for folder '00000000000' in root_meta_info.json
+03:47:29 - INFO - Updated draft_meta_info.json for 00000000000 with draft_id=3D08E8DD-C0CD-4d71-B5AA-CD868B1B6C83
+03:47:29 - INFO - Task 00000000000 progress 5%: Updating media file metadata.
+03:47:29 - INFO - No audio files found in the draft.
+03:47:29 - INFO - Successfully set video video_ff91e4b7df4318c8.mp4 dimensions: 2560x1440.
+03:47:29 - INFO - Successfully obtained video video_ff91e4b7df4318c8.mp4 duration: 319.18 seconds (319183333 microseconds).
+03:47:29 - INFO - Adjusted video segment a0c5476a4abd45429691785718564a5e timerange to fit the new video duration.
+03:47:29 - INFO - Checking track segment time range conflicts...
+03:47:29 - INFO - Updated script total duration to: 398979166 microseconds.
+03:47:29 - INFO - Processing pending keyframes...
+03:47:29 - INFO - Task 00000000000 progress 10%: Collected 1 download tasks in total.
+03:47:29 - INFO - Starting concurrent download of 1 files...
+03:47:29 - INFO - Task 00000000000: Successfully downloaded video file, progress 70.
+03:47:29 - INFO - Task 00000000000: Concurrent download completed, downloaded 1 files in total.
+03:47:29 - INFO - Task 00000000000 progress 70%: Saving draft information.
+03:47:29 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\00000000000\draft_info.json.
+03:47:29 - INFO - Task 00000000000 completed, draft URL: 
+03:47:33 - INFO - Đã tự phát hiện vùng hardsub từ 6/10 frame: {'enabled': True, 'x': 0, 'y': 1332, 'w': 2560, 'h': 54, 'radius': 24, 'detected_frames': 6, 'sampled_frames': 10}
+03:47:34 - INFO - Đang render video đã làm chậm thật bằng ffmpeg: speed=0.8, output=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\assets\video\video_c86f4668f285569aa68165246b1cc9af_preprocessed.mp4
+03:47:34 - INFO - FFmpeg video encoder: -c:v h264_nvenc -preset p4 -cq 23 -b:v 0 -pix_fmt yuv420p
+03:48:50 - INFO - Đã patch video track vào draft: files=3, source_duration=398983333, target_duration=398983333, speed=0.8, asset=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\assets\video\video_c86f4668f285569aa68165246b1cc9af_preprocessed.mp4
+03:48:50 - INFO - Auto-detect canvas từ video gốc: 2560x1440 -> ratio=16:9
+03:48:50 - INFO - Đã chỉnh canvas 16:9 (2560x1440) trên 2 file draft.
+03:48:50 - INFO - Đã bật mirror ngang video trên 2 segment / 2 file draft.
+03:48:50 - INFO - Đã khóa 4 track/segment (effect, video) trên 2 file draft.
+03:48:50 - INFO - Đã mở khóa 0 track/segment (text, audio) trên 0 file draft.
+03:48:50 - INFO - Dùng local Whisper nên chưa mở CapCut ở bước 2. Sẽ mở sau khi dịch/patch xong.
+03:48:50 - INFO - Chạy local faster-whisper GPU để tạo phụ đề: draft=00000000000, language=zh, video=C:\Users\nguye\Videos\Phim6\tap8.mp4
+03:48:50 - INFO - Whisper local: Đã thêm NVIDIA DLL dirs vào PATH: C:\Users\nguye\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\site-packages\nvidia\cublas\bin; C:\Users\nguye\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\site-packages\nvidia\cudnn\bin; C:\Users\nguye\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\site-packages\nvidia\cuda_nvrtc\bin; C:\Users\nguye\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\site-packages\ctranslate2
+03:48:50 - INFO - Whisper local: Đang load faster-whisper model=large-v3-turbo, device=cuda, compute=float16...
+03:48:56 - INFO - Whisper local: Đang trích audio đã làm chậm speed=0.8 trước khi Whisper...
+03:48:57 - INFO - Whisper local: Đang chạy Whisper local cho audio/video: C:\Users\nguye\AppData\Local\Temp\tmpb6ft4a5x.wav
+03:49:02 - INFO - Whisper local: Whisper hoàn thành: 66 dòng, language=zh, duration=399.04s.
+03:49:02 - INFO - Đã patch phụ đề Whisper local vào draft: segments=66, added_texts=66, srt=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\whisper_zh.srt
+03:49:02 - INFO - CapCut chưa được mở trong luồng Whisper local, patch draft trực tiếp.
+03:49:02 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\draft_info.json để dịch và cập nhật font/màu sắc...
+03:49:02 - INFO - Đang dùng AI lấy video_context và asr_text từ 66 dòng phụ đề...
+03:49:02 - WARNING - Thử gọi AI JSON lần 1/3 thất bại: HTTP 400: {"error":{"message":"This API is not available in your current location. See https://ai.google.dev/gemini-api/docs/available-regions.","code":"invalid_request"}}. Đang thử lại...
+03:49:05 - WARNING - Thử gọi AI JSON lần 2/3 thất bại: HTTP 400: {"error":{"message":"This API is not available in your current location. See https://ai.google.dev/gemini-api/docs/available-regions.","code":"invalid_request"}}. Đang thử lại...
+03:49:07 - WARNING - Thử gọi AI JSON lần 3/3 thất bại: HTTP 400: {"error":{"message":"This API is not available in your current location. See https://ai.google.dev/gemini-api/docs/available-regions.","code":"invalid_request"}}. Đang thử lại...
+03:49:09 - WARNING - Lấy context/terms thất bại, tiếp tục với bối cảnh hiện có: AI JSON call thất bại sau 3 lần thử: HTTP 400: {"error":{"message":"This API is not available in your current location. See https://ai.google.dev/gemini-api/docs/available-regions.","code":"invalid_request"}}
+03:49:09 - INFO - Đang dịch 63/66 dòng phụ đề tiếng Trung chưa có cache (dùng lại cache 3 dòng) sang tiếng Việt...
+03:49:09 - INFO - Dịch AI bằng gemini model gemini-3.1-flash-lite theo batch 20 dòng...
+03:49:10 - WARNING - Dịch AI batch 20 dòng thất bại (ultra_short=False): AI translation HTTP 400: {"error":{"message":"This API is not available in your current location. See https://ai.google.dev/gemini-api/docs/available-regions.","code":"invalid_request"}}
+03:49:10 - WARNING - Dịch AI batch 20 dòng thất bại (ultra_short=True): AI translation HTTP 400: {"error":{"message":"This API is not available in your current location. See https://ai.google.dev/gemini-api/docs/available-regions.","code":"invalid_request"}}
+03:49:10 - WARNING - Model chính gemini-3.1-flash-lite dịch thất bại, chuyển sang fallback gemini-1.5-flash: AI translation HTTP 400: {"error":{"message":"This API is not available in your current location. See https://ai.google.dev/gemini-api/docs/available-regions.","code":"invalid_request"}}
+03:49:11 - WARNING - Dịch AI batch 10 dòng thất bại (ultra_short=False): AI translation HTTP 404: {"error":{"message":"Model 'gemini-1.5-flash' not found. Did you mean 'gemini-2.5-flash'? Please verify the model name against the supported list: https://ai.google.dev/gemini-api/docs/models","code":"not_found"}}
+03:49:11 - WARNING - Model chính gemini-3.1-flash-lite dịch thất bại, chuyển sang fallback gemini-1.5-flash: AI translation HTTP 400: {"error":{"message":"This API is not available in your current location. See https://ai.google.dev/gemini-api/docs/available-regions.","code":"invalid_request"}}
+03:49:11 - WARNING - Dịch AI batch 10 dòng thất bại (ultra_short=True): AI translation HTTP 404: {"error":{"message":"Model 'gemini-1.5-flash' not found. Did you mean 'gemini-3.5-flash'? Please verify the model name against the supported list: https://ai.google.dev/gemini-api/docs/models","code":"not_found"}}
+03:49:12 - WARNING - Model chính gemini-3.1-flash-lite dịch thất bại, chuyển sang fallback gemini-1.5-flash: AI translation HTTP 400: {"error":{"message":"This API is not available in your current location. See https://ai.google.dev/gemini-api/docs/available-regions.","code":"invalid_request"}}
+03:49:12 - WARNING - Dịch AI batch 5 dòng thất bại (ultra_short=False): AI translation HTTP 404: {"error":{"message":"Model 'gemini-1.5-flash' not found. Did you mean 'gemini-2.5-flash'? Please verify the model name against the supported list: https://ai.google.dev/gemini-api/docs/models","code":"not_found"}}
+03:49:12 - WARNING - Model chính gemini-3.1-flash-lite dịch thất bại, chuyển sang fallback gemini-1.5-flash: AI translation HTTP 400: {"error":{"message":"This API is not available in your current location. See https://ai.google.dev/gemini-api/docs/available-regions.","code":"invalid_request"}}
+03:49:12 - WARNING - Dịch AI batch 5 dòng thất bại (ultra_short=True): AI translation HTTP 404: {"error":{"message":"Model 'gemini-1.5-flash' not found. Did you mean 'gemini-2.5-flash'? Please verify the model name against the supported list: https://ai.google.dev/gemini-api/docs/models","code":"not_found"}}
+03:49:13 - WARNING - Model chính gemini-3.1-flash-lite dịch thất bại, chuyển sang fallback gemini-1.5-flash: AI translation HTTP 400: {"error":{"message":"This API is not available in your current location. See https://ai.google.dev/gemini-api/docs/available-regions.","code":"invalid_request"}}
+03:49:13 - WARNING - Dịch AI batch 2 dòng thất bại (ultra_short=False): AI translation HTTP 404: {"error":{"message":"Model 'gemini-1.5-flash' not found. Did you mean 'gemini-2.5-flash'? Please verify the model name against the supported list: https://ai.google.dev/gemini-api/docs/models","code":"not_found"}}
+03:49:13 - WARNING - Model chính gemini-3.1-flash-lite dịch thất bại, chuyển sang fallback gemini-1.5-flash: AI translation HTTP 400: {"error":{"message":"This API is not available in your current location. See https://ai.google.dev/gemini-api/docs/available-regions.","code":"invalid_request"}}
+03:49:14 - WARNING - Dịch AI batch 2 dòng thất bại (ultra_short=True): AI translation HTTP 404: {"error":{"message":"Model 'gemini-1.5-flash' not found. Did you mean 'gemini-2.5-flash'? Please verify the model name against the supported list: https://ai.google.dev/gemini-api/docs/models","code":"not_found"}}
+03:49:14 - WARNING - Model chính gemini-3.1-flash-lite dịch thất bại, chuyển sang fallback gemini-1.5-flash: AI translation HTTP 400: {"error":{"message":"This API is not available in your current location. See https://ai.google.dev/gemini-api/docs/available-regions.","code":"invalid_request"}}
+03:49:14 - WARNING - Dịch AI batch 1 dòng thất bại (ultra_short=False): AI translation HTTP 404: {"error":{"message":"Model 'gemini-1.5-flash' not found. Did you mean 'gemini-2.5-flash'? Please verify the model name against the supported list: https://ai.google.dev/gemini-api/docs/models","code":"not_found"}}
+03:49:15 - WARNING - Model chính gemini-3.1-flash-lite dịch thất bại, chuyển sang fallback gemini-1.5-flash: AI translation HTTP 400: {"error":{"message":"This API is not available in your current location. See https://ai.google.dev/gemini-api/docs/available-regions.","code":"invalid_request"}}
+03:49:15 - WARNING - Dịch AI batch 1 dòng thất bại (ultra_short=True): AI translation HTTP 404: {"error":{"message":"Model 'gemini-1.5-flash' not found. Did you mean 'gemini-2.5-flash'? Please verify the model name against the supported list: https://ai.google.dev/gemini-api/docs/models","code":"not_found"}}
+03:49:15 - WARNING - Dịch AI dòng đơn thất bại hoàn toàn, thử repair dòng đơn: 为什么我去哪里都有人发现我
+03:49:15 - WARNING - Model chính gemini-3.1-flash-lite dịch thất bại, chuyển sang fallback gemini-1.5-flash: AI translation HTTP 400: {"error":{"message":"This API is not available in your current location. See https://ai.google.dev/gemini-api/docs/available-regions.","code":"invalid_request"}}
+03:49:15 - WARNING - Dịch lại dòng đơn thất bại (ultra_short=False): AI translation HTTP 404: {"error":{"message":"Model 'gemini-1.5-flash' not found. Did you mean 'gemini-3.5-flash'? Please verify the model name against the supported list: https://ai.google.dev/gemini-api/docs/models","code":"not_found"}}
+03:49:16 - WARNING - Model chính gemini-3.1-flash-lite dịch thất bại, chuyển sang fallback gemini-1.5-flash: AI translation HTTP 400: {"error":{"message":"This API is not available in your current location. See https://ai.google.dev/gemini-api/docs/available-regions.","code":"invalid_request"}}
+03:49:16 - WARNING - Dịch lại dòng đơn thất bại (ultra_short=True): AI translation HTTP 404: {"error":{"message":"Model 'gemini-1.5-flash' not found. Did you mean 'gemini-3.5-flash'? Please verify the model name against the supported list: https://ai.google.dev/gemini-api/docs/models","code":"not_found"}}
+03:49:16 - WARNING - Repair dòng đơn thất bại, dùng glossary repair cuối cùng: AI repair failed; stop pipeline before Google fallback. Source line: 为什么我去哪里都有人发现我
+03:49:16 - ERROR - AI translation failed; stop pipeline without Google fallback: Dòng đơn vẫn còn ký tự nguồn sau mọi retry: 为什么我去哪里都有人发现我
+03:49:16 - ERROR - Lỗi preprocess video 'C:\Users\nguye\Videos\Phim6\tap8.mp4': Dòng đơn vẫn còn ký tự nguồn sau mọi retry: 为什么我去哪里都有人发现我
+03:49:16 - INFO - Giải phóng buffer 00000000000 từ item lỗi 'C:\Users\nguye\Videos\Phim6\tap8.mp4' để cấp phát cho 'C:\Users\nguye\Videos\Phim6\tap9.mp4'...
+03:49:16 - INFO - Khôi phục dự án từ backup 00000000000_backup sang buffer 00000000000...
+03:49:16 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 00000000000: C:\Users\nguye\Videos\Phim6\tap9.mp4
+03:49:16 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim6\tap9.mp4 ===
+03:49:16 - INFO - Chạy pipeline ngầm để tạo draft '00000000000'...
+03:49:16 - INFO - Preprocess Step 1 needs CapCut file access; waiting for GUI lock before save-draft patch...
+03:49:16 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+03:49:19 - INFO - Received save draft request: draft_id=00000000000, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
+03:49:19 - INFO - Task 00000000000 has been created.
+03:49:19 - INFO - Successfully retrieved draft 00000000000 from cache.
+03:49:19 - INFO - Task 00000000000 status updated to 'processing': Preparing draft files.
+03:49:19 - WARNING - Deleting existing draft folder (current working directory): 00000000000
+03:49:19 - INFO - Starting to save draft: 00000000000
+03:49:19 - INFO - Found registered draft_id '3D08E8DD-C0CD-4d71-B5AA-CD868B1B6C83' for folder '00000000000' in root_meta_info.json
+03:49:19 - INFO - Updated draft_meta_info.json for 00000000000 with draft_id=3D08E8DD-C0CD-4d71-B5AA-CD868B1B6C83
+03:49:19 - INFO - Task 00000000000 progress 5%: Updating media file metadata.
+03:49:19 - INFO - No audio files found in the draft.
+03:49:19 - INFO - Successfully set video video_6c97012c63c4f20e.mp4 dimensions: 2560x1440.
+03:49:19 - INFO - Successfully obtained video video_6c97012c63c4f20e.mp4 duration: 307.67 seconds (307666667 microseconds).
+03:49:19 - INFO - Adjusted video segment 83fbbf9701b9456ba5eab1aecc68c3c5 timerange to fit the new video duration.
+03:49:19 - INFO - Checking track segment time range conflicts...
+03:49:19 - INFO - Updated script total duration to: 384583333 microseconds.
+03:49:19 - INFO - Processing pending keyframes...
+03:49:19 - INFO - Task 00000000000 progress 10%: Collected 1 download tasks in total.
+03:49:19 - INFO - Starting concurrent download of 1 files...
+03:49:19 - INFO - Task 00000000000: Successfully downloaded video file, progress 70.
+03:49:19 - INFO - Task 00000000000: Concurrent download completed, downloaded 1 files in total.
+03:49:19 - INFO - Task 00000000000 progress 70%: Saving draft information.
+03:49:19 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\00000000000\draft_info.json.
+03:49:19 - INFO - Task 00000000000 completed, draft URL: 
+03:49:24 - INFO - Đã tự phát hiện vùng hardsub từ 6/10 frame: {'enabled': True, 'x': 0, 'y': 1244, 'w': 2560, 'h': 142, 'radius': 24, 'detected_frames': 6, 'sampled_frames': 10}
+03:49:24 - INFO - Đang render video đã làm chậm thật bằng ffmpeg: speed=0.8, output=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\assets\video\video_2f31346c6d5151b1bd8b20186063909e_preprocessed.mp4
+03:49:24 - INFO - FFmpeg video encoder: -c:v h264_nvenc -preset p4 -cq 23 -b:v 0 -pix_fmt yuv420p
+03:50:38 - INFO - Đã patch video track vào draft: files=3, source_duration=384583333, target_duration=384583333, speed=0.8, asset=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\assets\video\video_2f31346c6d5151b1bd8b20186063909e_preprocessed.mp4
+03:50:38 - INFO - Auto-detect canvas từ video gốc: 2560x1440 -> ratio=16:9
+03:50:38 - INFO - Đã chỉnh canvas 16:9 (2560x1440) trên 2 file draft.
+03:50:38 - INFO - Đã bật mirror ngang video trên 2 segment / 2 file draft.
+03:50:38 - INFO - Đã khóa 4 track/segment (effect, video) trên 2 file draft.
+03:50:38 - INFO - Đã mở khóa 0 track/segment (text, audio) trên 0 file draft.
+03:50:38 - INFO - Dùng local Whisper nên chưa mở CapCut ở bước 2. Sẽ mở sau khi dịch/patch xong.
+03:50:38 - INFO - Chạy local faster-whisper GPU để tạo phụ đề: draft=00000000000, language=zh, video=C:\Users\nguye\Videos\Phim6\tap9.mp4
+03:50:38 - INFO - Whisper local: Đang trích audio đã làm chậm speed=0.8 trước khi Whisper...
+03:50:38 - INFO - Whisper local: Đang chạy Whisper local cho audio/video: C:\Users\nguye\AppData\Local\Temp\tmprmuwjp1f.wav
+03:50:47 - INFO - Whisper local: Whisper hoàn thành: 158 dòng, language=zh, duration=384.65s.
+03:50:47 - INFO - Đã patch phụ đề Whisper local vào draft: segments=158, added_texts=158, srt=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\whisper_zh.srt
+03:50:47 - INFO - CapCut chưa được mở trong luồng Whisper local, patch draft trực tiếp.
+03:50:47 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\draft_info.json để dịch và cập nhật font/màu sắc...
+03:50:47 - INFO - Đang dùng AI lấy video_context và asr_text từ 158 dòng phụ đề...
+03:50:51 - INFO - AI context extracted successfully: Context: 视频以幽默夸张的口吻讲述了一段游戏内的纷争与荒诞的冲突。主要角色雷斯（拥有“小金杯”）与伙伴遭遇敌对势力的勒索，在矛盾升级时，雷斯利用“阑尾炎”作为借口进行战术周旋。整体风格偏向整蛊、恶搞，对话充斥着 | Terms: {"小金杯": "Cúp vàng", "塞伊德": "Said", "银翼": "Ngân Dực", "麦小文": "Mạch Tiểu Văn", "威龙": "Uy Long", "阿萨拉":
+03:50:51 - INFO - Đang dịch 146/158 dòng phụ đề tiếng Trung chưa có cache (dùng lại cache 12 dòng) sang tiếng Việt...
+03:50:51 - INFO - Dịch AI bằng gemini model gemini-3.1-flash-lite theo batch 20 dòng...
+03:50:54 - INFO - Dịch AI batch 1: OK (20/20)
+03:50:58 - INFO - Dịch AI batch 2: OK (20/20)
+03:51:01 - INFO - Dịch AI batch 3: OK (20/20)
+03:51:04 - INFO - Dịch AI batch 4: OK (20/20)
+03:51:08 - INFO - Dịch AI batch 5: OK (20/20)
+03:51:11 - INFO - Dịch AI batch 6: OK (20/20)
+03:51:15 - INFO - Dịch AI batch 7: OK (20/20)
+03:51:19 - INFO - Dịch AI batch 8: OK (6/6)
+03:51:19 - INFO - Mẫu dịch: '搖晃的红酒杯' -> 'Ly rượu vang lắc lư'
+03:51:19 - INFO - Mẫu dịch: '嘴唇上染着鲜血' -> 'Môi nhuốm đầy máu tươi'
+03:51:19 - INFO - Mẫu dịch: '我去阿萨拉小兵有小鸡杯' -> 'Tới Asara, lính có Cúp vàng kìa'
+03:51:19 - INFO - Đã dịch 158/158 dòng phụ đề, đồng bộ 0 subtitle cache và định dạng màu vàng cỡ chữ 5 thành công.
+03:51:19 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\template-2.tmp để dịch và cập nhật font/màu sắc...
+03:51:19 - WARNING - Không tìm thấy phụ đề nào trong bản nháp.
+03:51:19 - INFO - Đã patch phụ đề trên 1/2 file draft/timeline.
+03:51:19 - INFO - Đang chỉnh âm lượng track video về -20.5 dB (0.0944)...
+03:51:19 - INFO - Đã chỉnh âm lượng 2 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\draft_info.json.
+03:51:19 - INFO - Đã chỉnh âm lượng 1 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\template-2.tmp.
+03:51:19 - INFO - Đã chỉnh âm lượng tổng 3 đoạn trên 2 file về -20.5 dB.
+03:51:19 - INFO - Đã khóa 2 track/segment (effect, video) trên 1 file draft.
+03:51:20 - INFO - Đợi 1 giây sau khi patch âm lượng trước khi mở lại CapCut...
+03:51:21 - INFO - Đang kiểm tra và khởi động CapCut...
+03:51:21 - INFO - Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...
+03:51:21 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+03:51:25 - INFO - Khởi chạy CapCut từ shortcut: C:\Users\nguye\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\CapCut\CapCut.lnk
+03:51:29 - INFO - Đang kết nối với cửa sổ CapCut...
+03:51:32 - INFO - Đã kết nối thành công tới cửa sổ CapCut (Trạng thái: home)
+03:51:32 - INFO - Opening CapCut project '00000000000'...
+03:51:41 - INFO - Đang dùng ảnh project_title_marker.png để mở dự án, click lên trên 1.0cm ở giữa ảnh...
+03:51:42 - INFO - Đã thấy template project marker score=1.0000 và click tại (2210, 605).
+03:51:42 - INFO - Clicked project marker. Continue workflow.
+03:51:42 - INFO - Trước TTS: audio_segments=0, audio_materials=0.
+03:51:42 - INFO - Chạy TTS lần 1/3...
+03:51:42 - INFO - Chạy workflow nhận diện ảnh: Text to speech (rpa_tts.sample.json) lần 1/4
+03:51:42 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_tts.sample.json
+03:52:14 - WARNING - Workflow ảnh Text to speech lỗi lần 1/4: TimeoutError: template not found above threshold 0.68: C:\Users\nguye\Projects\CapCutAPI\rpa_templates\tts_button.png, last score=0.5275
+03:52:15 - INFO - Đã lưu ảnh debug workflow lỗi: C:\Users\nguye\Projects\CapCutAPI\debug_rpa_tts.sample_attempt_1.png
+03:52:15 - INFO - Đợi 5s rồi nhận diện lại workflow Text to speech...
+03:52:20 - INFO - Chạy workflow nhận diện ảnh: Text to speech (rpa_tts.sample.json) lần 2/4
+03:52:20 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_tts.sample.json
+03:54:04 - INFO - run_workflow hoàn tất: rpa_tts.sample.json
+03:54:04 - INFO - RPA step 1: select_all_timeline
+03:54:04 - INFO - RPA step 2: clicked tts_button.png score=1.0000 at (1531, 57)
+03:54:04 - INFO - RPA step 3: clicked voice_star_button.png score=1.0000 at (1375, 146)
+03:54:04 - INFO - RPA step 4: sleep 1.0s
+03:54:04 - INFO - RPA step 5: clicked child_voice.png score=1.0000 at (1389, 223)
+03:54:04 - INFO - RPA step 6: clicked generate_speech_button.png score=1.0000 at (1847, 547)
+03:54:04 - INFO - RPA step 7: sleep 5.0s
+03:54:04 - INFO - RPA step 8: wait
+03:54:04 - INFO - {"ok": true, "steps": [{"action": "select_all_timeline", "window": "CapCut", "window_rect": [-8, -8, 1928, 1040], "x": 960, "y": 890, "click_x_ratio": 0.5, "click_y_from_bottom": 150, "dry_run": false, "step": 1}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\tts_button.png", "score": 0.9999998807907104, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1531, "y": 57, "dry_run": false, "step": 2}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\voice_star_button.png", "score": 0.9999992847442627, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1375, "y": 146, "dry_run": false, "step": 3}, {"action": "sleep", "seconds": 1.0, "dry_run": false, "step": 4}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\child_voice.png", "score": 0.999993622303009, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1389, "y": 223, "dry_run": false, "step": 5}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\generate_speech_button.png", "score": 0.9999988675117493, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.65], "x": 1847, "y": 547, "dry_run": false, "step": 6}, {"action": "sleep", "seconds": 5.0, "dry_run": false, "step": 7}, {"action": "wait", "mode": "gone", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\generating_speech.png", "threshold": 0.82, "score": 0.40414878726005554, "elapsed": 92.911, "dry_run": false, "require_seen": false, "seen_once": true, "step": 8}]}
+03:54:04 - INFO - Kiểm tra audio TTS: audio_segments=632, audio_materials=158, files=5.
+03:54:04 - INFO - Đã xác nhận draft có audio TTS mới.
+03:54:04 - INFO - Đóng CapCut để flush draft sau khi xác nhận TTS...
+03:54:04 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+03:54:07 - INFO - Đang tăng tốc độ audio TTS lên 1.17 trên tất cả file draft/timeline...
+03:54:07 - INFO - Theo dõi file export trong các thư mục: C:\Users\nguye\Videos
+03:54:07 - INFO - Đang kiểm tra và khởi động CapCut...
+03:54:08 - INFO - Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...
+03:54:08 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+03:54:11 - INFO - Khởi chạy CapCut từ shortcut: C:\Users\nguye\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\CapCut\CapCut.lnk
+03:54:15 - INFO - Đang kết nối với cửa sổ CapCut...
+03:54:19 - INFO - Đã kết nối thành công tới cửa sổ CapCut (Trạng thái: home)
+03:54:19 - INFO - Opening CapCut project '00000000000'...
+03:54:27 - INFO - Đang dùng ảnh project_title_marker.png để mở dự án, click lên trên 1.0cm ở giữa ảnh...
+03:54:27 - INFO - Đã thấy template project marker score=1.0000 và click tại (290, 605).
+03:54:27 - INFO - Clicked project marker. Continue workflow.
+03:54:27 - INFO - Chạy workflow nhận diện ảnh: Export (rpa_export.sample.json) lần 1/1
+03:54:27 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_export.sample.json
+03:55:13 - INFO - run_workflow hoàn tất: rpa_export.sample.json
+03:55:13 - INFO - RPA step 1: clicked export_button.png score=1.0000 at (1770, 19)
+03:55:13 - INFO - RPA step 2: sleep 1.5s
+03:55:13 - INFO - RPA step 3: clicked export_confirm_button.png score=1.0000 at (1188, 821)
+03:55:13 - INFO - RPA step 4: wait
+03:55:13 - INFO - {"ok": true, "steps": [{"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\export_button.png", "score": 0.9999992251396179, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1770, "y": 19, "dry_run": false, "step": 1}, {"action": "sleep", "seconds": 1.5, "dry_run": false, "step": 2}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\export_confirm_button.png", "score": 0.9999992251396179, "window": "CapCut", "search_region": [0.55, 0.7, 0.66, 0.82], "x": 1188, "y": 821, "dry_run": false, "step": 3}, {"action": "wait", "mode": "gone", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\exporting.png", "threshold": 0.82, "score": 0.571808397769928, "elapsed": 40.315, "dry_run": false, "require_seen": true, "seen_once": true, "step": 4}]}
+03:55:13 - INFO - Đóng CapCut để nhả file export trước khi đổi tên và chuyển thư mục...
+03:55:13 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+03:55:22 - INFO - File export mới phát hiện: c:\users\nguye\videos\00000000000(1).mp4 (477347218 bytes). Đích yêu cầu: C:\Users\nguye\Videos\Phim6\tap9_vi.mp4
+03:55:22 - INFO - Đã chuyển file export về folder video gốc: C:\Users\nguye\Videos\Phim6\tap9_vi.mp4 (477347218 bytes)
+03:55:22 - INFO - === ĐÃ XỬ LÝ XONG: tap9.mp4 ===
+03:55:25 - INFO - Khôi phục dự án từ backup 00000000000_backup sang buffer 00000000000...
+03:55:25 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 00000000000: C:\Users\nguye\Videos\Phim6\tap8.mp4
+03:55:25 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim6\tap8.mp4 ===
+03:55:25 - INFO - Chạy pipeline ngầm để tạo draft '00000000000'...
+03:55:25 - INFO - Preprocess Step 1 needs CapCut file access; waiting for GUI lock before save-draft patch...
+03:55:25 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+03:55:28 - INFO - Received save draft request: draft_id=00000000000, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
+03:55:28 - INFO - Task 00000000000 has been created.
+03:55:28 - INFO - Successfully retrieved draft 00000000000 from cache.
+03:55:28 - INFO - Task 00000000000 status updated to 'processing': Preparing draft files.
+03:55:28 - WARNING - Deleting existing draft folder (current working directory): 00000000000
+03:55:28 - INFO - Starting to save draft: 00000000000
+03:55:28 - INFO - Found registered draft_id '3D08E8DD-C0CD-4d71-B5AA-CD868B1B6C83' for folder '00000000000' in root_meta_info.json
+03:55:28 - INFO - Updated draft_meta_info.json for 00000000000 with draft_id=3D08E8DD-C0CD-4d71-B5AA-CD868B1B6C83
+03:55:28 - INFO - Task 00000000000 progress 5%: Updating media file metadata.
+03:55:28 - INFO - No audio files found in the draft.
+03:55:28 - INFO - Successfully set video video_ff91e4b7df4318c8.mp4 dimensions: 2560x1440.
+03:55:28 - INFO - Successfully obtained video video_ff91e4b7df4318c8.mp4 duration: 319.18 seconds (319183333 microseconds).
+03:55:28 - INFO - Adjusted video segment fcf24d509d4b4a3dad2a1f965a8f8e1e timerange to fit the new video duration.
+03:55:28 - INFO - Checking track segment time range conflicts...
+03:55:28 - INFO - Updated script total duration to: 398979166 microseconds.
+03:55:28 - INFO - Processing pending keyframes...
+03:55:28 - INFO - Task 00000000000 progress 10%: Collected 1 download tasks in total.
+03:55:28 - INFO - Starting concurrent download of 1 files...
+03:55:28 - INFO - Task 00000000000: Successfully downloaded video file, progress 70.
+03:55:28 - INFO - Task 00000000000: Concurrent download completed, downloaded 1 files in total.
+03:55:28 - INFO - Task 00000000000 progress 70%: Saving draft information.
+03:55:28 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\00000000000\draft_info.json.
+03:55:28 - INFO - Task 00000000000 completed, draft URL: 
+03:55:32 - INFO - Đã tự phát hiện vùng hardsub từ 6/10 frame: {'enabled': True, 'x': 0, 'y': 1332, 'w': 2560, 'h': 54, 'radius': 24, 'detected_frames': 6, 'sampled_frames': 10}
+03:55:32 - INFO - Đang render video đã làm chậm thật bằng ffmpeg: speed=0.8, output=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\assets\video\video_c86f4668f285569aa68165246b1cc9af_preprocessed.mp4
+03:55:32 - INFO - FFmpeg video encoder: -c:v h264_nvenc -preset p4 -cq 23 -b:v 0 -pix_fmt yuv420p
+03:56:49 - INFO - Đã patch video track vào draft: files=3, source_duration=398983333, target_duration=398983333, speed=0.8, asset=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\assets\video\video_c86f4668f285569aa68165246b1cc9af_preprocessed.mp4
+03:56:49 - INFO - Auto-detect canvas từ video gốc: 2560x1440 -> ratio=16:9
+03:56:49 - INFO - Đã chỉnh canvas 16:9 (2560x1440) trên 2 file draft.
+03:56:49 - INFO - Đã bật mirror ngang video trên 2 segment / 2 file draft.
+03:56:49 - INFO - Đã khóa 4 track/segment (effect, video) trên 2 file draft.
+03:56:49 - INFO - Đã mở khóa 0 track/segment (text, audio) trên 0 file draft.
+03:56:49 - INFO - Dùng local Whisper nên chưa mở CapCut ở bước 2. Sẽ mở sau khi dịch/patch xong.
+03:56:49 - INFO - Chạy local faster-whisper GPU để tạo phụ đề: draft=00000000000, language=zh, video=C:\Users\nguye\Videos\Phim6\tap8.mp4
+03:56:49 - INFO - Whisper local: Đang trích audio đã làm chậm speed=0.8 trước khi Whisper...
+03:56:49 - INFO - Whisper local: Đang chạy Whisper local cho audio/video: C:\Users\nguye\AppData\Local\Temp\tmppfjc99jn.wav
+03:56:54 - INFO - Whisper local: Whisper hoàn thành: 66 dòng, language=zh, duration=399.04s.
+03:56:54 - INFO - Đã patch phụ đề Whisper local vào draft: segments=66, added_texts=66, srt=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\whisper_zh.srt
+03:56:54 - INFO - CapCut chưa được mở trong luồng Whisper local, patch draft trực tiếp.
+03:56:54 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\draft_info.json để dịch và cập nhật font/màu sắc...
+03:56:54 - INFO - Đang dùng AI lấy video_context và asr_text từ 66 dòng phụ đề...
+03:56:58 - INFO - AI context extracted successfully: Context: 视频为一部动作短片，讲述了一对师徒在执行任务过程中遭遇黑帮势力的围困，随后在水烟大坝面临生死抉择。师父为了阻止大坝爆炸后的灾难，决定牺牲自己，通过肉体导电关闭闸门，并将守护的意志传承给徒弟“无名”。视 | Terms: {"师父": "Sư phụ", "无名": "Vô Danh", "水烟大坝": "Đập Shuiyan", "零号大坝": "Đập Số 0", "赛伊德": "Said"}
+03:56:58 - INFO - Đang dịch 63/66 dòng phụ đề tiếng Trung chưa có cache (dùng lại cache 3 dòng) sang tiếng Việt...
+03:56:58 - INFO - Dịch AI bằng gemini model gemini-3.1-flash-lite theo batch 20 dòng...
+03:57:01 - INFO - Dịch AI batch 1: OK (20/20)
+03:57:05 - INFO - Dịch AI batch 2: OK (20/20)
+03:57:08 - INFO - Dịch AI batch 3: OK (20/20)
+03:57:12 - INFO - Dịch AI batch 4: OK (3/3)
+03:57:12 - INFO - Mẫu dịch: '为什么我去哪里都有人发现我' -> 'Sao đi đâu cũng có người thấy ta vậy'
+03:57:12 - INFO - Mẫu dịch: '走' -> 'Đi thôi'
+03:57:12 - INFO - Mẫu dịch: '赶紧把你手里这破玩意儿扔了' -> 'Mau vứt cái thứ vớ vẩn trên tay ngươi đi'
+03:57:12 - INFO - Đã dịch 66/66 dòng phụ đề, đồng bộ 0 subtitle cache và định dạng màu vàng cỡ chữ 5 thành công.
+03:57:12 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\template-2.tmp để dịch và cập nhật font/màu sắc...
+03:57:12 - WARNING - Không tìm thấy phụ đề nào trong bản nháp.
+03:57:12 - INFO - Đã patch phụ đề trên 1/2 file draft/timeline.
+03:57:12 - INFO - Đang chỉnh âm lượng track video về -20.5 dB (0.0944)...
+03:57:12 - INFO - Đã chỉnh âm lượng 2 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\draft_info.json.
+03:57:12 - INFO - Đã chỉnh âm lượng 1 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\template-2.tmp.
+03:57:12 - INFO - Đã chỉnh âm lượng tổng 3 đoạn trên 2 file về -20.5 dB.
+03:57:12 - INFO - Đã khóa 2 track/segment (effect, video) trên 1 file draft.
+03:57:13 - INFO - Đợi 1 giây sau khi patch âm lượng trước khi mở lại CapCut...
+03:57:14 - INFO - Đang kiểm tra và khởi động CapCut...
+03:57:14 - INFO - Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...
+03:57:14 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+03:57:17 - INFO - Khởi chạy CapCut từ shortcut: C:\Users\nguye\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\CapCut\CapCut.lnk
+03:57:21 - INFO - Đang kết nối với cửa sổ CapCut...
+03:57:24 - INFO - Đã kết nối thành công tới cửa sổ CapCut (Trạng thái: home)
+03:57:24 - INFO - Opening CapCut project '00000000000'...
+03:57:32 - INFO - Đang dùng ảnh project_title_marker.png để mở dự án, click lên trên 1.0cm ở giữa ảnh...
+03:57:32 - INFO - Đã thấy template project marker score=1.0000 và click tại (2210, 605).
+03:57:32 - INFO - Clicked project marker. Continue workflow.
+03:57:32 - INFO - Trước TTS: audio_segments=0, audio_materials=0.
+03:57:33 - INFO - Chạy TTS lần 1/3...
+03:57:33 - INFO - Chạy workflow nhận diện ảnh: Text to speech (rpa_tts.sample.json) lần 1/4
+03:57:33 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_tts.sample.json
+03:58:38 - INFO - run_workflow hoàn tất: rpa_tts.sample.json
+03:58:38 - INFO - RPA step 1: select_all_timeline
+03:58:38 - INFO - RPA step 2: clicked tts_button.png score=1.0000 at (1531, 57)
+03:58:38 - INFO - RPA step 3: clicked voice_star_button.png score=1.0000 at (1375, 146)
+03:58:38 - INFO - RPA step 4: sleep 1.0s
+03:58:38 - INFO - RPA step 5: clicked child_voice.png score=1.0000 at (1389, 223)
+03:58:38 - INFO - RPA step 6: clicked generate_speech_button.png score=1.0000 at (1847, 547)
+03:58:38 - INFO - RPA step 7: sleep 5.0s
+03:58:38 - INFO - RPA step 8: wait
+03:58:38 - INFO - {"ok": true, "steps": [{"action": "select_all_timeline", "window": "CapCut", "window_rect": [-8, -8, 1928, 1040], "x": 960, "y": 890, "click_x_ratio": 0.5, "click_y_from_bottom": 150, "dry_run": false, "step": 1}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\tts_button.png", "score": 1.0, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1531, "y": 57, "dry_run": false, "step": 2}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\voice_star_button.png", "score": 0.9999997615814209, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1375, "y": 146, "dry_run": false, "step": 3}, {"action": "sleep", "seconds": 1.0, "dry_run": false, "step": 4}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\child_voice.png", "score": 0.999993622303009, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1389, "y": 223, "dry_run": false, "step": 5}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\generate_speech_button.png", "score": 0.9999988675117493, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.65], "x": 1847, "y": 547, "dry_run": false, "step": 6}, {"action": "sleep", "seconds": 5.0, "dry_run": false, "step": 7}, {"action": "wait", "mode": "gone", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\generating_speech.png", "threshold": 0.82, "score": 0.40414878726005554, "elapsed": 53.555, "dry_run": false, "require_seen": false, "seen_once": true, "step": 8}]}
+03:58:38 - INFO - Kiểm tra audio TTS: audio_segments=264, audio_materials=66, files=5.
+03:58:38 - INFO - Đã xác nhận draft có audio TTS mới.
+03:58:38 - INFO - Đóng CapCut để flush draft sau khi xác nhận TTS...
+03:58:38 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+03:58:42 - INFO - Đang tăng tốc độ audio TTS lên 1.17 trên tất cả file draft/timeline...
+03:58:42 - INFO - Theo dõi file export trong các thư mục: C:\Users\nguye\Videos
+03:58:42 - INFO - Đang kiểm tra và khởi động CapCut...
+03:58:42 - INFO - Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...
+03:58:42 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+03:58:46 - INFO - Khởi chạy CapCut từ shortcut: C:\Users\nguye\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\CapCut\CapCut.lnk
+03:58:48 - INFO - Đang kết nối với cửa sổ CapCut...
+03:58:51 - INFO - Đã kết nối thành công tới cửa sổ CapCut (Trạng thái: home)
+03:58:51 - INFO - Opening CapCut project '00000000000'...
+03:58:59 - INFO - Đang dùng ảnh project_title_marker.png để mở dự án, click lên trên 1.0cm ở giữa ảnh...
+03:59:00 - INFO - Đã thấy template project marker score=1.0000 và click tại (2210, 605).
+03:59:00 - INFO - Clicked project marker. Continue workflow.
+03:59:00 - INFO - Chạy workflow nhận diện ảnh: Export (rpa_export.sample.json) lần 1/1
+03:59:00 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_export.sample.json
+03:59:23 - INFO - run_workflow hoàn tất: rpa_export.sample.json
+03:59:23 - INFO - RPA step 1: clicked export_button.png score=1.0000 at (1770, 19)
+03:59:23 - INFO - RPA step 2: sleep 1.5s
+03:59:23 - INFO - RPA step 3: clicked export_confirm_button.png score=1.0000 at (1188, 821)
+03:59:23 - INFO - RPA step 4: wait
+03:59:23 - INFO - {"ok": true, "steps": [{"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\export_button.png", "score": 0.9999997019767761, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1770, "y": 19, "dry_run": false, "step": 1}, {"action": "sleep", "seconds": 1.5, "dry_run": false, "step": 2}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\export_confirm_button.png", "score": 0.9999991655349731, "window": "CapCut", "search_region": [0.55, 0.7, 0.66, 0.82], "x": 1188, "y": 821, "dry_run": false, "step": 3}, {"action": "wait", "mode": "gone", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\exporting.png", "threshold": 0.82, "score": 0.32985568046569824, "elapsed": 17.043, "dry_run": false, "require_seen": true, "seen_once": true, "step": 4}]}
+03:59:23 - INFO - Đóng CapCut để nhả file export trước khi đổi tên và chuyển thư mục...
+03:59:23 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:02:27 - WARNING - Không tìm thấy file video export mới để chuyển về folder video gốc.
+04:02:27 - INFO - === ĐÃ XỬ LÝ XONG: tap8.mp4 ===
+04:02:30 - INFO - Khôi phục dự án từ backup 00000000000_backup sang buffer 00000000000...
+04:02:30 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 00000000000: C:\Users\nguye\Videos\Phim6\tap10.mp4
+04:02:30 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim6\tap10.mp4 ===
+04:02:30 - INFO - Chạy pipeline ngầm để tạo draft '00000000000'...
+04:02:30 - INFO - Preprocess Step 1 needs CapCut file access; waiting for GUI lock before save-draft patch...
+04:02:30 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:02:33 - INFO - Received save draft request: draft_id=00000000000, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
+04:02:33 - INFO - Task 00000000000 has been created.
+04:02:33 - INFO - Successfully retrieved draft 00000000000 from cache.
+04:02:33 - INFO - Task 00000000000 status updated to 'processing': Preparing draft files.
+04:02:33 - WARNING - Deleting existing draft folder (current working directory): 00000000000
+04:02:33 - INFO - Starting to save draft: 00000000000
+04:02:33 - INFO - Found registered draft_id '3D08E8DD-C0CD-4d71-B5AA-CD868B1B6C83' for folder '00000000000' in root_meta_info.json
+04:02:33 - INFO - Updated draft_meta_info.json for 00000000000 with draft_id=3D08E8DD-C0CD-4d71-B5AA-CD868B1B6C83
+04:02:33 - INFO - Task 00000000000 progress 5%: Updating media file metadata.
+04:02:33 - INFO - No audio files found in the draft.
+04:02:33 - INFO - Successfully set video video_ca4d71eb716fe16e.mp4 dimensions: 2560x1440.
+04:02:33 - INFO - Successfully obtained video video_ca4d71eb716fe16e.mp4 duration: 474.13 seconds (474133333 microseconds).
+04:02:33 - INFO - Adjusted video segment f79dad3f88d542f38016bcdc5b051265 timerange to fit the new video duration.
+04:02:33 - INFO - Checking track segment time range conflicts...
+04:02:33 - INFO - Updated script total duration to: 592666666 microseconds.
+04:02:33 - INFO - Processing pending keyframes...
+04:02:33 - INFO - Task 00000000000 progress 10%: Collected 1 download tasks in total.
+04:02:33 - INFO - Starting concurrent download of 1 files...
+04:02:33 - INFO - Task 00000000000: Successfully downloaded video file, progress 70.
+04:02:33 - INFO - Task 00000000000: Concurrent download completed, downloaded 1 files in total.
+04:02:33 - INFO - Task 00000000000 progress 70%: Saving draft information.
+04:02:33 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\00000000000\draft_info.json.
+04:02:33 - INFO - Task 00000000000 completed, draft URL: 
+04:02:38 - INFO - Đã tự phát hiện vùng hardsub từ 4/10 frame: {'enabled': True, 'x': 0, 'y': 1191, 'w': 2560, 'h': 178, 'radius': 24, 'detected_frames': 4, 'sampled_frames': 10}
+04:02:38 - INFO - Đang render video đã làm chậm thật bằng ffmpeg: speed=0.8, output=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\assets\video\video_155c24eb08e55da2985f1f79b8986606_preprocessed.mp4
+04:02:38 - INFO - FFmpeg video encoder: -c:v h264_nvenc -preset p4 -cq 23 -b:v 0 -pix_fmt yuv420p
+04:04:32 - INFO - Đã patch video track vào draft: files=3, source_duration=592666667, target_duration=592666667, speed=0.8, asset=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\assets\video\video_155c24eb08e55da2985f1f79b8986606_preprocessed.mp4
+04:04:32 - INFO - Auto-detect canvas từ video gốc: 2560x1440 -> ratio=16:9
+04:04:32 - INFO - Đã chỉnh canvas 16:9 (2560x1440) trên 2 file draft.
+04:04:32 - INFO - Đã bật mirror ngang video trên 2 segment / 2 file draft.
+04:04:32 - INFO - Đã khóa 4 track/segment (effect, video) trên 2 file draft.
+04:04:32 - INFO - Đã mở khóa 0 track/segment (text, audio) trên 0 file draft.
+04:04:32 - INFO - Dùng local Whisper nên chưa mở CapCut ở bước 2. Sẽ mở sau khi dịch/patch xong.
+04:04:32 - INFO - Chạy local faster-whisper GPU để tạo phụ đề: draft=00000000000, language=zh, video=C:\Users\nguye\Videos\Phim6\tap10.mp4
+04:04:32 - INFO - Whisper local: Đang trích audio đã làm chậm speed=0.8 trước khi Whisper...
+04:04:32 - INFO - Whisper local: Đang chạy Whisper local cho audio/video: C:\Users\nguye\AppData\Local\Temp\tmpmigrxhku.wav
+04:04:43 - INFO - Whisper local: Whisper hoàn thành: 180 dòng, language=zh, duration=592.72s.
+04:04:43 - INFO - Đã patch phụ đề Whisper local vào draft: segments=180, added_texts=180, srt=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\whisper_zh.srt
+04:04:43 - INFO - CapCut chưa được mở trong luồng Whisper local, patch draft trực tiếp.
+04:04:43 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\draft_info.json để dịch và cập nhật font/màu sắc...
+04:04:43 - INFO - Đang dùng AI lấy video_context và asr_text từ 180 dòng phụ đề...
+04:04:47 - INFO - AI context extracted successfully: Context: 视频以《暗区突围》为背景，讲述了反派角色“蕾丝”以残忍著称，与另一方势力领袖“赛伊德”之间的冲突。视频中蕾丝不断挑衅对手，最终引发了赛伊德及其部下与蕾丝及其势力在长弓溪谷、零号大坝等地的激烈交火。整体 | Terms: {"蕾丝": "Leisi", "赛伊德": "Sayid", "长弓溪谷": "Thung lũng Changgong", "零号大坝": "Đập số 0", "阿萨拉": "Asara", 
+04:04:47 - INFO - Đang dịch 171/180 dòng phụ đề tiếng Trung chưa có cache (dùng lại cache 9 dòng) sang tiếng Việt...
+04:04:47 - INFO - Dịch AI bằng gemini model gemini-3.1-flash-lite theo batch 20 dòng...
+04:04:50 - INFO - Dịch AI batch 1: OK (20/20)
+04:04:53 - INFO - Dịch AI batch 2: OK (20/20)
+04:04:57 - INFO - Dịch AI batch 3: OK (20/20)
+04:05:01 - INFO - Dịch AI batch 4: OK (20/20)
+04:05:05 - INFO - Dịch AI batch 5: OK (20/20)
+04:05:08 - INFO - Dịch AI batch 6: OK (20/20)
+04:05:11 - INFO - Dịch AI batch 7: OK (20/20)
+04:05:15 - INFO - Dịch AI batch 8: OK (20/20)
+04:05:18 - INFO - Dịch AI batch 9: OK (11/11)
+04:05:18 - INFO - Mẫu dịch: '蕾丝正宗狗军阀' -> 'Leisi là tên trùm quân phiệt'
+04:05:18 - INFO - Mẫu dịch: '军阀' -> 'Quân phiệt'
+04:05:18 - INFO - Mẫu dịch: '蕾丝不是狗军阀吗' -> 'Leisi chẳng phải quân phiệt sao'
+04:05:18 - INFO - Đã dịch 180/180 dòng phụ đề, đồng bộ 0 subtitle cache và định dạng màu vàng cỡ chữ 5 thành công.
+04:05:18 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\template-2.tmp để dịch và cập nhật font/màu sắc...
+04:05:18 - WARNING - Không tìm thấy phụ đề nào trong bản nháp.
+04:05:18 - INFO - Đã patch phụ đề trên 1/2 file draft/timeline.
+04:05:18 - INFO - Đang chỉnh âm lượng track video về -20.5 dB (0.0944)...
+04:05:18 - INFO - Đã chỉnh âm lượng 2 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\draft_info.json.
+04:05:18 - INFO - Đã chỉnh âm lượng 1 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\template-2.tmp.
+04:05:18 - INFO - Đã chỉnh âm lượng tổng 3 đoạn trên 2 file về -20.5 dB.
+04:05:18 - INFO - Đã khóa 2 track/segment (effect, video) trên 1 file draft.
+04:05:18 - INFO - Khôi phục dự án từ backup 00000000000_backup sang buffer 111111111111111111...
+04:05:18 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 111111111111111111: C:\Users\nguye\Videos\Phim6\tap11.mp4
+04:05:18 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim6\tap11.mp4 ===
+04:05:18 - INFO - Chạy pipeline ngầm để tạo draft '111111111111111111'...
+04:05:18 - INFO - Preprocess Step 1 needs CapCut file access; waiting for GUI lock before save-draft patch...
+04:05:18 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:05:21 - INFO - Received save draft request: draft_id=111111111111111111, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
+04:05:21 - INFO - Task 111111111111111111 has been created.
+04:05:21 - INFO - Successfully retrieved draft 111111111111111111 from cache.
+04:05:21 - INFO - Task 111111111111111111 status updated to 'processing': Preparing draft files.
+04:05:21 - WARNING - Deleting existing draft folder (current working directory): 111111111111111111
+04:05:21 - INFO - Starting to save draft: 111111111111111111
+04:05:21 - INFO - Found registered draft_id 'BA2B6229-A530-4f0c-A8BC-00C4BA081322' for folder '111111111111111111' in root_meta_info.json
+04:05:21 - INFO - Updated draft_meta_info.json for 111111111111111111 with draft_id=BA2B6229-A530-4f0c-A8BC-00C4BA081322
+04:05:21 - INFO - Task 111111111111111111 progress 5%: Updating media file metadata.
+04:05:21 - INFO - No audio files found in the draft.
+04:05:21 - INFO - Successfully set video video_e0cb4d48ed8b8882.mp4 dimensions: 2560x1440.
+04:05:21 - INFO - Successfully obtained video video_e0cb4d48ed8b8882.mp4 duration: 472.82 seconds (472816667 microseconds).
+04:05:21 - INFO - Adjusted video segment 8b88dfad6d674eff943c4d4c1dfa45c9 timerange to fit the new video duration.
+04:05:21 - INFO - Checking track segment time range conflicts...
+04:05:21 - INFO - Updated script total duration to: 591020833 microseconds.
+04:05:21 - INFO - Processing pending keyframes...
+04:05:21 - INFO - Task 111111111111111111 progress 10%: Collected 1 download tasks in total.
+04:05:21 - INFO - Starting concurrent download of 1 files...
+04:05:21 - INFO - Task 111111111111111111: Successfully downloaded video file, progress 70.
+04:05:21 - INFO - Task 111111111111111111: Concurrent download completed, downloaded 1 files in total.
+04:05:21 - INFO - Task 111111111111111111 progress 70%: Saving draft information.
+04:05:21 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\111111111111111111\draft_info.json.
+04:05:21 - INFO - Task 111111111111111111 completed, draft URL: 
+04:05:21 - INFO - Đợi 1 giây sau khi patch âm lượng trước khi mở lại CapCut...
+04:05:22 - INFO - Đang kiểm tra và khởi động CapCut...
+04:05:23 - INFO - Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...
+04:05:23 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:05:26 - INFO - Đã tự phát hiện vùng hardsub từ 6/10 frame: {'enabled': True, 'x': 0, 'y': 1236, 'w': 2560, 'h': 142, 'radius': 24, 'detected_frames': 6, 'sampled_frames': 10}
+04:05:26 - INFO - Đang render video đã làm chậm thật bằng ffmpeg: speed=0.8, output=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\assets\video\video_969c957652da51a8a05b53d419de69c5_preprocessed.mp4
+04:05:26 - INFO - Khởi chạy CapCut từ shortcut: C:\Users\nguye\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\CapCut\CapCut.lnk
+04:05:26 - INFO - FFmpeg video encoder: -c:v h264_nvenc -preset p4 -cq 23 -b:v 0 -pix_fmt yuv420p
+04:05:32 - INFO - Đang kết nối với cửa sổ CapCut...
+04:05:35 - INFO - Đã kết nối thành công tới cửa sổ CapCut (Trạng thái: home)
+04:05:35 - INFO - Opening CapCut project '00000000000'...
+04:05:46 - INFO - Đang dùng ảnh project_title_marker.png để mở dự án, click lên trên 1.0cm ở giữa ảnh...
+04:05:50 - INFO - Đã thấy template project marker score=1.0000 và click tại (2210, 605).
+04:05:50 - INFO - Clicked project marker. Continue workflow.
+04:05:50 - INFO - Trước TTS: audio_segments=0, audio_materials=0.
+04:05:50 - INFO - Chạy TTS lần 1/3...
+04:05:50 - INFO - Chạy workflow nhận diện ảnh: Text to speech (rpa_tts.sample.json) lần 1/4
+04:05:50 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_tts.sample.json
+04:06:24 - WARNING - Workflow ảnh Text to speech lỗi lần 1/4: TimeoutError: template not found above threshold 0.68: C:\Users\nguye\Projects\CapCutAPI\rpa_templates\tts_button.png, last score=0.5274
+04:06:24 - INFO - Đã lưu ảnh debug workflow lỗi: C:\Users\nguye\Projects\CapCutAPI\debug_rpa_tts.sample_attempt_1.png
+04:06:24 - INFO - Đợi 5s rồi nhận diện lại workflow Text to speech...
+04:06:29 - INFO - Chạy workflow nhận diện ảnh: Text to speech (rpa_tts.sample.json) lần 2/4
+04:06:29 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_tts.sample.json
+04:07:28 - INFO - Đã patch video track vào draft: files=3, source_duration=591016667, target_duration=591016667, speed=0.8, asset=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\assets\video\video_969c957652da51a8a05b53d419de69c5_preprocessed.mp4
+04:07:28 - INFO - Auto-detect canvas từ video gốc: 2560x1440 -> ratio=16:9
+04:07:28 - INFO - Đã chỉnh canvas 16:9 (2560x1440) trên 2 file draft.
+04:07:28 - INFO - Đã bật mirror ngang video trên 2 segment / 2 file draft.
+04:07:28 - INFO - Đã khóa 4 track/segment (effect, video) trên 2 file draft.
+04:07:28 - INFO - Đã mở khóa 0 track/segment (text, audio) trên 0 file draft.
+04:07:28 - INFO - Dùng local Whisper nên chưa mở CapCut ở bước 2. Sẽ mở sau khi dịch/patch xong.
+04:07:28 - INFO - Chạy local faster-whisper GPU để tạo phụ đề: draft=111111111111111111, language=zh, video=C:\Users\nguye\Videos\Phim6\tap11.mp4
+04:07:28 - INFO - Whisper local: Đang trích audio đã làm chậm speed=0.8 trước khi Whisper...
+04:07:29 - INFO - Whisper local: Đang chạy Whisper local cho audio/video: C:\Users\nguye\AppData\Local\Temp\tmpzbsjujxz.wav
+04:07:45 - INFO - Whisper local: Whisper hoàn thành: 160 dòng, language=zh, duration=591.08s.
+04:07:45 - INFO - Đã patch phụ đề Whisper local vào draft: segments=160, added_texts=160, srt=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\whisper_zh.srt
+04:07:45 - INFO - CapCut chưa được mở trong luồng Whisper local, patch draft trực tiếp.
+04:07:45 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\draft_info.json để dịch và cập nhật font/màu sắc...
+04:07:45 - INFO - Đang dùng AI lấy video_context và asr_text từ 160 dòng phụ đề...
+04:07:49 - INFO - AI context extracted successfully: Context: 视频为一部带有科幻格斗色彩的短视频，讲述了反派特华博士制造了主角麦小文的‘构造体’复制人，意图通过替代、控制和构造人进化来重塑世界。剧情围绕着真假麦小文的对决、同伴间的营救与反制展开，充满中二风格的招 | Terms: {"麦小文": "Mai Xiaowen", "构造体": "Cấu tạo thể", "特华博士": "Tiến sĩ Tehua", "GTI": "GTI", "特勤处": "Cục đặc 
+04:07:49 - INFO - Đang dịch 153/160 dòng phụ đề tiếng Trung chưa có cache (dùng lại cache 7 dòng) sang tiếng Việt...
+04:07:49 - INFO - Dịch AI bằng gemini model gemini-3.1-flash-lite theo batch 20 dòng...
+04:07:52 - INFO - Dịch AI batch 1: OK (20/20)
+04:07:56 - INFO - Dịch AI batch 2: OK (20/20)
+04:08:00 - INFO - Dịch AI batch 3: OK (20/20)
+04:08:02 - INFO - Dịch AI batch 4: OK (20/20)
+04:08:05 - INFO - Dịch AI batch 5: OK (20/20)
+04:08:08 - INFO - Dịch AI batch 6: OK (20/20)
+04:08:12 - INFO - Dịch AI batch 7: OK (20/20)
+04:08:15 - INFO - Dịch AI batch 8: OK (13/13)
+04:08:15 - INFO - Mẫu dịch: '这是利用麦小文身体构造创造出的复制体' -> 'Đây là bản sao tạo từ cấu trúc cơ thể Mai Xiaowen'
+04:08:15 - INFO - Mẫu dịch: '名为构造的麦小文' -> 'Gọi là Mai Xiaowen Cấu tạo thể'
+04:08:15 - INFO - Mẫu dịch: '简称构造文' -> 'Gọi tắt là Cấu tạo văn'
+04:08:15 - INFO - Đã dịch 160/160 dòng phụ đề, đồng bộ 0 subtitle cache và định dạng màu vàng cỡ chữ 5 thành công.
+04:08:15 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\template-2.tmp để dịch và cập nhật font/màu sắc...
+04:08:15 - WARNING - Không tìm thấy phụ đề nào trong bản nháp.
+04:08:15 - INFO - Đã patch phụ đề trên 1/2 file draft/timeline.
+04:08:15 - INFO - Đang chỉnh âm lượng track video về -20.5 dB (0.0944)...
+04:08:15 - INFO - Đã chỉnh âm lượng 2 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\draft_info.json.
+04:08:15 - INFO - Đã chỉnh âm lượng 1 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\template-2.tmp.
+04:08:15 - INFO - Đã chỉnh âm lượng tổng 3 đoạn trên 2 file về -20.5 dB.
+04:08:15 - INFO - Đã khóa 2 track/segment (effect, video) trên 1 file draft.
+04:08:46 - INFO - run_workflow hoàn tất: rpa_tts.sample.json
+04:08:46 - INFO - RPA step 1: select_all_timeline
+04:08:46 - INFO - RPA step 2: clicked tts_button.png score=1.0000 at (1531, 57)
+04:08:46 - INFO - RPA step 3: clicked voice_star_button.png score=1.0000 at (1375, 146)
+04:08:46 - INFO - RPA step 4: sleep 1.0s
+04:08:46 - INFO - RPA step 5: clicked child_voice.png score=1.0000 at (1389, 223)
+04:08:46 - INFO - RPA step 6: clicked generate_speech_button.png score=1.0000 at (1847, 547)
+04:08:46 - INFO - RPA step 7: sleep 5.0s
+04:08:46 - INFO - RPA step 8: wait
+04:08:46 - INFO - {"ok": true, "steps": [{"action": "select_all_timeline", "window": "CapCut", "window_rect": [-8, -8, 1928, 1040], "x": 960, "y": 890, "click_x_ratio": 0.5, "click_y_from_bottom": 150, "dry_run": false, "step": 1}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\tts_button.png", "score": 0.9999995231628418, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1531, "y": 57, "dry_run": false, "step": 2}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\voice_star_button.png", "score": 0.9999997615814209, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1375, "y": 146, "dry_run": false, "step": 3}, {"action": "sleep", "seconds": 1.0, "dry_run": false, "step": 4}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\child_voice.png", "score": 0.999993622303009, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1389, "y": 223, "dry_run": false, "step": 5}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\generate_speech_button.png", "score": 0.9999988079071045, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.65], "x": 1847, "y": 547, "dry_run": false, "step": 6}, {"action": "sleep", "seconds": 5.0, "dry_run": false, "step": 7}, {"action": "wait", "mode": "gone", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\generating_speech.png", "threshold": 0.82, "score": 0.4041478633880615, "elapsed": 124.932, "dry_run": false, "require_seen": false, "seen_once": true, "step": 8}]}
+04:08:46 - INFO - Kiểm tra audio TTS: audio_segments=720, audio_materials=180, files=5.
+04:08:46 - INFO - Đã xác nhận draft có audio TTS mới.
+04:08:46 - INFO - Đóng CapCut để flush draft sau khi xác nhận TTS...
+04:08:46 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:08:49 - INFO - Đang tăng tốc độ audio TTS lên 1.17 trên tất cả file draft/timeline...
+04:08:50 - INFO - Theo dõi file export trong các thư mục: C:\Users\nguye\Videos
+04:08:50 - INFO - Đang kiểm tra và khởi động CapCut...
+04:08:50 - INFO - Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...
+04:08:50 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:08:53 - INFO - Khởi chạy CapCut từ shortcut: C:\Users\nguye\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\CapCut\CapCut.lnk
+04:08:57 - INFO - Đang kết nối với cửa sổ CapCut...
+04:09:01 - INFO - Đã kết nối thành công tới cửa sổ CapCut (Trạng thái: home)
+04:09:01 - INFO - Opening CapCut project '00000000000'...
+04:09:10 - INFO - Đang dùng ảnh project_title_marker.png để mở dự án, click lên trên 1.0cm ở giữa ảnh...
+04:09:10 - INFO - Đã thấy template project marker score=1.0000 và click tại (2210, 605).
+04:09:10 - INFO - Clicked project marker. Continue workflow.
+04:09:10 - INFO - Chạy workflow nhận diện ảnh: Export (rpa_export.sample.json) lần 1/1
+04:09:10 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_export.sample.json
+04:13:50 - WARNING - Workflow ảnh Export lỗi lần 1/1: RuntimeError: CapCut window not found
+04:14:10 - WARNING - Không lưu được ảnh debug workflow lỗi: CapCut window not found
+04:14:10 - ERROR - Workflow ảnh Export thất bại sau 1 lần; đánh dấu item hiện tại lỗi rồi chuyển item kế tiếp.
+Traceback (most recent call last):
+  File "C:\Users\nguye\Projects\CapCutAPI\capcut_gui_app.py", line 212, in run_image_workflow
+    if attempt < attempts:
+             ^^^^^^^^^^^^^^
+  File "C:\Users\nguye\Projects\CapCutAPI\capcut_rpa.py", line 574, in run_workflow
+    result = wait_action(
+             ^^^^^^^^^^^^
+  File "C:\Users\nguye\Projects\CapCutAPI\capcut_rpa.py", line 416, in wait_action
+    match = best_template_score(template_path)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nguye\Projects\CapCutAPI\capcut_rpa.py", line 381, in best_template_score
+    window = find_capcut_window()
+             ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nguye\Projects\CapCutAPI\capcut_rpa.py", line 174, in find_capcut_window
+    raise RuntimeError("CapCut window not found")
+RuntimeError: CapCut window not found
+04:14:10 - ERROR - Lỗi CapCut GUI video 'C:\Users\nguye\Videos\Phim6\tap10.mp4': CapCut window not found
+04:14:10 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:14:13 - INFO - Đợi 1 giây sau khi patch âm lượng trước khi mở lại CapCut...
+04:14:14 - INFO - Đang kiểm tra và khởi động CapCut...
+04:14:14 - INFO - Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...
+04:14:14 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:14:15 - INFO - Giải phóng buffer 00000000000 từ item lỗi 'C:\Users\nguye\Videos\Phim6\tap10.mp4' để cấp phát cho 'C:/Users/nguye/Videos/Phim6/tap14.mp4'...
+04:14:15 - INFO - Khôi phục dự án từ backup 00000000000_backup sang buffer 00000000000...
+04:14:15 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 00000000000: C:\Users\nguye\Videos\Phim6\tap14.mp4
+04:14:15 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim6\tap14.mp4 ===
+04:14:15 - INFO - Chạy pipeline ngầm để tạo draft '00000000000'...
+04:14:15 - INFO - Preprocess Step 1 needs CapCut file access; waiting for GUI lock before save-draft patch...
+04:14:18 - INFO - Khởi chạy CapCut từ shortcut: C:\Users\nguye\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\CapCut\CapCut.lnk
+04:14:23 - INFO - Đang kết nối với cửa sổ CapCut...
+04:14:26 - INFO - Đã kết nối thành công tới cửa sổ CapCut (Trạng thái: home)
+04:14:26 - INFO - Opening CapCut project '111111111111111111'...
+04:14:35 - INFO - Đang dùng ảnh project_title_marker_2.png để mở dự án, click lên trên 1.0cm ở giữa ảnh...
+04:14:36 - INFO - Đã thấy template project marker score=1.0000 và click tại (2342, 605).
+04:14:36 - INFO - Clicked project marker. Continue workflow.
+04:14:36 - INFO - Trước TTS: audio_segments=0, audio_materials=0.
+04:14:36 - INFO - Chạy TTS lần 1/3...
+04:14:36 - INFO - Chạy workflow nhận diện ảnh: Text to speech (rpa_tts.sample.json) lần 1/4
+04:14:36 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_tts.sample.json
+04:16:56 - INFO - run_workflow hoàn tất: rpa_tts.sample.json
+04:16:56 - INFO - RPA step 1: select_all_timeline
+04:16:56 - INFO - RPA step 2: clicked tts_button.png score=1.0000 at (1401, 237)
+04:16:56 - INFO - RPA step 3: clicked voice_star_button.png score=1.0000 at (1245, 326)
+04:16:56 - INFO - RPA step 4: sleep 1.0s
+04:16:56 - INFO - RPA step 5: clicked child_voice.png score=1.0000 at (1259, 403)
+04:16:56 - INFO - RPA step 6: clicked generate_speech_button.png score=1.0000 at (1527, 558)
+04:16:56 - INFO - RPA step 7: sleep 5.0s
+04:16:56 - INFO - RPA step 8: wait
+04:16:56 - INFO - {"ok": true, "steps": [{"action": "select_all_timeline", "window": "CapCut", "window_rect": [1912, -8, 3848, 1040], "x": 2880, "y": 890, "click_x_ratio": 0.5, "click_y_from_bottom": 150, "dry_run": false, "step": 1}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\tts_button.png", "score": 0.9999995231628418, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1401, "y": 237, "dry_run": false, "step": 2}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\voice_star_button.png", "score": 0.9999997615814209, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1245, "y": 326, "dry_run": false, "step": 3}, {"action": "sleep", "seconds": 1.0, "dry_run": false, "step": 4}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\child_voice.png", "score": 0.9999929070472717, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1259, "y": 403, "dry_run": false, "step": 5}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\generate_speech_button.png", "score": 0.9999992847442627, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.65], "x": 1527, "y": 558, "dry_run": false, "step": 6}, {"action": "sleep", "seconds": 5.0, "dry_run": false, "step": 7}, {"action": "wait", "mode": "gone", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\generating_speech.png", "threshold": 0.82, "score": 0.45082446932792664, "elapsed": 100.069, "dry_run": false, "require_seen": false, "seen_once": true, "step": 8}]}
+04:16:56 - INFO - Kiểm tra audio TTS: audio_segments=640, audio_materials=160, files=5.
+04:16:56 - INFO - Đã xác nhận draft có audio TTS mới.
+04:16:56 - INFO - Đóng CapCut để flush draft sau khi xác nhận TTS...
+04:16:56 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:16:59 - INFO - Đang tăng tốc độ audio TTS lên 1.17 trên tất cả file draft/timeline...
+04:16:59 - INFO - Theo dõi file export trong các thư mục: C:\Users\nguye\Videos
+04:16:59 - INFO - Đang kiểm tra và khởi động CapCut...
+04:17:00 - INFO - Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...
+04:17:00 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:17:03 - INFO - Khởi chạy CapCut từ shortcut: C:\Users\nguye\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\CapCut\CapCut.lnk
+04:17:07 - INFO - Đang kết nối với cửa sổ CapCut...
+04:17:10 - INFO - Đã kết nối thành công tới cửa sổ CapCut (Trạng thái: home)
+04:17:10 - INFO - Opening CapCut project '111111111111111111'...
+04:17:20 - INFO - Đang dùng ảnh project_title_marker_2.png để mở dự án, click lên trên 1.0cm ở giữa ảnh...
+04:17:20 - INFO - Đã thấy template project marker score=1.0000 và click tại (2210, 605).
+04:17:20 - INFO - Clicked project marker. Continue workflow.
+04:17:20 - INFO - Chạy workflow nhận diện ảnh: Export (rpa_export.sample.json) lần 1/1
+04:17:20 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_export.sample.json
+04:18:31 - INFO - run_workflow hoàn tất: rpa_export.sample.json
+04:18:31 - INFO - RPA step 1: clicked export_button.png score=1.0000 at (1770, 19)
+04:18:31 - INFO - RPA step 2: sleep 1.5s
+04:18:31 - INFO - RPA step 3: clicked export_confirm_button.png score=1.0000 at (1188, 821)
+04:18:31 - INFO - RPA step 4: wait
+04:18:31 - INFO - {"ok": true, "steps": [{"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\export_button.png", "score": 0.999999463558197, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1770, "y": 19, "dry_run": false, "step": 1}, {"action": "sleep", "seconds": 1.5, "dry_run": false, "step": 2}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\export_confirm_button.png", "score": 0.9999992847442627, "window": "CapCut", "search_region": [0.55, 0.7, 0.66, 0.82], "x": 1188, "y": 821, "dry_run": false, "step": 3}, {"action": "wait", "mode": "gone", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\exporting.png", "threshold": 0.82, "score": 0.5718238353729248, "elapsed": 63.933, "dry_run": false, "require_seen": true, "seen_once": true, "step": 4}]}
+04:18:31 - INFO - Đóng CapCut để nhả file export trước khi đổi tên và chuyển thư mục...
+04:18:31 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:18:41 - INFO - File export mới phát hiện: c:\users\nguye\videos\111111111111111111.mp4 (730356943 bytes). Đích yêu cầu: C:\Users\nguye\Videos\Phim6\tap11_vi.mp4
+04:18:41 - INFO - Đã chuyển file export về folder video gốc: C:\Users\nguye\Videos\Phim6\tap11_vi.mp4 (730356943 bytes)
+04:18:41 - INFO - === ĐÃ XỬ LÝ XONG: tap11.mp4 ===
+04:18:41 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:18:44 - INFO - Received save draft request: draft_id=00000000000, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
+04:18:44 - INFO - Task 00000000000 has been created.
+04:18:44 - INFO - Successfully retrieved draft 00000000000 from cache.
+04:18:44 - INFO - Task 00000000000 status updated to 'processing': Preparing draft files.
+04:18:44 - WARNING - Deleting existing draft folder (current working directory): 00000000000
+04:18:44 - INFO - Starting to save draft: 00000000000
+04:18:44 - INFO - Found registered draft_id '3D08E8DD-C0CD-4d71-B5AA-CD868B1B6C83' for folder '00000000000' in root_meta_info.json
+04:18:44 - INFO - Updated draft_meta_info.json for 00000000000 with draft_id=3D08E8DD-C0CD-4d71-B5AA-CD868B1B6C83
+04:18:44 - INFO - Task 00000000000 progress 5%: Updating media file metadata.
+04:18:44 - INFO - No audio files found in the draft.
+04:18:44 - INFO - Successfully set video video_54611d279cf90a8f.mp4 dimensions: 1920x1080.
+04:18:44 - INFO - Successfully obtained video video_54611d279cf90a8f.mp4 duration: 546.73 seconds (546733333 microseconds).
+04:18:44 - INFO - Checking track segment time range conflicts...
+04:18:44 - INFO - Updated script total duration to: 683416666 microseconds.
+04:18:44 - INFO - Processing pending keyframes...
+04:18:44 - INFO - Task 00000000000 progress 10%: Collected 1 download tasks in total.
+04:18:44 - INFO - Starting concurrent download of 1 files...
+04:18:44 - INFO - Task 00000000000: Successfully downloaded video file, progress 70.
+04:18:44 - INFO - Task 00000000000: Concurrent download completed, downloaded 1 files in total.
+04:18:44 - INFO - Task 00000000000 progress 70%: Saving draft information.
+04:18:44 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\00000000000\draft_info.json.
+04:18:44 - INFO - Task 00000000000 completed, draft URL: 
+04:18:47 - INFO - Đang render video đã làm chậm thật bằng ffmpeg: speed=0.8, output=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\assets\video\video_fea2da93fa56517ab4c9209a924653ef_preprocessed.mp4
+04:18:47 - INFO - FFmpeg video encoder: -c:v h264_nvenc -preset p4 -cq 23 -b:v 0 -pix_fmt yuv420p
+04:18:53 - INFO - Đã khôi phục 10 item hàng chờ từ cache.
+04:18:53 - INFO - Khởi động server CapCut Automation Studio tại http://127.0.0.1:5000
+04:19:02 - INFO - Worker 1 (Preprocess) đã bắt đầu...
+04:19:02 - INFO - Worker 2 (GUI) đã khởi tạo UIAutomation.
+04:19:02 - INFO - Worker 2 (CapCut GUI) đã bắt đầu...
+04:19:02 - INFO - Khôi phục dự án từ backup 00000000000_backup sang buffer 111111111111111111...
+04:19:02 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 111111111111111111: C:\Users\nguye\Videos\Phim6\tap10.mp4
+04:19:02 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim6\tap10.mp4 ===
+04:19:03 - INFO - Chạy pipeline ngầm để tạo draft '111111111111111111'...
+04:19:03 - INFO - Preprocess Step 1 needs CapCut file access; waiting for GUI lock before save-draft patch...
+04:19:03 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:19:05 - INFO - Received save draft request: draft_id=111111111111111111, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
+04:19:05 - INFO - Task 111111111111111111 has been created.
+04:19:05 - INFO - Successfully retrieved draft 111111111111111111 from cache.
+04:19:05 - INFO - Task 111111111111111111 status updated to 'processing': Preparing draft files.
+04:19:05 - WARNING - Deleting existing draft folder (current working directory): 111111111111111111
+04:19:05 - INFO - Starting to save draft: 111111111111111111
+04:19:05 - INFO - Found registered draft_id 'BA2B6229-A530-4f0c-A8BC-00C4BA081322' for folder '111111111111111111' in root_meta_info.json
+04:19:05 - INFO - Updated draft_meta_info.json for 111111111111111111 with draft_id=BA2B6229-A530-4f0c-A8BC-00C4BA081322
+04:19:05 - INFO - Task 111111111111111111 progress 5%: Updating media file metadata.
+04:19:05 - INFO - No audio files found in the draft.
+04:19:05 - INFO - Successfully set video video_ca4d71eb716fe16e.mp4 dimensions: 2560x1440.
+04:19:05 - INFO - Successfully obtained video video_ca4d71eb716fe16e.mp4 duration: 474.13 seconds (474133333 microseconds).
+04:19:05 - INFO - Adjusted video segment c3364f948e3d41a7b69dfa593f5235d0 timerange to fit the new video duration.
+04:19:05 - INFO - Checking track segment time range conflicts...
+04:19:05 - INFO - Updated script total duration to: 592666666 microseconds.
+04:19:05 - INFO - Processing pending keyframes...
+04:19:05 - INFO - Task 111111111111111111 progress 10%: Collected 1 download tasks in total.
+04:19:05 - INFO - Starting concurrent download of 1 files...
+04:19:06 - INFO - Task 111111111111111111: Successfully downloaded video file, progress 70.
+04:19:06 - INFO - Task 111111111111111111: Concurrent download completed, downloaded 1 files in total.
+04:19:06 - INFO - Task 111111111111111111 progress 70%: Saving draft information.
+04:19:06 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\111111111111111111\draft_info.json.
+04:19:06 - INFO - Task 111111111111111111 completed, draft URL: 
+04:19:11 - INFO - Đã tự phát hiện vùng hardsub từ 4/10 frame: {'enabled': True, 'x': 0, 'y': 1191, 'w': 2560, 'h': 178, 'radius': 24, 'detected_frames': 4, 'sampled_frames': 10}
+04:19:11 - INFO - Đang render video đã làm chậm thật bằng ffmpeg: speed=0.8, output=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\assets\video\video_155c24eb08e55da2985f1f79b8986606_preprocessed.mp4
+04:19:11 - INFO - FFmpeg video encoder: -c:v h264_nvenc -preset p4 -cq 23 -b:v 0 -pix_fmt yuv420p
+04:21:06 - INFO - Đã patch video track vào draft: files=3, source_duration=592666667, target_duration=592666667, speed=0.8, asset=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\assets\video\video_155c24eb08e55da2985f1f79b8986606_preprocessed.mp4
+04:21:06 - INFO - Auto-detect canvas từ video gốc: 2560x1440 -> ratio=16:9
+04:21:06 - INFO - Đã chỉnh canvas 16:9 (2560x1440) trên 2 file draft.
+04:21:06 - INFO - Đã bật mirror ngang video trên 2 segment / 2 file draft.
+04:21:06 - INFO - Đã khóa 4 track/segment (effect, video) trên 2 file draft.
+04:21:06 - INFO - Đã mở khóa 0 track/segment (text, audio) trên 0 file draft.
+04:21:06 - INFO - Dùng local Whisper nên chưa mở CapCut ở bước 2. Sẽ mở sau khi dịch/patch xong.
+04:21:06 - INFO - Chạy local faster-whisper GPU để tạo phụ đề: draft=111111111111111111, language=zh, video=C:\Users\nguye\Videos\Phim6\tap10.mp4
+04:21:06 - INFO - Whisper local: Đã thêm NVIDIA DLL dirs vào PATH: C:\Users\nguye\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\site-packages\nvidia\cublas\bin; C:\Users\nguye\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\site-packages\nvidia\cudnn\bin; C:\Users\nguye\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\site-packages\nvidia\cuda_nvrtc\bin; C:\Users\nguye\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\site-packages\ctranslate2
+04:21:06 - INFO - Whisper local: Đang load faster-whisper model=large-v3-turbo, device=cuda, compute=float16...
+04:21:11 - INFO - Whisper local: Đang trích audio đã làm chậm speed=0.8 trước khi Whisper...
+04:21:12 - INFO - Whisper local: Đang chạy Whisper local cho audio/video: C:\Users\nguye\AppData\Local\Temp\tmp9vr54b0s.wav
+04:21:24 - INFO - Whisper local: Whisper hoàn thành: 180 dòng, language=zh, duration=592.72s.
+04:21:24 - INFO - Đã patch phụ đề Whisper local vào draft: segments=180, added_texts=180, srt=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\whisper_zh.srt
+04:21:24 - INFO - CapCut chưa được mở trong luồng Whisper local, patch draft trực tiếp.
+04:21:24 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\draft_info.json để dịch và cập nhật font/màu sắc...
+04:21:24 - INFO - Đang dùng AI lấy video_context và asr_text từ 180 dòng phụ đề...
+04:21:27 - INFO - AI context extracted successfully: Context: 视频以《暗区突围》为背景，讲述了冷酷残暴的军阀“雷斯”与反抗势力首领“赛伊德”之间的对抗。剧情围绕雷斯在长弓溪谷的恶行展开，涉及雷斯戏弄路人、寻找物资（留声机）、以及赛伊德因不满雷斯对阿萨拉民众的暴行 | Terms: {"雷斯": "Lei Si", "赛伊德": "Said", "阿萨拉": "A-sa-la", "长弓溪谷": "Thung lũng Cung Dài", "零号大坝": "Đập số 0",
+04:21:27 - INFO - Đang dịch 171/180 dòng phụ đề tiếng Trung chưa có cache (dùng lại cache 9 dòng) sang tiếng Việt...
+04:21:27 - INFO - Dịch AI bằng gemini model gemini-3.1-flash-lite theo batch 20 dòng...
+04:21:31 - INFO - Dịch AI batch 1: OK (20/20)
+04:21:34 - INFO - Dịch AI batch 2: OK (20/20)
+04:21:38 - INFO - Dịch AI batch 3: OK (20/20)
+04:21:42 - INFO - Dịch AI batch 4: OK (20/20)
+04:21:45 - INFO - Dịch AI batch 5: OK (20/20)
+04:21:49 - INFO - Dịch AI batch 6: OK (20/20)
+04:21:52 - INFO - Dịch AI batch 7: OK (20/20)
+04:21:56 - INFO - Dịch AI batch 8: OK (20/20)
+04:22:00 - INFO - Dịch AI batch 9: OK (11/11)
+04:22:00 - INFO - Mẫu dịch: '蕾丝正宗狗军阀' -> 'Lei Si đúng là tên quân phiệt khốn nạn'
+04:22:00 - INFO - Mẫu dịch: '军阀' -> 'Quân phiệt'
+04:22:00 - INFO - Mẫu dịch: '蕾丝不是狗军阀吗' -> 'Lei Si chẳng phải quân phiệt khốn nạn sao'
+04:22:00 - INFO - Đã dịch 180/180 dòng phụ đề, đồng bộ 0 subtitle cache và định dạng màu vàng cỡ chữ 5 thành công.
+04:22:00 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\template-2.tmp để dịch và cập nhật font/màu sắc...
+04:22:00 - WARNING - Không tìm thấy phụ đề nào trong bản nháp.
+04:22:00 - INFO - Đã patch phụ đề trên 1/2 file draft/timeline.
+04:22:00 - INFO - Đang chỉnh âm lượng track video về -20.5 dB (0.0944)...
+04:22:00 - INFO - Đã chỉnh âm lượng 2 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\draft_info.json.
+04:22:00 - INFO - Đã chỉnh âm lượng 1 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\template-2.tmp.
+04:22:00 - INFO - Đã chỉnh âm lượng tổng 3 đoạn trên 2 file về -20.5 dB.
+04:22:00 - INFO - Đã khóa 2 track/segment (effect, video) trên 1 file draft.
+04:22:00 - INFO - Đợi 1 giây sau khi patch âm lượng trước khi mở lại CapCut...
+04:22:01 - INFO - Đang kiểm tra và khởi động CapCut...
+04:22:01 - INFO - Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...
+04:22:01 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:22:05 - INFO - Khởi chạy CapCut từ shortcut: C:\Users\nguye\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\CapCut\CapCut.lnk
+04:22:09 - INFO - Đang kết nối với cửa sổ CapCut...
+04:22:13 - INFO - Đã kết nối thành công tới cửa sổ CapCut (Trạng thái: home)
+04:22:13 - INFO - Opening CapCut project '111111111111111111'...
+04:22:22 - INFO - Đang dùng ảnh project_title_marker_2.png để mở dự án, click lên trên 1.0cm ở giữa ảnh...
+04:22:23 - INFO - Đã thấy template project marker score=1.0000 và click tại (2210, 605).
+04:22:23 - INFO - Clicked project marker. Continue workflow.
+04:22:23 - INFO - Trước TTS: audio_segments=0, audio_materials=0.
+04:22:23 - INFO - Chạy TTS lần 1/3...
+04:22:23 - INFO - Chạy workflow nhận diện ảnh: Text to speech (rpa_tts.sample.json) lần 1/4
+04:22:23 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_tts.sample.json
+04:22:55 - WARNING - Workflow ảnh Text to speech lỗi lần 1/4: TimeoutError: template not found above threshold 0.68: C:\Users\nguye\Projects\CapCutAPI\rpa_templates\tts_button.png, last score=0.5275
+04:22:56 - INFO - Đã lưu ảnh debug workflow lỗi: C:\Users\nguye\Projects\CapCutAPI\debug_rpa_tts.sample_attempt_1.png
+04:22:56 - INFO - Đợi 5s rồi nhận diện lại workflow Text to speech...
+04:23:01 - INFO - Chạy workflow nhận diện ảnh: Text to speech (rpa_tts.sample.json) lần 2/4
+04:23:01 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_tts.sample.json
+04:25:08 - INFO - run_workflow hoàn tất: rpa_tts.sample.json
+04:25:08 - INFO - RPA step 1: select_all_timeline
+04:25:08 - INFO - RPA step 2: clicked tts_button.png score=1.0000 at (1531, 57)
+04:25:08 - INFO - RPA step 3: clicked voice_star_button.png score=1.0000 at (1375, 146)
+04:25:08 - INFO - RPA step 4: sleep 1.0s
+04:25:08 - INFO - RPA step 5: clicked child_voice.png score=1.0000 at (1389, 223)
+04:25:08 - INFO - RPA step 6: clicked generate_speech_button.png score=1.0000 at (1847, 547)
+04:25:08 - INFO - RPA step 7: sleep 5.0s
+04:25:08 - INFO - RPA step 8: wait
+04:25:08 - INFO - {"ok": true, "steps": [{"action": "select_all_timeline", "window": "CapCut", "window_rect": [-8, -8, 1928, 1040], "x": 960, "y": 890, "click_x_ratio": 0.5, "click_y_from_bottom": 150, "dry_run": false, "step": 1}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\tts_button.png", "score": 0.9999995827674866, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1531, "y": 57, "dry_run": false, "step": 2}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\voice_star_button.png", "score": 0.9999992847442627, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1375, "y": 146, "dry_run": false, "step": 3}, {"action": "sleep", "seconds": 1.0, "dry_run": false, "step": 4}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\child_voice.png", "score": 0.999993622303009, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1389, "y": 223, "dry_run": false, "step": 5}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\generate_speech_button.png", "score": 0.9999989867210388, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.65], "x": 1847, "y": 547, "dry_run": false, "step": 6}, {"action": "sleep", "seconds": 5.0, "dry_run": false, "step": 7}, {"action": "wait", "mode": "gone", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\generating_speech.png", "threshold": 0.82, "score": 0.5519709587097168, "elapsed": 116.143, "dry_run": false, "require_seen": false, "seen_once": true, "step": 8}]}
+04:25:08 - INFO - Kiểm tra audio TTS: audio_segments=720, audio_materials=180, files=5.
+04:25:08 - INFO - Đã xác nhận draft có audio TTS mới.
+04:25:08 - INFO - Đóng CapCut để flush draft sau khi xác nhận TTS...
+04:25:08 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:25:12 - INFO - Đang tăng tốc độ audio TTS lên 1.17 trên tất cả file draft/timeline...
+04:25:12 - INFO - Theo dõi file export trong các thư mục: C:\Users\nguye\Videos
+04:25:12 - INFO - Đang kiểm tra và khởi động CapCut...
+04:25:12 - INFO - Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...
+04:25:12 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:25:16 - INFO - Khởi chạy CapCut từ shortcut: C:\Users\nguye\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\CapCut\CapCut.lnk
+04:25:18 - INFO - Đang kết nối với cửa sổ CapCut...
+04:25:22 - INFO - Đã kết nối thành công tới cửa sổ CapCut (Trạng thái: home)
+04:25:22 - INFO - Opening CapCut project '111111111111111111'...
+04:25:31 - INFO - Đang dùng ảnh project_title_marker_2.png để mở dự án, click lên trên 1.0cm ở giữa ảnh...
+04:25:32 - INFO - Đã thấy template project marker score=1.0000 và click tại (2210, 605).
+04:25:32 - INFO - Clicked project marker. Continue workflow.
+04:25:32 - INFO - Chạy workflow nhận diện ảnh: Export (rpa_export.sample.json) lần 1/1
+04:25:32 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_export.sample.json
+04:25:39 - INFO - run_workflow hoàn tất: rpa_export.sample.json
+04:25:39 - INFO - RPA step 1: clicked export_button.png score=1.0000 at (1770, 19)
+04:25:39 - INFO - RPA step 2: sleep 1.5s
+04:25:39 - INFO - RPA step 3: clicked export_confirm_button.png score=1.0000 at (1188, 821)
+04:25:39 - INFO - {"ok": true, "steps": [{"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\export_button.png", "score": 0.9999992847442627, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1770, "y": 19, "dry_run": false, "step": 1}, {"action": "sleep", "seconds": 1.5, "dry_run": false, "step": 2}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\export_confirm_button.png", "score": 0.9999995231628418, "window": "CapCut", "search_region": [0.55, 0.7, 0.66, 0.82], "x": 1188, "y": 821, "dry_run": false, "step": 3}]}
+04:26:47 - INFO - File xuất đã hoàn thành và ổn định. Đóng CapCut để giải phóng khóa file...
+04:26:47 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:26:51 - INFO - File export mới phát hiện: c:\users\nguye\videos\111111111111111111.mp4 (739257539 bytes). Đích yêu cầu: C:\Users\nguye\Videos\Phim6\tap10_vi.mp4
+04:26:51 - INFO - Đã chuyển file export về folder video gốc: C:\Users\nguye\Videos\Phim6\tap10_vi.mp4 (739257539 bytes)
+04:26:51 - INFO - === ĐÃ XỬ LÝ XONG: tap10.mp4 ===
+04:26:54 - INFO - Khôi phục dự án từ backup 00000000000_backup sang buffer 111111111111111111...
+04:26:54 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 111111111111111111: C:\Users\nguye\Videos\Phim6\tap12.mp4
+04:26:54 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim6\tap12.mp4 ===
+04:26:54 - INFO - Chạy pipeline ngầm để tạo draft '111111111111111111'...
+04:26:54 - INFO - Preprocess Step 1 needs CapCut file access; waiting for GUI lock before save-draft patch...
+04:26:54 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:26:57 - INFO - Received save draft request: draft_id=111111111111111111, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
+04:26:57 - INFO - Task 111111111111111111 has been created.
+04:26:57 - INFO - Successfully retrieved draft 111111111111111111 from cache.
+04:26:57 - INFO - Task 111111111111111111 status updated to 'processing': Preparing draft files.
+04:26:57 - WARNING - Deleting existing draft folder (current working directory): 111111111111111111
+04:26:57 - INFO - Starting to save draft: 111111111111111111
+04:26:57 - INFO - Found registered draft_id 'BA2B6229-A530-4f0c-A8BC-00C4BA081322' for folder '111111111111111111' in root_meta_info.json
+04:26:57 - INFO - Updated draft_meta_info.json for 111111111111111111 with draft_id=BA2B6229-A530-4f0c-A8BC-00C4BA081322
+04:26:57 - INFO - Task 111111111111111111 progress 5%: Updating media file metadata.
+04:26:57 - INFO - No audio files found in the draft.
+04:26:57 - INFO - Successfully set video video_3e3e3496e34f3c9b.mp4 dimensions: 2560x1440.
+04:26:57 - INFO - Successfully obtained video video_3e3e3496e34f3c9b.mp4 duration: 472.87 seconds (472866667 microseconds).
+04:26:57 - INFO - Adjusted video segment e29f8b3d4f514a6ea262f8e9cd08778d timerange to fit the new video duration.
+04:26:57 - INFO - Checking track segment time range conflicts...
+04:26:57 - INFO - Updated script total duration to: 591083333 microseconds.
+04:26:57 - INFO - Processing pending keyframes...
+04:26:57 - INFO - Task 111111111111111111 progress 10%: Collected 1 download tasks in total.
+04:26:57 - INFO - Starting concurrent download of 1 files...
+04:26:57 - INFO - Task 111111111111111111: Successfully downloaded video file, progress 70.
+04:26:57 - INFO - Task 111111111111111111: Concurrent download completed, downloaded 1 files in total.
+04:26:57 - INFO - Task 111111111111111111 progress 70%: Saving draft information.
+04:26:57 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\111111111111111111\draft_info.json.
+04:26:57 - INFO - Task 111111111111111111 completed, draft URL: 
+04:27:02 - INFO - Đã tự phát hiện vùng hardsub từ 6/10 frame: {'enabled': True, 'x': 0, 'y': 1194, 'w': 2560, 'h': 171, 'radius': 24, 'detected_frames': 6, 'sampled_frames': 10}
+04:27:02 - INFO - Đang render video đã làm chậm thật bằng ffmpeg: speed=0.8, output=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\assets\video\video_8761a24c937a56e0a326d8086ff92967_preprocessed.mp4
+04:27:02 - INFO - FFmpeg video encoder: -c:v h264_nvenc -preset p4 -cq 23 -b:v 0 -pix_fmt yuv420p
+04:28:55 - INFO - Đã patch video track vào draft: files=3, source_duration=591083333, target_duration=591083333, speed=0.8, asset=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\assets\video\video_8761a24c937a56e0a326d8086ff92967_preprocessed.mp4
+04:28:55 - INFO - Auto-detect canvas từ video gốc: 2560x1440 -> ratio=16:9
+04:28:55 - INFO - Đã chỉnh canvas 16:9 (2560x1440) trên 2 file draft.
+04:28:56 - INFO - Đã bật mirror ngang video trên 2 segment / 2 file draft.
+04:28:56 - INFO - Đã khóa 4 track/segment (effect, video) trên 2 file draft.
+04:28:56 - INFO - Đã mở khóa 0 track/segment (text, audio) trên 0 file draft.
+04:28:56 - INFO - Dùng local Whisper nên chưa mở CapCut ở bước 2. Sẽ mở sau khi dịch/patch xong.
+04:28:56 - INFO - Chạy local faster-whisper GPU để tạo phụ đề: draft=111111111111111111, language=zh, video=C:\Users\nguye\Videos\Phim6\tap12.mp4
+04:28:56 - INFO - Whisper local: Đang trích audio đã làm chậm speed=0.8 trước khi Whisper...
+04:28:56 - INFO - Whisper local: Đang chạy Whisper local cho audio/video: C:\Users\nguye\AppData\Local\Temp\tmpyfjxx_4u.wav
+04:29:03 - INFO - Whisper local: Whisper hoàn thành: 59 dòng, language=zh, duration=591.07s.
+04:29:03 - INFO - Đã patch phụ đề Whisper local vào draft: segments=59, added_texts=59, srt=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\whisper_zh.srt
+04:29:03 - INFO - CapCut chưa được mở trong luồng Whisper local, patch draft trực tiếp.
+04:29:03 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\draft_info.json để dịch và cập nhật font/màu sắc...
+04:29:03 - INFO - Đang dùng AI lấy video_context và asr_text từ 59 dòng phụ đề...
+04:29:07 - INFO - AI context extracted successfully: Context: 视频为一部动作喜剧类短视频，背景融合了超自然怪物都市传说与军事组织冲突。主角与搭档在面对名为“老被诈”的怨灵怪物时，意外牵扯出隶属军事组织“GTI”的阴谋与个人恩怨。整体风格荒诞幽默，伴随快节奏的战斗 | Terms: {"老被诈": "Lão Bị Tạc", "怨铃": "Oán Linh", "GTI": "GTI", "红狼": "Hồng Lang", "卡尔": "Carl", "蓝灯": "Lam Đă
+04:29:07 - INFO - Đang dịch 59/59 dòng phụ đề tiếng Trung chưa có cache (dùng lại cache 0 dòng) sang tiếng Việt...
+04:29:07 - INFO - Dịch AI bằng gemini model gemini-3.1-flash-lite theo batch 20 dòng...
+04:29:11 - INFO - Dịch AI batch 1: OK (20/20)
+04:29:15 - INFO - Dịch AI batch 2: OK (20/20)
+04:29:19 - INFO - Dịch AI batch 3: OK (19/19)
+04:29:19 - INFO - Mẫu dịch: '兄弟,你听说过老被诈吗?' -> 'Này, ông đã nghe về Lão Bị Tạc chưa?'
+04:29:19 - INFO - Mẫu dịch: '什么老被诈?' -> 'Lão Bị Tạc gì cơ?'
+04:29:19 - INFO - Mẫu dịch: '老被诈,由人类吐槽抱怨凝聚成的怨铃。' -> 'Lão Bị Tạc, Oán Linh ngưng tụ từ những lời phàn nàn của con người.'
+04:29:19 - INFO - Đã dịch 59/59 dòng phụ đề, đồng bộ 0 subtitle cache và định dạng màu vàng cỡ chữ 5 thành công.
+04:29:19 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\template-2.tmp để dịch và cập nhật font/màu sắc...
+04:29:19 - WARNING - Không tìm thấy phụ đề nào trong bản nháp.
+04:29:19 - INFO - Đã patch phụ đề trên 1/2 file draft/timeline.
+04:29:19 - INFO - Đang chỉnh âm lượng track video về -20.5 dB (0.0944)...
+04:29:19 - INFO - Đã chỉnh âm lượng 2 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\draft_info.json.
+04:29:19 - INFO - Đã chỉnh âm lượng 1 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\template-2.tmp.
+04:29:19 - INFO - Đã chỉnh âm lượng tổng 3 đoạn trên 2 file về -20.5 dB.
+04:29:19 - INFO - Đã khóa 2 track/segment (effect, video) trên 1 file draft.
+04:29:19 - INFO - Đợi 1 giây sau khi patch âm lượng trước khi mở lại CapCut...
+04:29:20 - INFO - Đang kiểm tra và khởi động CapCut...
+04:29:20 - INFO - Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...
+04:29:20 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:29:24 - INFO - Khởi chạy CapCut từ shortcut: C:\Users\nguye\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\CapCut\CapCut.lnk
+04:29:28 - INFO - Đang kết nối với cửa sổ CapCut...
+04:29:31 - INFO - Đã kết nối thành công tới cửa sổ CapCut (Trạng thái: home)
+04:29:31 - INFO - Opening CapCut project '111111111111111111'...
+04:29:40 - INFO - Đang dùng ảnh project_title_marker_2.png để mở dự án, click lên trên 1.0cm ở giữa ảnh...
+04:29:41 - INFO - Đã thấy template project marker score=1.0000 và click tại (2210, 605).
+04:29:41 - INFO - Clicked project marker. Continue workflow.
+04:29:41 - INFO - Trước TTS: audio_segments=0, audio_materials=0.
+04:29:41 - INFO - Chạy TTS lần 1/3...
+04:29:41 - INFO - Chạy workflow nhận diện ảnh: Text to speech (rpa_tts.sample.json) lần 1/4
+04:29:41 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_tts.sample.json
+04:30:25 - WARNING - Workflow ảnh Text to speech lỗi lần 1/4: TimeoutError: template not found above threshold 0.68: C:\Users\nguye\Projects\CapCutAPI\rpa_templates\generate_speech_button.png, last score=0.5020
+04:30:25 - INFO - Đã lưu ảnh debug workflow lỗi: C:\Users\nguye\Projects\CapCutAPI\debug_rpa_tts.sample_attempt_1.png
+04:30:25 - INFO - Đợi 5s rồi nhận diện lại workflow Text to speech...
+04:30:30 - INFO - Chạy workflow nhận diện ảnh: Text to speech (rpa_tts.sample.json) lần 2/4
+04:30:30 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_tts.sample.json
+04:31:03 - WARNING - Workflow ảnh Text to speech lỗi lần 2/4: TimeoutError: template not found above threshold 0.68: C:\Users\nguye\Projects\CapCutAPI\rpa_templates\tts_button.png, last score=0.6686
+04:31:03 - INFO - Đã lưu ảnh debug workflow lỗi: C:\Users\nguye\Projects\CapCutAPI\debug_rpa_tts.sample_attempt_2.png
+04:31:03 - INFO - Đợi 5s rồi nhận diện lại workflow Text to speech...
+04:31:08 - INFO - Chạy workflow nhận diện ảnh: Text to speech (rpa_tts.sample.json) lần 3/4
+04:31:08 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_tts.sample.json
+04:31:41 - WARNING - Workflow ảnh Text to speech lỗi lần 3/4: TimeoutError: template not found above threshold 0.68: C:\Users\nguye\Projects\CapCutAPI\rpa_templates\tts_button.png, last score=0.6686
+04:31:41 - INFO - Đã lưu ảnh debug workflow lỗi: C:\Users\nguye\Projects\CapCutAPI\debug_rpa_tts.sample_attempt_3.png
+04:31:41 - INFO - Đợi 5s rồi nhận diện lại workflow Text to speech...
+04:31:46 - INFO - Chạy workflow nhận diện ảnh: Text to speech (rpa_tts.sample.json) lần 4/4
+04:31:46 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_tts.sample.json
+04:33:11 - INFO - Đã khôi phục 10 item hàng chờ từ cache.
+04:33:11 - INFO - Khởi động server CapCut Automation Studio tại http://127.0.0.1:5000
+04:33:25 - INFO - Worker 1 (Preprocess) đã bắt đầu...
+04:33:25 - INFO - Worker 2 (GUI) đã khởi tạo UIAutomation.
+04:33:25 - INFO - Worker 2 (CapCut GUI) đã bắt đầu...
+04:33:25 - INFO - Khôi phục dự án từ backup 00000000000_backup sang buffer 00000000000...
+04:33:25 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 00000000000: C:\Users\nguye\Videos\Phim6\tap12.mp4
+04:33:25 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim6\tap12.mp4 ===
+04:33:26 - INFO - Preprocess Step 1 starting offline pipeline patch...
+04:33:26 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:33:28 - INFO - Received save draft request: draft_id=00000000000, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
+04:33:28 - INFO - Task 00000000000 has been created.
+04:33:28 - INFO - Successfully retrieved draft 00000000000 from cache.
+04:33:28 - INFO - Task 00000000000 status updated to 'processing': Preparing draft files.
+04:33:28 - WARNING - Deleting existing draft folder (current working directory): 00000000000
+04:33:28 - INFO - Starting to save draft: 00000000000
+04:33:28 - INFO - Found registered draft_id '3D08E8DD-C0CD-4d71-B5AA-CD868B1B6C83' for folder '00000000000' in root_meta_info.json
+04:33:28 - INFO - Updated draft_meta_info.json for 00000000000 with draft_id=3D08E8DD-C0CD-4d71-B5AA-CD868B1B6C83
+04:33:28 - INFO - Task 00000000000 progress 5%: Updating media file metadata.
+04:33:28 - INFO - No audio files found in the draft.
+04:33:28 - INFO - Successfully set video video_3e3e3496e34f3c9b.mp4 dimensions: 2560x1440.
+04:33:28 - INFO - Successfully obtained video video_3e3e3496e34f3c9b.mp4 duration: 472.87 seconds (472866667 microseconds).
+04:33:28 - INFO - Adjusted video segment 76a6024e904c4911957ff1fdff77bd91 timerange to fit the new video duration.
+04:33:28 - INFO - Checking track segment time range conflicts...
+04:33:28 - INFO - Updated script total duration to: 591083333 microseconds.
+04:33:28 - INFO - Processing pending keyframes...
+04:33:28 - INFO - Task 00000000000 progress 10%: Collected 1 download tasks in total.
+04:33:28 - INFO - Starting concurrent download of 1 files...
+04:33:28 - INFO - Task 00000000000: Successfully downloaded video file, progress 70.
+04:33:28 - INFO - Task 00000000000: Concurrent download completed, downloaded 1 files in total.
+04:33:28 - INFO - Task 00000000000 progress 70%: Saving draft information.
+04:33:28 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\00000000000\draft_info.json.
+04:33:28 - INFO - Task 00000000000 completed, draft URL: 
+04:33:33 - INFO - Đã tự phát hiện vùng hardsub từ 6/10 frame: {'enabled': True, 'x': 0, 'y': 1194, 'w': 2560, 'h': 171, 'radius': 24, 'detected_frames': 6, 'sampled_frames': 10}
+04:33:33 - INFO - Đang render video đã làm chậm thật bằng ffmpeg: speed=0.8, output=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\assets\video\video_8761a24c937a56e0a326d8086ff92967_preprocessed.mp4
+04:33:33 - INFO - FFmpeg video encoder: -c:v h264_nvenc -preset p4 -cq 23 -b:v 0 -pix_fmt yuv420p
+04:35:26 - INFO - Đã patch video track vào draft: files=3, source_duration=591083333, target_duration=591083333, speed=0.8, asset=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\assets\video\video_8761a24c937a56e0a326d8086ff92967_preprocessed.mp4
+04:35:26 - INFO - Auto-detect canvas từ video gốc: 2560x1440 -> ratio=16:9
+04:35:26 - INFO - Đã chỉnh canvas 16:9 (2560x1440) trên 2 file draft.
+04:35:26 - INFO - Đã bật mirror ngang video trên 2 segment / 2 file draft.
+04:35:26 - INFO - Đã khóa 4 track/segment (video, effect) trên 2 file draft.
+04:35:26 - INFO - Đã mở khóa 0 track/segment (text, audio) trên 0 file draft.
+04:35:26 - INFO - Dùng local Whisper nên chưa mở CapCut ở bước 2. Sẽ mở sau khi dịch/patch xong.
+04:35:26 - INFO - Chạy local faster-whisper GPU để tạo phụ đề: draft=00000000000, language=zh, video=C:\Users\nguye\Videos\Phim6\tap12.mp4
+04:35:26 - INFO - Whisper local: Đã thêm NVIDIA DLL dirs vào PATH: C:\Users\nguye\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\site-packages\nvidia\cublas\bin; C:\Users\nguye\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\site-packages\nvidia\cudnn\bin; C:\Users\nguye\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\site-packages\nvidia\cuda_nvrtc\bin; C:\Users\nguye\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\site-packages\ctranslate2
+04:35:26 - INFO - Whisper local: Đang load faster-whisper model=large-v3-turbo, device=cuda, compute=float16...
+04:35:32 - INFO - Whisper local: Đang trích audio đã làm chậm speed=0.8 trước khi Whisper...
+04:35:33 - INFO - Whisper local: Đang chạy Whisper local cho audio/video: C:\Users\nguye\AppData\Local\Temp\tmpnftal64y.wav
+04:35:39 - INFO - Whisper local: Whisper hoàn thành: 59 dòng, language=zh, duration=591.07s.
+04:35:39 - INFO - Đã patch phụ đề Whisper local vào draft: segments=59, added_texts=59, srt=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\whisper_zh.srt
+04:35:39 - INFO - CapCut chưa được mở trong luồng Whisper local, patch draft trực tiếp.
+04:35:39 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\draft_info.json để dịch và cập nhật font/màu sắc...
+04:35:39 - INFO - Đang dùng AI lấy video_context và asr_text từ 59 dòng phụ đề...
+04:35:43 - INFO - AI context extracted successfully: Context: 视频为一部带有动作、奇幻及战斗风格的游戏解说短视频。剧情围绕一名角色对抗由人类抱怨凝聚而成的怨灵“老被诈”，并揭露了组织“GTI”为达目的不择手段的冷酷真相。视频通过搞笑幽默的台词转折，将“香蕉皮”作 | Terms: {"老被诈": "Lão Bị Chửi", "怨铃": "Oán Linh", "香蕉皮": "Vỏ chuối", "GTI": "GTI", "红狼": "Hồng Lang", "蓝灯": "
+04:35:43 - INFO - Đang dịch 59/59 dòng phụ đề tiếng Trung chưa có cache (dùng lại cache 0 dòng) sang tiếng Việt...
+04:35:43 - INFO - Dịch AI bằng gemini model gemini-3.1-flash-lite theo batch 20 dòng...
+04:35:47 - INFO - Dịch AI batch 1: OK (20/20)
+04:35:52 - INFO - Dịch AI batch 2: OK (20/20)
+04:35:55 - INFO - Dịch AI batch 3: OK (19/19)
+04:35:55 - INFO - Mẫu dịch: '兄弟,你听说过老被诈吗?' -> 'Này, ông nghe về Lão Bị Chửi chưa?'
+04:35:55 - INFO - Mẫu dịch: '什么老被诈?' -> 'Lão Bị Chửi là gì?'
+04:35:55 - INFO - Mẫu dịch: '老被诈,由人类吐槽抱怨凝聚成的怨铃。' -> 'Lão Bị Chửi, Oán Linh kết tinh từ tiếng than phiền.'
+04:35:55 - INFO - Đã dịch 59/59 dòng phụ đề, đồng bộ 0 subtitle cache và định dạng màu vàng cỡ chữ 5 thành công.
+04:35:55 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\template-2.tmp để dịch và cập nhật font/màu sắc...
+04:35:55 - WARNING - Không tìm thấy phụ đề nào trong bản nháp.
+04:35:55 - INFO - Đã patch phụ đề trên 1/2 file draft/timeline.
+04:35:55 - INFO - Đang chỉnh âm lượng track video về -20.5 dB (0.0944)...
+04:35:55 - INFO - Đã chỉnh âm lượng 2 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\draft_info.json.
+04:35:55 - INFO - Đã chỉnh âm lượng 1 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\template-2.tmp.
+04:35:55 - INFO - Đã chỉnh âm lượng tổng 3 đoạn trên 2 file về -20.5 dB.
+04:35:55 - INFO - Đã khóa 2 track/segment (video, effect) trên 1 file draft.
+04:35:55 - INFO - Khôi phục dự án từ backup 00000000000_backup sang buffer 111111111111111111...
+04:35:56 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 111111111111111111: C:\Users\nguye\Videos\Phim6\tap13.mp4
+04:35:56 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim6\tap13.mp4 ===
+04:35:56 - INFO - Preprocess Step 1 starting offline pipeline patch...
+04:35:56 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:35:57 - INFO - Đợi 1 giây sau khi patch âm lượng trước khi mở lại CapCut...
+04:35:58 - INFO - Đang kiểm tra và khởi động CapCut...
+04:35:58 - INFO - Received save draft request: draft_id=111111111111111111, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
+04:35:58 - INFO - Task 111111111111111111 has been created.
+04:35:58 - INFO - Successfully retrieved draft 111111111111111111 from cache.
+04:35:58 - INFO - Task 111111111111111111 status updated to 'processing': Preparing draft files.
+04:35:58 - WARNING - Deleting existing draft folder (current working directory): 111111111111111111
+04:35:58 - INFO - Starting to save draft: 111111111111111111
+04:35:58 - INFO - Found registered draft_id 'BA2B6229-A530-4f0c-A8BC-00C4BA081322' for folder '111111111111111111' in root_meta_info.json
+04:35:58 - INFO - Updated draft_meta_info.json for 111111111111111111 with draft_id=BA2B6229-A530-4f0c-A8BC-00C4BA081322
+04:35:58 - INFO - Task 111111111111111111 progress 5%: Updating media file metadata.
+04:35:58 - INFO - No audio files found in the draft.
+04:35:58 - INFO - Successfully set video video_523fc32d2b354d05.mp4 dimensions: 2560x1440.
+04:35:58 - INFO - Successfully obtained video video_523fc32d2b354d05.mp4 duration: 590.03 seconds (590033333 microseconds).
+04:35:58 - INFO - Adjusted video segment a7b0a0dcfe984de68fbf9ccd10079363 timerange to fit the new video duration.
+04:35:58 - INFO - Checking track segment time range conflicts...
+04:35:58 - INFO - Updated script total duration to: 737541666 microseconds.
+04:35:58 - INFO - Processing pending keyframes...
+04:35:58 - INFO - Task 111111111111111111 progress 10%: Collected 1 download tasks in total.
+04:35:58 - INFO - Starting concurrent download of 1 files...
+04:35:58 - INFO - Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...
+04:35:58 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:35:59 - INFO - Task 111111111111111111: Successfully downloaded video file, progress 70.
+04:35:59 - INFO - Task 111111111111111111: Concurrent download completed, downloaded 1 files in total.
+04:35:59 - INFO - Task 111111111111111111 progress 70%: Saving draft information.
+04:35:59 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\111111111111111111\draft_info.json.
+04:35:59 - INFO - Task 111111111111111111 completed, draft URL: 
+04:36:02 - INFO - Khởi chạy CapCut từ shortcut: C:\Users\nguye\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\CapCut\CapCut.lnk
+04:36:03 - INFO - Đã tự phát hiện vùng hardsub từ 5/10 frame: {'enabled': True, 'x': 0, 'y': 1237, 'w': 2560, 'h': 128, 'radius': 24, 'detected_frames': 5, 'sampled_frames': 10}
+04:36:03 - INFO - Đang render video đã làm chậm thật bằng ffmpeg: speed=0.8, output=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\assets\video\video_f67afaa445c95a84b943fb3602ee3910_preprocessed.mp4
+04:36:03 - INFO - FFmpeg video encoder: -c:v h264_nvenc -preset p4 -cq 23 -b:v 0 -pix_fmt yuv420p
+04:36:06 - INFO - Đang kết nối với cửa sổ CapCut...
+04:36:10 - INFO - Đã kết nối thành công tới cửa sổ CapCut (Trạng thái: home)
+04:36:10 - INFO - Opening CapCut project '00000000000'...
+04:36:20 - INFO - Đang dùng ảnh project_title_marker.png để mở dự án, click lên trên 1.0cm ở giữa ảnh...
+04:36:21 - INFO - Đã thấy template project marker score=1.0000 và click tại (2342, 605).
+04:36:21 - INFO - Clicked project marker. Continue workflow.
+04:36:21 - INFO - Trước TTS: audio_segments=0, audio_materials=0.
+04:36:21 - INFO - Chạy TTS lần 1/3...
+04:36:21 - INFO - Chạy workflow nhận diện ảnh: Text to speech (rpa_tts.sample.json) lần 1/4
+04:36:21 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_tts.sample.json
+04:36:56 - WARNING - Workflow ảnh Text to speech lỗi lần 1/4: TimeoutError: template not found above threshold 0.68: C:\Users\nguye\Projects\CapCutAPI\rpa_templates\tts_button.png, last score=0.5275
+04:36:56 - INFO - Đã lưu ảnh debug workflow lỗi: C:\Users\nguye\Projects\CapCutAPI\debug_rpa_tts.sample_attempt_1.png
+04:36:56 - INFO - Đợi 5s rồi nhận diện lại workflow Text to speech...
+04:37:01 - INFO - Chạy workflow nhận diện ảnh: Text to speech (rpa_tts.sample.json) lần 2/4
+04:37:01 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_tts.sample.json
+04:37:39 - WARNING - Workflow ảnh Text to speech lỗi lần 2/4: RuntimeError: CapCut window not found
+04:37:59 - WARNING - Không lưu được ảnh debug workflow lỗi: CapCut window not found
+04:37:59 - INFO - Đợi 5s rồi nhận diện lại workflow Text to speech...
+04:38:04 - INFO - Chạy workflow nhận diện ảnh: Text to speech (rpa_tts.sample.json) lần 3/4
+04:38:04 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_tts.sample.json
+04:38:24 - WARNING - Workflow ảnh Text to speech lỗi lần 3/4: RuntimeError: CapCut window not found
+04:38:34 - INFO - Đã patch video track vào draft: files=3, source_duration=737533984, target_duration=737533984, speed=0.8, asset=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\assets\video\video_f67afaa445c95a84b943fb3602ee3910_preprocessed.mp4
+04:38:34 - INFO - Auto-detect canvas từ video gốc: 2560x1440 -> ratio=16:9
+04:38:34 - INFO - Đã chỉnh canvas 16:9 (2560x1440) trên 2 file draft.
+04:38:34 - INFO - Đã bật mirror ngang video trên 2 segment / 2 file draft.
+04:38:34 - INFO - Đã khóa 4 track/segment (video, effect) trên 2 file draft.
+04:38:34 - INFO - Đã mở khóa 0 track/segment (text, audio) trên 0 file draft.
+04:38:34 - INFO - Dùng local Whisper nên chưa mở CapCut ở bước 2. Sẽ mở sau khi dịch/patch xong.
+04:38:34 - INFO - Chạy local faster-whisper GPU để tạo phụ đề: draft=111111111111111111, language=zh, video=C:\Users\nguye\Videos\Phim6\tap13.mp4
+04:38:34 - INFO - Whisper local: Đang trích audio đã làm chậm speed=0.8 trước khi Whisper...
+04:38:35 - INFO - Whisper local: Đang chạy Whisper local cho audio/video: C:\Users\nguye\AppData\Local\Temp\tmpfhjc0pbl.wav
+04:38:45 - WARNING - Không lưu được ảnh debug workflow lỗi: CapCut window not found
+04:38:45 - INFO - Đợi 5s rồi nhận diện lại workflow Text to speech...
+04:38:47 - INFO - Whisper local: Whisper hoàn thành: 196 dòng, language=zh, duration=737.59s.
+04:38:47 - INFO - Đã patch phụ đề Whisper local vào draft: segments=196, added_texts=196, srt=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\whisper_zh.srt
+04:38:47 - INFO - CapCut chưa được mở trong luồng Whisper local, patch draft trực tiếp.
+04:38:47 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\draft_info.json để dịch và cập nhật font/màu sắc...
+04:38:47 - INFO - Đang dùng AI lấy video_context và asr_text từ 196 dòng phụ đề...
+04:38:50 - INFO - Chạy workflow nhận diện ảnh: Text to speech (rpa_tts.sample.json) lần 4/4
+04:38:50 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_tts.sample.json
+04:38:51 - INFO - AI context extracted successfully: Context: 视频为一部奇幻动作短片，讲述了主角团在名为“二元”的领域内遭遇怨灵“卧德甲鸭”及其构造人军队的陷阱。主要角色包括银翼、娜姐（纳姐）、吴明等。战斗风格偏向夸张的“二次元”乱斗，使用了领域展开、反转术式、 | Terms: {"构造文": "Văn bản cấu tạo", "构造人": "Người cấu tạo", "领域展开": "Triển khai lãnh địa", "二元": "Nhị Nguyên"
+04:38:51 - INFO - Đang dịch 176/196 dòng phụ đề tiếng Trung chưa có cache (dùng lại cache 20 dòng) sang tiếng Việt...
+04:38:51 - INFO - Dịch AI bằng gemini model gemini-3.1-flash-lite theo batch 20 dòng...
+04:38:55 - INFO - Dịch AI batch 1: OK (20/20)
+04:38:58 - INFO - Dịch AI batch 2: OK (20/20)
+04:39:02 - INFO - Dịch AI batch 3: OK (20/20)
+04:39:05 - INFO - Dịch AI batch 4: OK (20/20)
+04:39:09 - INFO - Dịch AI batch 5: OK (20/20)
+04:39:10 - WARNING - Workflow ảnh Text to speech lỗi lần 4/4: RuntimeError: CapCut window not found
+04:39:12 - INFO - Dịch AI batch 6: OK (20/20)
+04:39:16 - INFO - Dịch AI batch 7: OK (20/20)
+04:39:20 - INFO - Dịch AI batch 8: OK (20/20)
+04:39:23 - INFO - Dịch AI batch 9: OK (16/16)
+04:39:23 - INFO - Mẫu dịch: '我去香槟' -> 'Tôi đi lấy Champagne'
+04:39:23 - INFO - Mẫu dịch: '快看看年份' -> 'Mau xem thử năm sản xuất'
+04:39:23 - INFO - Mẫu dịch: '发财了' -> 'Phát tài rồi'
+04:39:23 - INFO - Đã dịch 196/196 dòng phụ đề, đồng bộ 0 subtitle cache và định dạng màu vàng cỡ chữ 5 thành công.
+04:39:23 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\template-2.tmp để dịch và cập nhật font/màu sắc...
+04:39:23 - WARNING - Không tìm thấy phụ đề nào trong bản nháp.
+04:39:23 - INFO - Đã patch phụ đề trên 1/2 file draft/timeline.
+04:39:23 - INFO - Đang chỉnh âm lượng track video về -20.5 dB (0.0944)...
+04:39:23 - INFO - Đã chỉnh âm lượng 2 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\draft_info.json.
+04:39:23 - INFO - Đã chỉnh âm lượng 1 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\template-2.tmp.
+04:39:23 - INFO - Đã chỉnh âm lượng tổng 3 đoạn trên 2 file về -20.5 dB.
+04:39:23 - INFO - Đã khóa 2 track/segment (video, effect) trên 1 file draft.
+04:39:30 - WARNING - Không lưu được ảnh debug workflow lỗi: CapCut window not found
+04:39:30 - ERROR - Workflow ảnh Text to speech thất bại sau 4 lần; đánh dấu item hiện tại lỗi rồi chuyển item kế tiếp.
+Traceback (most recent call last):
+  File "C:\Users\nguye\Projects\CapCutAPI\capcut_gui_app.py", line 200, in run_image_workflow
+    result = run_workflow(workflow_path, dry_run=False)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nguye\Projects\CapCutAPI\capcut_rpa.py", line 535, in run_workflow
+    result = select_all_timeline(
+             ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nguye\Projects\CapCutAPI\capcut_rpa.py", line 302, in select_all_timeline
+    window = find_capcut_window()
+             ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nguye\Projects\CapCutAPI\capcut_rpa.py", line 174, in find_capcut_window
+    raise RuntimeError("CapCut window not found")
+RuntimeError: CapCut window not found
+04:39:30 - ERROR - Lỗi CapCut GUI video 'C:\Users\nguye\Videos\Phim6\tap12.mp4': CapCut window not found
+04:39:30 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:39:33 - INFO - Đợi 1 giây sau khi patch âm lượng trước khi mở lại CapCut...
+04:39:33 - INFO - Giải phóng buffer 00000000000 từ item lỗi 'C:\Users\nguye\Videos\Phim6\tap12.mp4' để cấp phát cho 'C:\Users\nguye\Videos\Phim6\tap14.mp4'...
+04:39:33 - INFO - Khôi phục dự án từ backup 00000000000_backup sang buffer 00000000000...
+04:39:33 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 00000000000: C:\Users\nguye\Videos\Phim6\tap14.mp4
+04:39:33 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim6\tap14.mp4 ===
+04:39:33 - INFO - Preprocess Step 1 starting offline pipeline patch...
+04:39:34 - INFO - Received save draft request: draft_id=00000000000, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
+04:39:34 - INFO - Task 00000000000 has been created.
+04:39:34 - INFO - Successfully retrieved draft 00000000000 from cache.
+04:39:34 - INFO - Task 00000000000 status updated to 'processing': Preparing draft files.
+04:39:34 - WARNING - Deleting existing draft folder (current working directory): 00000000000
+04:39:34 - INFO - Starting to save draft: 00000000000
+04:39:34 - INFO - Found registered draft_id '3D08E8DD-C0CD-4d71-B5AA-CD868B1B6C83' for folder '00000000000' in root_meta_info.json
+04:39:34 - INFO - Updated draft_meta_info.json for 00000000000 with draft_id=3D08E8DD-C0CD-4d71-B5AA-CD868B1B6C83
+04:39:34 - INFO - Task 00000000000 progress 5%: Updating media file metadata.
+04:39:34 - INFO - No audio files found in the draft.
+04:39:34 - INFO - Successfully set video video_54611d279cf90a8f.mp4 dimensions: 1920x1080.
+04:39:34 - INFO - Successfully obtained video video_54611d279cf90a8f.mp4 duration: 546.73 seconds (546733333 microseconds).
+04:39:34 - INFO - Checking track segment time range conflicts...
+04:39:34 - INFO - Updated script total duration to: 683416666 microseconds.
+04:39:34 - INFO - Processing pending keyframes...
+04:39:34 - INFO - Task 00000000000 progress 10%: Collected 1 download tasks in total.
+04:39:34 - INFO - Starting concurrent download of 1 files...
+04:39:34 - INFO - Đang kiểm tra và khởi động CapCut...
+04:39:34 - INFO - Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...
+04:39:34 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:39:34 - INFO - Task 00000000000: Successfully downloaded video file, progress 70.
+04:39:34 - INFO - Task 00000000000: Concurrent download completed, downloaded 1 files in total.
+04:39:34 - INFO - Task 00000000000 progress 70%: Saving draft information.
+04:39:34 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\00000000000\draft_info.json.
+04:39:34 - INFO - Task 00000000000 completed, draft URL: 
+04:39:36 - INFO - Đang render video đã làm chậm thật bằng ffmpeg: speed=0.8, output=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\assets\video\video_fea2da93fa56517ab4c9209a924653ef_preprocessed.mp4
+04:39:36 - INFO - FFmpeg video encoder: -c:v h264_nvenc -preset p4 -cq 23 -b:v 0 -pix_fmt yuv420p
+04:39:37 - INFO - Khởi chạy CapCut từ shortcut: C:\Users\nguye\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\CapCut\CapCut.lnk
+04:39:43 - INFO - Đang kết nối với cửa sổ CapCut...
+04:39:47 - INFO - Đã kết nối thành công tới cửa sổ CapCut (Trạng thái: home)
+04:39:47 - INFO - Opening CapCut project '111111111111111111'...
+04:39:57 - INFO - Đang dùng ảnh project_title_marker_2.png để mở dự án, click lên trên 1.0cm ở giữa ảnh...
+04:39:58 - INFO - Đã thấy template project marker score=1.0000 và click tại (2342, 605).
+04:39:58 - INFO - Clicked project marker. Continue workflow.
+04:39:58 - INFO - Trước TTS: audio_segments=0, audio_materials=0.
+04:39:58 - INFO - Chạy TTS lần 1/3...
+04:39:58 - INFO - Chạy workflow nhận diện ảnh: Text to speech (rpa_tts.sample.json) lần 1/4
+04:39:58 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_tts.sample.json
+04:40:17 - INFO - Đã patch video track vào draft: files=3, source_duration=683400000, target_duration=683400000, speed=0.8, asset=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\assets\video\video_fea2da93fa56517ab4c9209a924653ef_preprocessed.mp4
+04:40:17 - INFO - Auto-detect canvas từ video gốc: 1920x1080 -> ratio=16:9
+04:40:17 - INFO - Đã chỉnh canvas 16:9 (1920x1080) trên 2 file draft.
+04:40:17 - INFO - Đã bật mirror ngang video trên 2 segment / 2 file draft.
+04:40:17 - INFO - Đã khóa 4 track/segment (video, effect) trên 2 file draft.
+04:40:17 - INFO - Đã mở khóa 0 track/segment (text, audio) trên 0 file draft.
+04:40:17 - INFO - Dùng local Whisper nên chưa mở CapCut ở bước 2. Sẽ mở sau khi dịch/patch xong.
+04:40:17 - INFO - Chạy local faster-whisper GPU để tạo phụ đề: draft=00000000000, language=zh, video=C:\Users\nguye\Videos\Phim6\tap14.mp4
+04:40:17 - INFO - Whisper local: Đang trích audio đã làm chậm speed=0.8 trước khi Whisper...
+04:40:19 - INFO - Whisper local: Đang chạy Whisper local cho audio/video: C:\Users\nguye\AppData\Local\Temp\tmppl1e7xoq.wav
+04:40:34 - INFO - Whisper local: Whisper hoàn thành: 149 dòng, language=zh, duration=683.37s.
+04:40:34 - INFO - Đã patch phụ đề Whisper local vào draft: segments=149, added_texts=149, srt=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\whisper_zh.srt
+04:40:34 - INFO - CapCut chưa được mở trong luồng Whisper local, patch draft trực tiếp.
+04:40:34 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\draft_info.json để dịch và cập nhật font/màu sắc...
+04:40:34 - INFO - Đang dùng AI lấy video_context và asr_text từ 149 dòng phụ đề...
+04:40:38 - INFO - AI context extracted successfully: Context: 视频描述了一场发生在高科技背景下的街头纠纷与战斗。主角（大叔）因刮刮乐骗局欠下债务，遭到自称“特勤处”的黑恶势力围攻。在战斗陷入困境时，主角使用了一次性的“外骨骼终极超载模式”击败对手。视频风格幽默诙 | Terms: {"刮刮乐": "Vé số cào", "欠条": "Giấy nợ", "特勤处": "Sở đặc nhiệm", "M7战甲": "Giáp chiến M7", "提风超长枪管": "Nòn
+04:40:38 - INFO - Đang dịch 148/149 dòng phụ đề tiếng Trung chưa có cache (dùng lại cache 1 dòng) sang tiếng Việt...
+04:40:38 - INFO - Dịch AI bằng gemini model gemini-3.1-flash-lite theo batch 20 dòng...
+04:40:41 - INFO - Dịch AI batch 1: OK (20/20)
+04:40:45 - INFO - Dịch AI batch 2: OK (20/20)
+04:40:48 - INFO - Dịch AI batch 3: OK (20/20)
+04:40:52 - INFO - Dịch AI batch 4: OK (20/20)
+04:40:55 - INFO - Dịch AI batch 5: OK (20/20)
+04:40:59 - INFO - Dịch AI batch 6: OK (20/20)
+04:41:02 - INFO - Dịch AI batch 7: OK (20/20)
+04:41:06 - INFO - Dịch AI batch 8: OK (8/8)
+04:41:06 - INFO - Mẫu dịch: '刮刮乐来看一看啊' -> 'Vé số cào đây, mời xem thử đi'
+04:41:06 - INFO - Mẫu dịch: '免费刮 中大奖' -> 'Cào miễn phí, trúng giải lớn'
+04:41:06 - INFO - Mẫu dịch: '免费 免费啊' -> 'Miễn phí, miễn phí đây'
+04:41:06 - INFO - Đã dịch 149/149 dòng phụ đề, đồng bộ 0 subtitle cache và định dạng màu vàng cỡ chữ 5 thành công.
+04:41:06 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\template-2.tmp để dịch và cập nhật font/màu sắc...
+04:41:06 - WARNING - Không tìm thấy phụ đề nào trong bản nháp.
+04:41:06 - INFO - Đã patch phụ đề trên 1/2 file draft/timeline.
+04:41:06 - INFO - Đang chỉnh âm lượng track video về -20.5 dB (0.0944)...
+04:41:06 - INFO - Đã chỉnh âm lượng 2 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\draft_info.json.
+04:41:06 - INFO - Đã chỉnh âm lượng 1 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\template-2.tmp.
+04:41:06 - INFO - Đã chỉnh âm lượng tổng 3 đoạn trên 2 file về -20.5 dB.
+04:41:06 - INFO - Đã khóa 2 track/segment (video, effect) trên 1 file draft.
+04:42:23 - INFO - run_workflow hoàn tất: rpa_tts.sample.json
+04:42:23 - INFO - RPA step 1: select_all_timeline
+04:42:23 - INFO - RPA step 2: clicked tts_button.png score=1.0000 at (1531, 57)
+04:42:23 - INFO - RPA step 3: clicked voice_star_button.png score=1.0000 at (1375, 146)
+04:42:23 - INFO - RPA step 4: sleep 1.0s
+04:42:23 - INFO - RPA step 5: clicked child_voice.png score=1.0000 at (1389, 223)
+04:42:23 - INFO - RPA step 6: clicked generate_speech_button.png score=1.0000 at (1847, 547)
+04:42:23 - INFO - RPA step 7: sleep 5.0s
+04:42:23 - INFO - RPA step 8: wait
+04:42:23 - INFO - {"ok": true, "steps": [{"action": "select_all_timeline", "window": "CapCut", "window_rect": [-8, -8, 1928, 1040], "x": 960, "y": 890, "click_x_ratio": 0.5, "click_y_from_bottom": 150, "dry_run": false, "step": 1}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\tts_button.png", "score": 0.9999997019767761, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1531, "y": 57, "dry_run": false, "step": 2}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\voice_star_button.png", "score": 0.9999997615814209, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1375, "y": 146, "dry_run": false, "step": 3}, {"action": "sleep", "seconds": 1.0, "dry_run": false, "step": 4}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\child_voice.png", "score": 0.9999939799308777, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1389, "y": 223, "dry_run": false, "step": 5}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\generate_speech_button.png", "score": 0.9999986290931702, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.65], "x": 1847, "y": 547, "dry_run": false, "step": 6}, {"action": "sleep", "seconds": 5.0, "dry_run": false, "step": 7}, {"action": "wait", "mode": "gone", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\generating_speech.png", "threshold": 0.82, "score": 0.4041478633880615, "elapsed": 132.47, "dry_run": false, "require_seen": false, "seen_once": true, "step": 8}]}
+04:42:23 - INFO - Kiểm tra audio TTS: audio_segments=784, audio_materials=196, files=5.
+04:42:23 - INFO - Đã xác nhận draft có audio TTS mới.
+04:42:23 - INFO - Đóng CapCut để flush draft sau khi xác nhận TTS...
+04:42:23 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:42:27 - INFO - Đang tăng tốc độ audio TTS lên 1.17 trên tất cả file draft/timeline...
+04:42:27 - INFO - Theo dõi file export trong các thư mục: C:\Users\nguye\Videos
+04:42:27 - INFO - Đang kiểm tra và khởi động CapCut...
+04:42:27 - INFO - Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...
+04:42:27 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:42:31 - INFO - Khởi chạy CapCut từ shortcut: C:\Users\nguye\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\CapCut\CapCut.lnk
+04:42:35 - INFO - Đang kết nối với cửa sổ CapCut...
+04:42:38 - INFO - Đã kết nối thành công tới cửa sổ CapCut (Trạng thái: home)
+04:42:38 - INFO - Opening CapCut project '111111111111111111'...
+04:42:47 - INFO - Đang dùng ảnh project_title_marker_2.png để mở dự án, click lên trên 1.0cm ở giữa ảnh...
+04:42:47 - INFO - Đã thấy template project marker score=1.0000 và click tại (2210, 605).
+04:42:47 - INFO - Clicked project marker. Continue workflow.
+04:42:47 - INFO - Chạy workflow nhận diện ảnh: Export (rpa_export.sample.json) lần 1/1
+04:42:47 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_export.sample.json
+04:42:53 - INFO - run_workflow hoàn tất: rpa_export.sample.json
+04:42:53 - INFO - RPA step 1: clicked export_button.png score=1.0000 at (1770, 19)
+04:42:53 - INFO - RPA step 2: sleep 1.5s
+04:42:53 - INFO - RPA step 3: clicked export_confirm_button.png score=1.0000 at (1188, 821)
+04:42:53 - INFO - {"ok": true, "steps": [{"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\export_button.png", "score": 0.9999982714653015, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1770, "y": 19, "dry_run": false, "step": 1}, {"action": "sleep", "seconds": 1.5, "dry_run": false, "step": 2}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\export_confirm_button.png", "score": 0.9999995231628418, "window": "CapCut", "search_region": [0.55, 0.7, 0.66, 0.82], "x": 1188, "y": 821, "dry_run": false, "step": 3}]}
+04:44:13 - INFO - File xuất đã hoàn thành và ổn định. Đóng CapCut để giải phóng khóa file...
+04:44:13 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:44:18 - INFO - File export mới phát hiện: c:\users\nguye\videos\111111111111111111.mp4 (913728221 bytes). Đích yêu cầu: C:\Users\nguye\Videos\Phim6\tap13_vi.mp4
+04:44:18 - INFO - Đã chuyển file export về folder video gốc: C:\Users\nguye\Videos\Phim6\tap13_vi.mp4 (913728221 bytes)
+04:44:18 - INFO - === ĐÃ XỬ LÝ XONG: tap13.mp4 ===
+04:44:18 - INFO - Đợi 1 giây sau khi patch âm lượng trước khi mở lại CapCut...
+04:44:18 - INFO - Khôi phục dự án từ backup 00000000000_backup sang buffer 111111111111111111...
+04:44:19 - INFO - Đang kiểm tra và khởi động CapCut...
+04:44:19 - INFO - Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...
+04:44:19 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:44:19 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 111111111111111111: C:\Users\nguye\Videos\Phim6\tap15.mp4
+04:44:19 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim6\tap15.mp4 ===
+04:44:19 - INFO - Preprocess Step 1 starting offline pipeline patch...
+04:44:19 - INFO - Received save draft request: draft_id=111111111111111111, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
+04:44:19 - INFO - Task 111111111111111111 has been created.
+04:44:19 - INFO - Successfully retrieved draft 111111111111111111 from cache.
+04:44:19 - INFO - Task 111111111111111111 status updated to 'processing': Preparing draft files.
+04:44:19 - WARNING - Deleting existing draft folder (current working directory): 111111111111111111
+04:44:19 - INFO - Starting to save draft: 111111111111111111
+04:44:19 - INFO - Found registered draft_id 'BA2B6229-A530-4f0c-A8BC-00C4BA081322' for folder '111111111111111111' in root_meta_info.json
+04:44:19 - INFO - Updated draft_meta_info.json for 111111111111111111 with draft_id=BA2B6229-A530-4f0c-A8BC-00C4BA081322
+04:44:19 - INFO - Task 111111111111111111 progress 5%: Updating media file metadata.
+04:44:19 - INFO - No audio files found in the draft.
+04:44:19 - INFO - Successfully set video video_90be5a4434c80530.mp4 dimensions: 1920x1080.
+04:44:19 - INFO - Successfully obtained video video_90be5a4434c80530.mp4 duration: 593.40 seconds (593400000 microseconds).
+04:44:19 - INFO - Checking track segment time range conflicts...
+04:44:19 - INFO - Updated script total duration to: 741750000 microseconds.
+04:44:19 - INFO - Processing pending keyframes...
+04:44:19 - INFO - Task 111111111111111111 progress 10%: Collected 1 download tasks in total.
+04:44:19 - INFO - Starting concurrent download of 1 files...
+04:44:19 - INFO - Task 111111111111111111: Successfully downloaded video file, progress 70.
+04:44:19 - INFO - Task 111111111111111111: Concurrent download completed, downloaded 1 files in total.
+04:44:19 - INFO - Task 111111111111111111 progress 70%: Saving draft information.
+04:44:19 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\111111111111111111\draft_info.json.
+04:44:19 - INFO - Task 111111111111111111 completed, draft URL: 
+04:44:22 - INFO - Đã tự phát hiện vùng hardsub từ 5/10 frame: {'enabled': True, 'x': 0, 'y': 900, 'w': 1920, 'h': 138, 'radius': 24, 'detected_frames': 5, 'sampled_frames': 10}
+04:44:22 - INFO - Đang render video đã làm chậm thật bằng ffmpeg: speed=0.8, output=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\assets\video\video_aa9abffc15dd5075820701bd8ee0e704_preprocessed.mp4
+04:44:22 - INFO - FFmpeg video encoder: -c:v h264_nvenc -preset p4 -cq 23 -b:v 0 -pix_fmt yuv420p
+04:44:22 - INFO - Khởi chạy CapCut từ shortcut: C:\Users\nguye\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\CapCut\CapCut.lnk
+04:44:28 - INFO - Đang kết nối với cửa sổ CapCut...
+04:44:31 - INFO - Đã kết nối thành công tới cửa sổ CapCut (Trạng thái: home)
+04:44:31 - INFO - Opening CapCut project '00000000000'...
+04:44:40 - INFO - Đang dùng ảnh project_title_marker.png để mở dự án, click lên trên 1.0cm ở giữa ảnh...
+04:44:41 - INFO - Đã thấy template project marker score=1.0000 và click tại (422, 605).
+04:44:41 - INFO - Clicked project marker. Continue workflow.
+04:44:41 - INFO - Trước TTS: audio_segments=0, audio_materials=0.
+04:44:41 - INFO - Chạy TTS lần 1/3...
+04:44:41 - INFO - Chạy workflow nhận diện ảnh: Text to speech (rpa_tts.sample.json) lần 1/4
+04:44:41 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_tts.sample.json
+04:45:06 - INFO - Đã patch video track vào draft: files=3, source_duration=741733984, target_duration=741733984, speed=0.8, asset=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\assets\video\video_aa9abffc15dd5075820701bd8ee0e704_preprocessed.mp4
+04:45:06 - INFO - Auto-detect canvas từ video gốc: 1920x1080 -> ratio=16:9
+04:45:06 - INFO - Đã chỉnh canvas 16:9 (1920x1080) trên 2 file draft.
+04:45:06 - INFO - Đã bật mirror ngang video trên 2 segment / 2 file draft.
+04:45:06 - INFO - Đã khóa 4 track/segment (video, effect) trên 2 file draft.
+04:45:06 - INFO - Đã mở khóa 0 track/segment (text, audio) trên 0 file draft.
+04:45:06 - INFO - Dùng local Whisper nên chưa mở CapCut ở bước 2. Sẽ mở sau khi dịch/patch xong.
+04:45:06 - INFO - Chạy local faster-whisper GPU để tạo phụ đề: draft=111111111111111111, language=zh, video=C:\Users\nguye\Videos\Phim6\tap15.mp4
+04:45:06 - INFO - Whisper local: Đang trích audio đã làm chậm speed=0.8 trước khi Whisper...
+04:45:07 - INFO - Whisper local: Đang chạy Whisper local cho audio/video: C:\Users\nguye\AppData\Local\Temp\tmp0lw6q5lg.wav
+04:45:14 - WARNING - Workflow ảnh Text to speech lỗi lần 1/4: TimeoutError: template not found above threshold 0.68: C:\Users\nguye\Projects\CapCutAPI\rpa_templates\tts_button.png, last score=0.5275
+04:45:14 - INFO - Đã lưu ảnh debug workflow lỗi: C:\Users\nguye\Projects\CapCutAPI\debug_rpa_tts.sample_attempt_1.png
+04:45:14 - INFO - Đợi 5s rồi nhận diện lại workflow Text to speech...
+04:45:19 - INFO - Chạy workflow nhận diện ảnh: Text to speech (rpa_tts.sample.json) lần 2/4
+04:45:19 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_tts.sample.json
+04:45:20 - INFO - Whisper local: Whisper hoàn thành: 132 dòng, language=zh, duration=741.71s.
+04:45:20 - INFO - Đã patch phụ đề Whisper local vào draft: segments=132, added_texts=132, srt=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\whisper_zh.srt
+04:45:20 - INFO - CapCut chưa được mở trong luồng Whisper local, patch draft trực tiếp.
+04:45:20 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\draft_info.json để dịch và cập nhật font/màu sắc...
+04:45:20 - INFO - Đang dùng AI lấy video_context và asr_text từ 132 dòng phụ đề...
+04:45:24 - INFO - AI context extracted successfully: Context: 视频为基于《凹凸世界》同人创作的荒诞搞怪短视频。主角们（如银翼、购造文）在执行名为“寻找非洲之心”的任务时陷入混乱，涉及权力争斗、背刺、时空旅行及符文力量的争夺。整体氛围轻松无厘头，角色性格夸张，剧情 | Terms: {"非洲之心": "Trái tim châu Phi", "购造文": "Cấu Tạo Văn", "银翼": "Ngân Dực", "赛伊德": "Said", "德木兰": "Đức Mộc
+04:45:24 - INFO - Đang dịch 132/132 dòng phụ đề tiếng Trung chưa có cache (dùng lại cache 0 dòng) sang tiếng Việt...
+04:45:24 - INFO - Dịch AI bằng gemini model gemini-3.1-flash-lite theo batch 20 dòng...
+04:45:28 - INFO - Dịch AI batch 1: OK (20/20)
+04:45:32 - INFO - Dịch AI batch 2: OK (20/20)
+04:45:36 - INFO - Dịch AI batch 3: OK (20/20)
+04:45:40 - INFO - Dịch AI batch 4: OK (20/20)
+04:45:43 - INFO - Dịch AI batch 5: OK (20/20)
+04:45:47 - INFO - Dịch AI batch 6: OK (20/20)
+04:45:50 - INFO - Dịch AI batch 7: OK (12/12)
+04:45:50 - INFO - Mẫu dịch: '大侄子,能让我当一次队长吗?就离搞' -> 'Cháu trai, cho ta làm đội trưởng một lần được không?'
+04:45:50 - INFO - Mẫu dịch: '嗯,行倒是行,但你当队长我有点担心啊' -> 'Ừm, được thì được, nhưng cậu làm đội trưởng tôi hơi lo.'
+04:45:50 - INFO - Mẫu dịch: '你放心,大侄子,这次寻找非洲之心的任务我肯定不搞砸' -> 'Cứ yên tâm, cháu trai, nhiệm vụ tìm Trái tim châu Phi lần này ta chắc chắn không làm hỏng.'
+04:45:50 - INFO - Đã dịch 132/132 dòng phụ đề, đồng bộ 0 subtitle cache và định dạng màu vàng cỡ chữ 5 thành công.
+04:45:50 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\template-2.tmp để dịch và cập nhật font/màu sắc...
+04:45:50 - WARNING - Không tìm thấy phụ đề nào trong bản nháp.
+04:45:50 - INFO - Đã patch phụ đề trên 1/2 file draft/timeline.
+04:45:50 - INFO - Đang chỉnh âm lượng track video về -20.5 dB (0.0944)...
+04:45:50 - INFO - Đã chỉnh âm lượng 2 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\draft_info.json.
+04:45:50 - INFO - Đã chỉnh âm lượng 1 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\template-2.tmp.
+04:45:50 - INFO - Đã chỉnh âm lượng tổng 3 đoạn trên 2 file về -20.5 dB.
+04:45:50 - INFO - Đã khóa 2 track/segment (video, effect) trên 1 file draft.
+04:46:15 - INFO - run_workflow hoàn tất: rpa_tts.sample.json
+04:46:15 - INFO - RPA step 1: select_all_timeline
+04:46:15 - INFO - RPA step 2: clicked tts_button.png score=1.0000 at (1531, 57)
+04:46:15 - INFO - RPA step 3: clicked voice_star_button.png score=1.0000 at (1375, 146)
+04:46:15 - INFO - RPA step 4: sleep 1.0s
+04:46:15 - INFO - RPA step 5: clicked child_voice.png score=1.0000 at (1389, 223)
+04:46:15 - INFO - RPA step 6: clicked generate_speech_button.png score=1.0000 at (1847, 547)
+04:46:15 - INFO - RPA step 7: sleep 5.0s
+04:46:15 - INFO - RPA step 8: wait
+04:46:15 - INFO - {"ok": true, "steps": [{"action": "select_all_timeline", "window": "CapCut", "window_rect": [-8, -8, 1928, 1040], "x": 960, "y": 890, "click_x_ratio": 0.5, "click_y_from_bottom": 150, "dry_run": false, "step": 1}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\tts_button.png", "score": 0.9999996423721313, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1531, "y": 57, "dry_run": false, "step": 2}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\voice_star_button.png", "score": 0.9999997615814209, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1375, "y": 146, "dry_run": false, "step": 3}, {"action": "sleep", "seconds": 1.0, "dry_run": false, "step": 4}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\child_voice.png", "score": 0.999993622303009, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1389, "y": 223, "dry_run": false, "step": 5}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\generate_speech_button.png", "score": 0.9999989867210388, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.65], "x": 1847, "y": 547, "dry_run": false, "step": 6}, {"action": "sleep", "seconds": 5.0, "dry_run": false, "step": 7}, {"action": "wait", "mode": "gone", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\generating_speech.png", "threshold": 0.82, "score": 0.41843172907829285, "elapsed": 44.418, "dry_run": false, "require_seen": false, "seen_once": true, "step": 8}]}
+04:46:15 - INFO - Kiểm tra audio TTS: audio_segments=0, audio_materials=0, files=5.
+04:46:20 - INFO - Kiểm tra audio TTS: audio_segments=0, audio_materials=0, files=5.
+04:46:25 - INFO - Kiểm tra audio TTS: audio_segments=0, audio_materials=0, files=5.
+04:46:30 - INFO - Kiểm tra audio TTS: audio_segments=0, audio_materials=0, files=5.
+04:46:35 - INFO - Kiểm tra audio TTS: audio_segments=0, audio_materials=0, files=5.
+04:46:40 - INFO - Kiểm tra audio TTS: audio_segments=0, audio_materials=0, files=5.
+04:46:45 - INFO - Kiểm tra audio TTS: audio_segments=0, audio_materials=0, files=5.
+04:46:50 - INFO - Kiểm tra audio TTS: audio_segments=0, audio_materials=0, files=5.
+04:46:56 - INFO - Kiểm tra audio TTS: audio_segments=0, audio_materials=0, files=5.
+04:47:01 - INFO - Kiểm tra audio TTS: audio_segments=0, audio_materials=0, files=5.
+04:47:06 - INFO - Kiểm tra audio TTS: audio_segments=0, audio_materials=0, files=5.
+04:47:11 - INFO - Kiểm tra audio TTS: audio_segments=0, audio_materials=0, files=5.
+04:47:16 - INFO - Kiểm tra audio TTS: audio_segments=0, audio_materials=0, files=5.
+04:47:21 - INFO - Kiểm tra audio TTS: audio_segments=596, audio_materials=149, files=5.
+04:47:21 - INFO - Đã xác nhận draft có audio TTS mới.
+04:47:21 - INFO - Đóng CapCut để flush draft sau khi xác nhận TTS...
+04:47:21 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:47:25 - INFO - Đang tăng tốc độ audio TTS lên 1.17 trên tất cả file draft/timeline...
+04:47:25 - INFO - Theo dõi file export trong các thư mục: C:\Users\nguye\Videos
+04:47:25 - INFO - Đang kiểm tra và khởi động CapCut...
+04:47:25 - INFO - Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...
+04:47:25 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:47:29 - INFO - Khởi chạy CapCut từ shortcut: C:\Users\nguye\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\CapCut\CapCut.lnk
+04:47:34 - INFO - Đang kết nối với cửa sổ CapCut...
+04:47:37 - INFO - Đã kết nối thành công tới cửa sổ CapCut (Trạng thái: home)
+04:47:37 - INFO - Opening CapCut project '00000000000'...
+04:47:46 - INFO - Đang dùng ảnh project_title_marker.png để mở dự án, click lên trên 1.0cm ở giữa ảnh...
+04:47:46 - INFO - Đã thấy template project marker score=1.0000 và click tại (290, 605).
+04:47:46 - INFO - Clicked project marker. Continue workflow.
+04:47:46 - INFO - Chạy workflow nhận diện ảnh: Export (rpa_export.sample.json) lần 1/1
+04:47:46 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_export.sample.json
+04:47:52 - INFO - run_workflow hoàn tất: rpa_export.sample.json
+04:47:52 - INFO - RPA step 1: clicked export_button.png score=1.0000 at (1770, 19)
+04:47:52 - INFO - RPA step 2: sleep 1.5s
+04:47:52 - INFO - RPA step 3: clicked export_confirm_button.png score=1.0000 at (1188, 821)
+04:47:52 - INFO - {"ok": true, "steps": [{"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\export_button.png", "score": 0.9999992847442627, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1770, "y": 19, "dry_run": false, "step": 1}, {"action": "sleep", "seconds": 1.5, "dry_run": false, "step": 2}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\export_confirm_button.png", "score": 0.9999995231628418, "window": "CapCut", "search_region": [0.55, 0.7, 0.66, 0.82], "x": 1188, "y": 821, "dry_run": false, "step": 3}]}
+04:48:46 - INFO - File xuất đã hoàn thành và ổn định. Đóng CapCut để giải phóng khóa file...
+04:48:46 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:48:50 - INFO - File export mới phát hiện: c:\users\nguye\videos\00000000000(2).mp4 (838474060 bytes). Đích yêu cầu: C:\Users\nguye\Videos\Phim6\tap14_vi.mp4
+04:48:50 - INFO - Đã chuyển file export về folder video gốc: C:\Users\nguye\Videos\Phim6\tap14_vi.mp4 (838474060 bytes)
+04:48:50 - INFO - === ĐÃ XỬ LÝ XONG: tap14.mp4 ===
+04:48:50 - INFO - Đợi 1 giây sau khi patch âm lượng trước khi mở lại CapCut...
+04:48:51 - INFO - Đang kiểm tra và khởi động CapCut...
+04:48:52 - INFO - Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...
+04:48:52 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:48:52 - INFO - Khôi phục dự án từ backup 00000000000_backup sang buffer 00000000000...
+04:48:52 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 00000000000: C:\Users\nguye\Videos\Phim6\tap16.mp4
+04:48:52 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim6\tap16.mp4 ===
+04:48:52 - INFO - Preprocess Step 1 starting offline pipeline patch...
+04:48:52 - INFO - Received save draft request: draft_id=00000000000, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
+04:48:52 - INFO - Task 00000000000 has been created.
+04:48:52 - INFO - Successfully retrieved draft 00000000000 from cache.
+04:48:52 - INFO - Task 00000000000 status updated to 'processing': Preparing draft files.
+04:48:52 - WARNING - Deleting existing draft folder (current working directory): 00000000000
+04:48:52 - INFO - Starting to save draft: 00000000000
+04:48:52 - INFO - Found registered draft_id '3D08E8DD-C0CD-4d71-B5AA-CD868B1B6C83' for folder '00000000000' in root_meta_info.json
+04:48:52 - INFO - Updated draft_meta_info.json for 00000000000 with draft_id=3D08E8DD-C0CD-4d71-B5AA-CD868B1B6C83
+04:48:52 - INFO - Task 00000000000 progress 5%: Updating media file metadata.
+04:48:52 - INFO - No audio files found in the draft.
+04:48:52 - INFO - Successfully set video video_53a1ef5b5e41085e.mp4 dimensions: 1920x1080.
+04:48:52 - INFO - Successfully obtained video video_53a1ef5b5e41085e.mp4 duration: 493.80 seconds (493800000 microseconds).
+04:48:52 - INFO - Checking track segment time range conflicts...
+04:48:52 - INFO - Updated script total duration to: 617250000 microseconds.
+04:48:52 - INFO - Processing pending keyframes...
+04:48:52 - INFO - Task 00000000000 progress 10%: Collected 1 download tasks in total.
+04:48:52 - INFO - Starting concurrent download of 1 files...
+04:48:52 - INFO - Task 00000000000: Successfully downloaded video file, progress 70.
+04:48:52 - INFO - Task 00000000000: Concurrent download completed, downloaded 1 files in total.
+04:48:52 - INFO - Task 00000000000 progress 70%: Saving draft information.
+04:48:52 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\00000000000\draft_info.json.
+04:48:52 - INFO - Task 00000000000 completed, draft URL: 
+04:48:54 - INFO - Đã tự phát hiện vùng hardsub từ 6/10 frame: {'enabled': True, 'x': 0, 'y': 933, 'w': 1920, 'h': 87, 'radius': 24, 'detected_frames': 6, 'sampled_frames': 10}
+04:48:54 - INFO - Đang render video đã làm chậm thật bằng ffmpeg: speed=0.8, output=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\assets\video\video_7fd30cbfec3355f69afe3f5292a0e076_preprocessed.mp4
+04:48:54 - INFO - FFmpeg video encoder: -c:v h264_nvenc -preset p4 -cq 23 -b:v 0 -pix_fmt yuv420p
+04:48:55 - INFO - Khởi chạy CapCut từ shortcut: C:\Users\nguye\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\CapCut\CapCut.lnk
+04:48:59 - INFO - Đang kết nối với cửa sổ CapCut...
+04:49:03 - INFO - Đã kết nối thành công tới cửa sổ CapCut (Trạng thái: home)
+04:49:03 - INFO - Opening CapCut project '111111111111111111'...
+04:49:12 - INFO - Đang dùng ảnh project_title_marker_2.png để mở dự án, click lên trên 1.0cm ở giữa ảnh...
+04:49:13 - INFO - Đã thấy template project marker score=1.0000 và click tại (422, 605).
+04:49:13 - INFO - Clicked project marker. Continue workflow.
+04:49:13 - INFO - Trước TTS: audio_segments=0, audio_materials=0.
+04:49:13 - INFO - Chạy TTS lần 1/3...
+04:49:13 - INFO - Chạy workflow nhận diện ảnh: Text to speech (rpa_tts.sample.json) lần 1/4
+04:49:13 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_tts.sample.json
+04:49:30 - INFO - Đã patch video track vào draft: files=3, source_duration=617233984, target_duration=617233984, speed=0.8, asset=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\assets\video\video_7fd30cbfec3355f69afe3f5292a0e076_preprocessed.mp4
+04:49:30 - INFO - Auto-detect canvas từ video gốc: 1920x1080 -> ratio=16:9
+04:49:30 - INFO - Đã chỉnh canvas 16:9 (1920x1080) trên 2 file draft.
+04:49:30 - INFO - Đã bật mirror ngang video trên 2 segment / 2 file draft.
+04:49:30 - INFO - Đã khóa 4 track/segment (video, effect) trên 2 file draft.
+04:49:30 - INFO - Đã mở khóa 0 track/segment (text, audio) trên 0 file draft.
+04:49:30 - INFO - Dùng local Whisper nên chưa mở CapCut ở bước 2. Sẽ mở sau khi dịch/patch xong.
+04:49:30 - INFO - Chạy local faster-whisper GPU để tạo phụ đề: draft=00000000000, language=zh, video=C:\Users\nguye\Videos\Phim6\tap16.mp4
+04:49:30 - INFO - Whisper local: Đang trích audio đã làm chậm speed=0.8 trước khi Whisper...
+04:49:31 - INFO - Whisper local: Đang chạy Whisper local cho audio/video: C:\Users\nguye\AppData\Local\Temp\tmpjesj25w6.wav
+04:49:45 - INFO - Whisper local: Whisper hoàn thành: 202 dòng, language=zh, duration=617.2s.
+04:49:45 - INFO - Đã patch phụ đề Whisper local vào draft: segments=202, added_texts=202, srt=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\whisper_zh.srt
+04:49:45 - INFO - CapCut chưa được mở trong luồng Whisper local, patch draft trực tiếp.
+04:49:45 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\draft_info.json để dịch và cập nhật font/màu sắc...
+04:49:45 - INFO - Đang dùng AI lấy video_context và asr_text từ 202 dòng phụ đề...
+04:49:45 - WARNING - Workflow ảnh Text to speech lỗi lần 1/4: TimeoutError: template not found above threshold 0.68: C:\Users\nguye\Projects\CapCutAPI\rpa_templates\tts_button.png, last score=0.5274
+04:49:46 - INFO - Đã lưu ảnh debug workflow lỗi: C:\Users\nguye\Projects\CapCutAPI\debug_rpa_tts.sample_attempt_1.png
+04:49:46 - INFO - Đợi 5s rồi nhận diện lại workflow Text to speech...
+04:49:48 - INFO - AI context extracted successfully: Context: 视频为末世废土风格的动作短剧，讲述了阿萨拉人赛伊德与反派哈德森之间围绕大坝与暗星燃料展开的冲突。剧情涉及穿越时空、AI操控剧本、势力对抗及领地保卫。整体语气戏谑、充满游戏化表达，并穿插了强烈的战斗叙事 | Terms: {"彼特": "Peter", "赛伊德": "Said", "哈德森": "Hudson", "阿萨拉人": "Người Asala", "哈福克士兵": "Lính Havoc", "暗星燃料"
+04:49:48 - INFO - Đang dịch 195/202 dòng phụ đề tiếng Trung chưa có cache (dùng lại cache 7 dòng) sang tiếng Việt...
+04:49:48 - INFO - Dịch AI bằng gemini model gemini-3.1-flash-lite theo batch 20 dòng...
+04:49:51 - INFO - Chạy workflow nhận diện ảnh: Text to speech (rpa_tts.sample.json) lần 2/4
+04:49:51 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_tts.sample.json
+04:49:52 - INFO - Dịch AI batch 1: OK (20/20)
+04:49:55 - INFO - Dịch AI batch 2: OK (20/20)
+04:49:59 - INFO - Dịch AI batch 3: OK (20/20)
+04:50:02 - INFO - Dịch AI batch 4: OK (20/20)
+04:50:06 - INFO - Dịch AI batch 5: OK (20/20)
+04:50:10 - INFO - Dịch AI batch 6: OK (20/20)
+04:50:13 - INFO - Dịch AI batch 7: OK (20/20)
+04:50:17 - INFO - Dịch AI batch 8: OK (20/20)
+04:50:20 - INFO - Dịch AI batch 9: OK (20/20)
+04:50:24 - INFO - Dịch AI batch 10: OK (15/15)
+04:50:24 - INFO - Mẫu dịch: '有什么信息吗' -> 'Có tin tức gì không?'
+04:50:24 - INFO - Mẫu dịch: '这是彼特和赛伊德' -> 'Đây là Peter và Said'
+04:50:24 - INFO - Mẫu dịch: '不好' -> 'Không xong rồi'
+04:50:24 - INFO - Đã dịch 202/202 dòng phụ đề, đồng bộ 0 subtitle cache và định dạng màu vàng cỡ chữ 5 thành công.
+04:50:24 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\template-2.tmp để dịch và cập nhật font/màu sắc...
+04:50:24 - WARNING - Không tìm thấy phụ đề nào trong bản nháp.
+04:50:24 - INFO - Đã patch phụ đề trên 1/2 file draft/timeline.
+04:50:24 - INFO - Đang chỉnh âm lượng track video về -20.5 dB (0.0944)...
+04:50:24 - INFO - Đã chỉnh âm lượng 2 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\draft_info.json.
+04:50:24 - INFO - Đã chỉnh âm lượng 1 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\template-2.tmp.
+04:50:24 - INFO - Đã chỉnh âm lượng tổng 3 đoạn trên 2 file về -20.5 dB.
+04:50:24 - INFO - Đã khóa 2 track/segment (video, effect) trên 1 file draft.
+04:51:57 - INFO - run_workflow hoàn tất: rpa_tts.sample.json
+04:51:57 - INFO - RPA step 1: select_all_timeline
+04:51:57 - INFO - RPA step 2: clicked tts_button.png score=1.0000 at (1531, 57)
+04:51:57 - INFO - RPA step 3: clicked voice_star_button.png score=1.0000 at (1375, 146)
+04:51:57 - INFO - RPA step 4: sleep 1.0s
+04:51:57 - INFO - RPA step 5: clicked child_voice.png score=1.0000 at (1389, 223)
+04:51:57 - INFO - RPA step 6: clicked generate_speech_button.png score=1.0000 at (1847, 547)
+04:51:57 - INFO - RPA step 7: sleep 5.0s
+04:51:57 - INFO - RPA step 8: wait
+04:51:57 - INFO - {"ok": true, "steps": [{"action": "select_all_timeline", "window": "CapCut", "window_rect": [-8, -8, 1928, 1040], "x": 960, "y": 890, "click_x_ratio": 0.5, "click_y_from_bottom": 150, "dry_run": false, "step": 1}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\tts_button.png", "score": 0.9999994039535522, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1531, "y": 57, "dry_run": false, "step": 2}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\voice_star_button.png", "score": 0.9999997615814209, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1375, "y": 146, "dry_run": false, "step": 3}, {"action": "sleep", "seconds": 1.0, "dry_run": false, "step": 4}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\child_voice.png", "score": 0.9999939799308777, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1389, "y": 223, "dry_run": false, "step": 5}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\generate_speech_button.png", "score": 0.9999983906745911, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.65], "x": 1847, "y": 547, "dry_run": false, "step": 6}, {"action": "sleep", "seconds": 5.0, "dry_run": false, "step": 7}, {"action": "wait", "mode": "gone", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\generating_speech.png", "threshold": 0.82, "score": 0.4072013795375824, "elapsed": 115.246, "dry_run": false, "require_seen": false, "seen_once": true, "step": 8}]}
+04:51:57 - INFO - Kiểm tra audio TTS: audio_segments=528, audio_materials=132, files=5.
+04:51:57 - INFO - Đã xác nhận draft có audio TTS mới.
+04:51:57 - INFO - Đóng CapCut để flush draft sau khi xác nhận TTS...
+04:51:57 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:52:01 - INFO - Đang tăng tốc độ audio TTS lên 1.17 trên tất cả file draft/timeline...
+04:52:01 - INFO - Theo dõi file export trong các thư mục: C:\Users\nguye\Videos
+04:52:01 - INFO - Đang kiểm tra và khởi động CapCut...
+04:52:01 - INFO - Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...
+04:52:01 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:52:04 - INFO - Khởi chạy CapCut từ shortcut: C:\Users\nguye\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\CapCut\CapCut.lnk
+04:52:09 - INFO - Đang kết nối với cửa sổ CapCut...
+04:52:11 - INFO - Đã kết nối thành công tới cửa sổ CapCut (Trạng thái: home)
+04:52:11 - INFO - Opening CapCut project '111111111111111111'...
+04:52:20 - INFO - Đang dùng ảnh project_title_marker_2.png để mở dự án, click lên trên 1.0cm ở giữa ảnh...
+04:52:20 - INFO - Đã thấy template project marker score=1.0000 và click tại (290, 605).
+04:52:20 - INFO - Clicked project marker. Continue workflow.
+04:52:20 - INFO - Chạy workflow nhận diện ảnh: Export (rpa_export.sample.json) lần 1/1
+04:52:20 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_export.sample.json
+04:52:26 - INFO - run_workflow hoàn tất: rpa_export.sample.json
+04:52:26 - INFO - RPA step 1: clicked export_button.png score=1.0000 at (1770, 19)
+04:52:26 - INFO - RPA step 2: sleep 1.5s
+04:52:26 - INFO - RPA step 3: clicked export_confirm_button.png score=1.0000 at (1188, 821)
+04:52:26 - INFO - {"ok": true, "steps": [{"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\export_button.png", "score": 0.9999989867210388, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1770, "y": 19, "dry_run": false, "step": 1}, {"action": "sleep", "seconds": 1.5, "dry_run": false, "step": 2}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\export_confirm_button.png", "score": 0.9999994039535522, "window": "CapCut", "search_region": [0.55, 0.7, 0.66, 0.82], "x": 1188, "y": 821, "dry_run": false, "step": 3}]}
+04:53:24 - INFO - File xuất đã hoàn thành và ổn định. Đóng CapCut để giải phóng khóa file...
+04:53:24 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:53:28 - INFO - File export mới phát hiện: c:\users\nguye\videos\111111111111111111.mp4 (916445343 bytes). Đích yêu cầu: C:\Users\nguye\Videos\Phim6\tap15_vi.mp4
+04:53:28 - INFO - Đã chuyển file export về folder video gốc: C:\Users\nguye\Videos\Phim6\tap15_vi.mp4 (916445343 bytes)
+04:53:28 - INFO - === ĐÃ XỬ LÝ XONG: tap15.mp4 ===
+04:53:28 - INFO - Đợi 1 giây sau khi patch âm lượng trước khi mở lại CapCut...
+04:53:29 - INFO - Đang kiểm tra và khởi động CapCut...
+04:53:30 - INFO - Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...
+04:53:30 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:53:30 - INFO - Khôi phục dự án từ backup 00000000000_backup sang buffer 111111111111111111...
+04:53:30 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 111111111111111111: C:\Users\nguye\Videos\Phim6\tap17.mp4
+04:53:30 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim6\tap17.mp4 ===
+04:53:30 - INFO - Preprocess Step 1 starting offline pipeline patch...
+04:53:30 - INFO - Received save draft request: draft_id=111111111111111111, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
+04:53:30 - INFO - Task 111111111111111111 has been created.
+04:53:30 - INFO - Successfully retrieved draft 111111111111111111 from cache.
+04:53:30 - INFO - Task 111111111111111111 status updated to 'processing': Preparing draft files.
+04:53:30 - WARNING - Deleting existing draft folder (current working directory): 111111111111111111
+04:53:30 - INFO - Starting to save draft: 111111111111111111
+04:53:30 - INFO - Found registered draft_id 'BA2B6229-A530-4f0c-A8BC-00C4BA081322' for folder '111111111111111111' in root_meta_info.json
+04:53:30 - INFO - Updated draft_meta_info.json for 111111111111111111 with draft_id=BA2B6229-A530-4f0c-A8BC-00C4BA081322
+04:53:30 - INFO - Task 111111111111111111 progress 5%: Updating media file metadata.
+04:53:30 - INFO - No audio files found in the draft.
+04:53:30 - INFO - Successfully set video video_2dc274c65c3f890d.mp4 dimensions: 1920x1080.
+04:53:30 - INFO - Successfully obtained video video_2dc274c65c3f890d.mp4 duration: 409.17 seconds (409166667 microseconds).
+04:53:30 - INFO - Checking track segment time range conflicts...
+04:53:30 - INFO - Updated script total duration to: 511458334 microseconds.
+04:53:30 - INFO - Processing pending keyframes...
+04:53:30 - INFO - Task 111111111111111111 progress 10%: Collected 1 download tasks in total.
+04:53:30 - INFO - Starting concurrent download of 1 files...
+04:53:31 - INFO - Task 111111111111111111: Successfully downloaded video file, progress 70.
+04:53:31 - INFO - Task 111111111111111111: Concurrent download completed, downloaded 1 files in total.
+04:53:31 - INFO - Task 111111111111111111 progress 70%: Saving draft information.
+04:53:31 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\111111111111111111\draft_info.json.
+04:53:31 - INFO - Task 111111111111111111 completed, draft URL: 
+04:53:33 - INFO - Đã tự phát hiện vùng hardsub từ 7/10 frame: {'enabled': True, 'x': 0, 'y': 909, 'w': 1920, 'h': 131, 'radius': 24, 'detected_frames': 7, 'sampled_frames': 10}
+04:53:33 - INFO - Đang render video đã làm chậm thật bằng ffmpeg: speed=0.8, output=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\assets\video\video_b9899b6db31a51408eca8036c9d3d7c3_preprocessed.mp4
+04:53:33 - INFO - FFmpeg video encoder: -c:v h264_nvenc -preset p4 -cq 23 -b:v 0 -pix_fmt yuv420p
+04:53:33 - INFO - Khởi chạy CapCut từ shortcut: C:\Users\nguye\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\CapCut\CapCut.lnk
+04:53:39 - INFO - Đang kết nối với cửa sổ CapCut...
+04:53:42 - INFO - Đã kết nối thành công tới cửa sổ CapCut (Trạng thái: home)
+04:53:42 - INFO - Opening CapCut project '00000000000'...
+04:53:52 - INFO - Đang dùng ảnh project_title_marker.png để mở dự án, click lên trên 1.0cm ở giữa ảnh...
+04:53:52 - INFO - Đã thấy template project marker score=1.0000 và click tại (422, 605).
+04:53:52 - INFO - Clicked project marker. Continue workflow.
+04:53:52 - INFO - Trước TTS: audio_segments=0, audio_materials=0.
+04:53:52 - INFO - Chạy TTS lần 1/3...
+04:53:52 - INFO - Chạy workflow nhận diện ảnh: Text to speech (rpa_tts.sample.json) lần 1/4
+04:53:52 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_tts.sample.json
+04:54:04 - INFO - Đã patch video track vào draft: files=3, source_duration=511466667, target_duration=511466667, speed=0.8, asset=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\assets\video\video_b9899b6db31a51408eca8036c9d3d7c3_preprocessed.mp4
+04:54:04 - INFO - Auto-detect canvas từ video gốc: 1920x1080 -> ratio=16:9
+04:54:04 - INFO - Đã chỉnh canvas 16:9 (1920x1080) trên 2 file draft.
+04:54:04 - INFO - Đã bật mirror ngang video trên 2 segment / 2 file draft.
+04:54:04 - INFO - Đã khóa 4 track/segment (video, effect) trên 2 file draft.
+04:54:04 - INFO - Đã mở khóa 0 track/segment (text, audio) trên 0 file draft.
+04:54:04 - INFO - Dùng local Whisper nên chưa mở CapCut ở bước 2. Sẽ mở sau khi dịch/patch xong.
+04:54:04 - INFO - Chạy local faster-whisper GPU để tạo phụ đề: draft=111111111111111111, language=zh, video=C:\Users\nguye\Videos\Phim6\tap17.mp4
+04:54:04 - INFO - Whisper local: Đang trích audio đã làm chậm speed=0.8 trước khi Whisper...
+04:54:05 - INFO - Whisper local: Đang chạy Whisper local cho audio/video: C:\Users\nguye\AppData\Local\Temp\tmpqmtdc8hm.wav
+04:54:20 - INFO - Whisper local: Whisper hoàn thành: 65 dòng, language=zh, duration=511.42s.
+04:54:20 - INFO - Đã patch phụ đề Whisper local vào draft: segments=65, added_texts=65, srt=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\whisper_zh.srt
+04:54:20 - INFO - CapCut chưa được mở trong luồng Whisper local, patch draft trực tiếp.
+04:54:20 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\draft_info.json để dịch và cập nhật font/màu sắc...
+04:54:20 - INFO - Đang dùng AI lấy video_context và asr_text từ 65 dòng phụ đề...
+04:54:24 - INFO - AI context extracted successfully: Context: 视频讲述了一个关于复活神秘人物‘赛伊德’的任务线，主角团队试图集齐三块面具碎片以掌控赛伊德，同时面对来自阿德森护卫队的阻碍。视频带有荒诞、恶搞的风格，混合了角色扮演与游戏直播元素，包含了打破第四面墙的 | Terms: {"赛伊德": "Said", "面具碎片": "Mảnh mặt nạ", "回响": "Hồi Hưởng", "盼枝": "Phán Chi", "阿萨拉老奶": "Bà lão Asala",
+04:54:24 - INFO - Đang dịch 64/65 dòng phụ đề tiếng Trung chưa có cache (dùng lại cache 1 dòng) sang tiếng Việt...
+04:54:24 - INFO - Dịch AI bằng gemini model gemini-3.1-flash-lite theo batch 20 dòng...
+04:54:25 - WARNING - Workflow ảnh Text to speech lỗi lần 1/4: TimeoutError: template not found above threshold 0.68: C:\Users\nguye\Projects\CapCutAPI\rpa_templates\tts_button.png, last score=0.5275
+04:54:25 - INFO - Đã lưu ảnh debug workflow lỗi: C:\Users\nguye\Projects\CapCutAPI\debug_rpa_tts.sample_attempt_1.png
+04:54:25 - INFO - Đợi 5s rồi nhận diện lại workflow Text to speech...
+04:54:28 - INFO - Dịch AI batch 1: OK (20/20)
+04:54:30 - INFO - Chạy workflow nhận diện ảnh: Text to speech (rpa_tts.sample.json) lần 2/4
+04:54:30 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_tts.sample.json
+04:54:32 - INFO - Dịch AI batch 2: OK (20/20)
+04:54:35 - INFO - Dịch AI batch 3: OK (20/20)
+04:54:38 - INFO - Dịch AI batch 4: OK (4/4)
+04:54:38 - INFO - Mẫu dịch: '据传闻,赛伊德死前留下了三块面具碎片,及其三块碎片即可复活赛伊德。' -> 'Nghe đồn trước khi chết, Said để lại ba Mảnh mặt nạ, thu thập đủ sẽ hồi sinh được Said.'
+04:54:38 - INFO - Mẫu dịch: '谁复活赛伊德,赛伊德就帮谁。' -> 'Ai hồi sinh Said, Said sẽ giúp người đó.'
+04:54:38 - INFO - Mẫu dịch: '其中一块面具碎片在我这里,是封衣冒死在大坝上搞到的。' -> 'Một Mảnh mặt nạ đang ở chỗ tôi, do Phong Y liều mạng lấy được trên đập.'
+04:54:38 - INFO - Đã dịch 65/65 dòng phụ đề, đồng bộ 0 subtitle cache và định dạng màu vàng cỡ chữ 5 thành công.
+04:54:38 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\template-2.tmp để dịch và cập nhật font/màu sắc...
+04:54:38 - WARNING - Không tìm thấy phụ đề nào trong bản nháp.
+04:54:38 - INFO - Đã patch phụ đề trên 1/2 file draft/timeline.
+04:54:38 - INFO - Đang chỉnh âm lượng track video về -20.5 dB (0.0944)...
+04:54:38 - INFO - Đã chỉnh âm lượng 2 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\draft_info.json.
+04:54:38 - INFO - Đã chỉnh âm lượng 1 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\template-2.tmp.
+04:54:38 - INFO - Đã chỉnh âm lượng tổng 3 đoạn trên 2 file về -20.5 dB.
+04:54:38 - INFO - Đã khóa 2 track/segment (video, effect) trên 1 file draft.
+04:57:15 - INFO - run_workflow hoàn tất: rpa_tts.sample.json
+04:57:15 - INFO - RPA step 1: select_all_timeline
+04:57:15 - INFO - RPA step 2: clicked tts_button.png score=1.0000 at (1531, 57)
+04:57:15 - INFO - RPA step 3: clicked voice_star_button.png score=1.0000 at (1375, 146)
+04:57:15 - INFO - RPA step 4: sleep 1.0s
+04:57:15 - INFO - RPA step 5: clicked child_voice.png score=1.0000 at (1389, 223)
+04:57:15 - INFO - RPA step 6: clicked generate_speech_button.png score=1.0000 at (1847, 547)
+04:57:15 - INFO - RPA step 7: sleep 5.0s
+04:57:15 - INFO - RPA step 8: wait
+04:57:15 - INFO - {"ok": true, "steps": [{"action": "select_all_timeline", "window": "CapCut", "window_rect": [-8, -8, 1928, 1040], "x": 960, "y": 890, "click_x_ratio": 0.5, "click_y_from_bottom": 150, "dry_run": false, "step": 1}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\tts_button.png", "score": 0.9999995827674866, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1531, "y": 57, "dry_run": false, "step": 2}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\voice_star_button.png", "score": 0.9999997615814209, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1375, "y": 146, "dry_run": false, "step": 3}, {"action": "sleep", "seconds": 1.0, "dry_run": false, "step": 4}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\child_voice.png", "score": 0.999993622303009, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1389, "y": 223, "dry_run": false, "step": 5}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\generate_speech_button.png", "score": 0.9999989867210388, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.65], "x": 1847, "y": 547, "dry_run": false, "step": 6}, {"action": "sleep", "seconds": 5.0, "dry_run": false, "step": 7}, {"action": "wait", "mode": "gone", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\generating_speech.png", "threshold": 0.82, "score": 0.40414878726005554, "elapsed": 154.186, "dry_run": false, "require_seen": false, "seen_once": true, "step": 8}]}
+04:57:15 - INFO - Kiểm tra audio TTS: audio_segments=808, audio_materials=202, files=5.
+04:57:15 - INFO - Đã xác nhận draft có audio TTS mới.
+04:57:15 - INFO - Đóng CapCut để flush draft sau khi xác nhận TTS...
+04:57:15 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:57:19 - INFO - Đang tăng tốc độ audio TTS lên 1.17 trên tất cả file draft/timeline...
+04:57:19 - INFO - Theo dõi file export trong các thư mục: C:\Users\nguye\Videos
+04:57:19 - INFO - Đang kiểm tra và khởi động CapCut...
+04:57:19 - INFO - Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...
+04:57:19 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:57:23 - INFO - Khởi chạy CapCut từ shortcut: C:\Users\nguye\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\CapCut\CapCut.lnk
+04:57:26 - INFO - Đang kết nối với cửa sổ CapCut...
+04:57:30 - INFO - Đã kết nối thành công tới cửa sổ CapCut (Trạng thái: home)
+04:57:30 - INFO - Opening CapCut project '00000000000'...
+04:57:38 - INFO - Đang dùng ảnh project_title_marker.png để mở dự án, click lên trên 1.0cm ở giữa ảnh...
+04:57:38 - INFO - Đã thấy template project marker score=1.0000 và click tại (290, 605).
+04:57:38 - INFO - Clicked project marker. Continue workflow.
+04:57:38 - INFO - Chạy workflow nhận diện ảnh: Export (rpa_export.sample.json) lần 1/1
+04:57:38 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_export.sample.json
+04:57:44 - INFO - run_workflow hoàn tất: rpa_export.sample.json
+04:57:44 - INFO - RPA step 1: clicked export_button.png score=1.0000 at (1770, 19)
+04:57:44 - INFO - RPA step 2: sleep 1.5s
+04:57:44 - INFO - RPA step 3: clicked export_confirm_button.png score=1.0000 at (1188, 821)
+04:57:44 - INFO - {"ok": true, "steps": [{"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\export_button.png", "score": 0.9999991655349731, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1770, "y": 19, "dry_run": false, "step": 1}, {"action": "sleep", "seconds": 1.5, "dry_run": false, "step": 2}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\export_confirm_button.png", "score": 0.9999995231628418, "window": "CapCut", "search_region": [0.55, 0.7, 0.66, 0.82], "x": 1188, "y": 821, "dry_run": false, "step": 3}]}
+04:58:34 - INFO - File xuất đã hoàn thành và ổn định. Đóng CapCut để giải phóng khóa file...
+04:58:34 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:58:39 - INFO - File export mới phát hiện: c:\users\nguye\videos\00000000000(2).mp4 (760816227 bytes). Đích yêu cầu: C:\Users\nguye\Videos\Phim6\tap16_vi.mp4
+04:58:39 - INFO - Đã chuyển file export về folder video gốc: C:\Users\nguye\Videos\Phim6\tap16_vi.mp4 (760816227 bytes)
+04:58:39 - INFO - === ĐÃ XỬ LÝ XONG: tap16.mp4 ===
+04:58:39 - INFO - Đợi 1 giây sau khi patch âm lượng trước khi mở lại CapCut...
+04:58:40 - INFO - Đang kiểm tra và khởi động CapCut...
+04:58:40 - INFO - Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...
+04:58:40 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:58:43 - INFO - Khởi chạy CapCut từ shortcut: C:\Users\nguye\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\CapCut\CapCut.lnk
+04:58:46 - INFO - Đang kết nối với cửa sổ CapCut...
+04:58:49 - INFO - Đã kết nối thành công tới cửa sổ CapCut (Trạng thái: home)
+04:58:49 - INFO - Opening CapCut project '111111111111111111'...
+04:58:58 - INFO - Đang dùng ảnh project_title_marker_2.png để mở dự án, click lên trên 1.0cm ở giữa ảnh...
+04:58:58 - INFO - Đã thấy template project marker score=1.0000 và click tại (422, 605).
+04:58:58 - INFO - Clicked project marker. Continue workflow.
+04:58:58 - INFO - Trước TTS: audio_segments=0, audio_materials=0.
+04:58:58 - INFO - Chạy TTS lần 1/3...
+04:58:58 - INFO - Chạy workflow nhận diện ảnh: Text to speech (rpa_tts.sample.json) lần 1/4
+04:58:58 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_tts.sample.json
+04:59:51 - INFO - run_workflow hoàn tất: rpa_tts.sample.json
+04:59:51 - INFO - RPA step 1: select_all_timeline
+04:59:51 - INFO - RPA step 2: clicked tts_button.png score=1.0000 at (1531, 57)
+04:59:51 - INFO - RPA step 3: clicked voice_star_button.png score=1.0000 at (1375, 146)
+04:59:51 - INFO - RPA step 4: sleep 1.0s
+04:59:51 - INFO - RPA step 5: clicked child_voice.png score=1.0000 at (1389, 223)
+04:59:51 - INFO - RPA step 6: clicked generate_speech_button.png score=1.0000 at (1847, 547)
+04:59:51 - INFO - RPA step 7: sleep 5.0s
+04:59:51 - INFO - RPA step 8: wait
+04:59:51 - INFO - {"ok": true, "steps": [{"action": "select_all_timeline", "window": "CapCut", "window_rect": [-8, -8, 1928, 1040], "x": 960, "y": 890, "click_x_ratio": 0.5, "click_y_from_bottom": 150, "dry_run": false, "step": 1}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\tts_button.png", "score": 0.9999994039535522, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1531, "y": 57, "dry_run": false, "step": 2}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\voice_star_button.png", "score": 0.9999992847442627, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1375, "y": 146, "dry_run": false, "step": 3}, {"action": "sleep", "seconds": 1.0, "dry_run": false, "step": 4}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\child_voice.png", "score": 0.999993622303009, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1389, "y": 223, "dry_run": false, "step": 5}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\generate_speech_button.png", "score": 0.9999992847442627, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.65], "x": 1847, "y": 547, "dry_run": false, "step": 6}, {"action": "sleep", "seconds": 5.0, "dry_run": false, "step": 7}, {"action": "wait", "mode": "gone", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\generating_speech.png", "threshold": 0.82, "score": 0.40414831042289734, "elapsed": 40.537, "dry_run": false, "require_seen": false, "seen_once": true, "step": 8}]}
+04:59:51 - INFO - Kiểm tra audio TTS: audio_segments=256, audio_materials=64, files=5.
+04:59:51 - INFO - Đã xác nhận draft có audio TTS mới.
+04:59:51 - INFO - Đóng CapCut để flush draft sau khi xác nhận TTS...
+04:59:51 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:59:55 - INFO - Đang tăng tốc độ audio TTS lên 1.17 trên tất cả file draft/timeline...
+04:59:55 - INFO - Theo dõi file export trong các thư mục: C:\Users\nguye\Videos
+04:59:55 - INFO - Đang kiểm tra và khởi động CapCut...
+04:59:55 - INFO - Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...
+04:59:55 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+04:59:58 - INFO - Khởi chạy CapCut từ shortcut: C:\Users\nguye\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\CapCut\CapCut.lnk
+05:00:02 - INFO - Đang kết nối với cửa sổ CapCut...
+05:00:06 - INFO - Đã kết nối thành công tới cửa sổ CapCut (Trạng thái: home)
+05:00:06 - INFO - Opening CapCut project '111111111111111111'...
+05:00:14 - INFO - Đang dùng ảnh project_title_marker_2.png để mở dự án, click lên trên 1.0cm ở giữa ảnh...
+05:00:15 - INFO - Đã thấy template project marker score=1.0000 và click tại (290, 605).
+05:00:15 - INFO - Clicked project marker. Continue workflow.
+05:00:15 - INFO - Chạy workflow nhận diện ảnh: Export (rpa_export.sample.json) lần 1/1
+05:00:15 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_export.sample.json
+05:00:21 - INFO - run_workflow hoàn tất: rpa_export.sample.json
+05:00:21 - INFO - RPA step 1: clicked export_button.png score=1.0000 at (1770, 19)
+05:00:21 - INFO - RPA step 2: sleep 1.5s
+05:00:21 - INFO - RPA step 3: clicked export_confirm_button.png score=1.0000 at (1188, 821)
+05:00:21 - INFO - {"ok": true, "steps": [{"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\export_button.png", "score": 0.9999992251396179, "window": "CapCut", "search_region": [0.6667, 0.0, 1.0, 0.45], "x": 1770, "y": 19, "dry_run": false, "step": 1}, {"action": "sleep", "seconds": 1.5, "dry_run": false, "step": 2}, {"action": "click_template", "template": "C:\\Users\\nguye\\Projects\\CapCutAPI\\rpa_templates\\export_confirm_button.png", "score": 0.9999995231628418, "window": "CapCut", "search_region": [0.55, 0.7, 0.66, 0.82], "x": 1188, "y": 821, "dry_run": false, "step": 3}]}
+05:01:03 - INFO - File xuất đã hoàn thành và ổn định. Đóng CapCut để giải phóng khóa file...
+05:01:03 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+05:01:07 - INFO - File export mới phát hiện: c:\users\nguye\videos\111111111111111111.mp4 (631460382 bytes). Đích yêu cầu: C:\Users\nguye\Videos\Phim6\tap17_vi.mp4
+05:01:07 - INFO - Đã chuyển file export về folder video gốc: C:\Users\nguye\Videos\Phim6\tap17_vi.mp4 (631460382 bytes)
+05:01:07 - INFO - === ĐÃ XỬ LÝ XONG: tap17.mp4 ===
+05:01:08 - INFO - Worker 1 (Preprocess) đã dừng.
+05:01:08 - INFO - Đang hoàn trả dự án gốc 00000000000 từ backup...
+05:01:09 - INFO - Worker 2 (CapCut GUI) đã dừng.
+13:54:17 - INFO - Worker 1 (Preprocess) đã bắt đầu...
+13:54:17 - INFO - Worker 2 (GUI) đã khởi tạo UIAutomation.
+13:54:17 - INFO - Worker 2 (CapCut GUI) đã bắt đầu...
+13:54:17 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 00000000000: C:\Users\nguye\Videos\Phim6\tap12.mp4
+13:54:17 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim6\tap12.mp4 ===
+13:54:17 - INFO - Preprocess Step 1 starting offline pipeline patch...
+13:54:17 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+13:54:20 - INFO - Received save draft request: draft_id=00000000000, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
+13:54:20 - INFO - Task 00000000000 has been created.
+13:54:20 - INFO - Successfully retrieved draft 00000000000 from cache.
+13:54:20 - INFO - Task 00000000000 status updated to 'processing': Preparing draft files.
+13:54:20 - WARNING - Deleting existing draft folder (current working directory): 00000000000
+13:54:20 - INFO - Starting to save draft: 00000000000
+13:54:20 - INFO - Found registered draft_id '3D08E8DD-C0CD-4d71-B5AA-CD868B1B6C83' for folder '00000000000' in root_meta_info.json
+13:54:20 - INFO - Updated draft_meta_info.json for 00000000000 with draft_id=3D08E8DD-C0CD-4d71-B5AA-CD868B1B6C83
+13:54:20 - INFO - Task 00000000000 progress 5%: Updating media file metadata.
+13:54:20 - INFO - No audio files found in the draft.
+13:54:20 - INFO - Successfully set video video_3e3e3496e34f3c9b.mp4 dimensions: 2560x1440.
+13:54:20 - INFO - Successfully obtained video video_3e3e3496e34f3c9b.mp4 duration: 472.87 seconds (472866667 microseconds).
+13:54:20 - INFO - Adjusted video segment cc4c06b58de04d43822af4783ce9e2db timerange to fit the new video duration.
+13:54:20 - INFO - Checking track segment time range conflicts...
+13:54:20 - INFO - Updated script total duration to: 591083333 microseconds.
+13:54:20 - INFO - Processing pending keyframes...
+13:54:20 - INFO - Task 00000000000 progress 10%: Collected 1 download tasks in total.
+13:54:20 - INFO - Starting concurrent download of 1 files...
+13:54:20 - INFO - Task 00000000000: Successfully downloaded video file, progress 70.
+13:54:20 - INFO - Task 00000000000: Concurrent download completed, downloaded 1 files in total.
+13:54:20 - INFO - Task 00000000000 progress 70%: Saving draft information.
+13:54:20 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\00000000000\draft_info.json.
+13:54:20 - INFO - Task 00000000000 completed, draft URL: 
+13:54:25 - INFO - Đã tự phát hiện vùng hardsub từ 6/10 frame: {'enabled': True, 'x': 0, 'y': 1194, 'w': 2560, 'h': 171, 'radius': 24, 'detected_frames': 6, 'sampled_frames': 10}
+13:54:25 - INFO - Đang render video đã làm chậm thật bằng ffmpeg: speed=0.8, output=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\assets\video\video_8761a24c937a56e0a326d8086ff92967_preprocessed.mp4
+13:54:25 - INFO - FFmpeg video encoder: -c:v h264_nvenc -preset p4 -cq 23 -b:v 0 -pix_fmt yuv420p
+13:57:18 - INFO - Đã patch video track vào draft: files=3, source_duration=591083333, target_duration=591083333, speed=0.8, asset=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\assets\video\video_8761a24c937a56e0a326d8086ff92967_preprocessed.mp4
+13:57:18 - INFO - Auto-detect canvas từ video gốc: 2560x1440 -> ratio=16:9
+13:57:18 - INFO - Đã chỉnh canvas 16:9 (2560x1440) trên 2 file draft.
+13:57:18 - INFO - Đã bật mirror ngang video trên 2 segment / 2 file draft.
+13:57:18 - INFO - Đã khóa 4 track/segment (video, effect) trên 2 file draft.
+13:57:18 - INFO - Đã mở khóa 0 track/segment (text, audio) trên 0 file draft.
+13:57:18 - INFO - Dùng local Whisper nên chưa mở CapCut ở bước 2. Sẽ mở sau khi dịch/patch xong.
+13:57:18 - INFO - Chạy local faster-whisper GPU để tạo phụ đề: draft=00000000000, language=zh, video=C:\Users\nguye\Videos\Phim6\tap12.mp4
+13:57:18 - INFO - Whisper local: Đang trích audio đã làm chậm speed=0.8 trước khi Whisper...
+13:57:19 - INFO - Whisper local: Đang chạy Whisper local cho audio/video: C:\Users\nguye\AppData\Local\Temp\tmpe19yso19.wav
+13:57:30 - INFO - Whisper local: Whisper hoàn thành: 59 dòng, language=zh, duration=591.07s.
+13:57:30 - INFO - Đã patch phụ đề Whisper local vào draft: segments=59, added_texts=59, srt=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\whisper_zh.srt
+13:57:30 - INFO - CapCut chưa được mở trong luồng Whisper local, patch draft trực tiếp.
+13:57:30 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\draft_info.json để dịch và cập nhật font/màu sắc...
+13:57:30 - INFO - Đang dùng AI lấy video_context và asr_text từ 59 dòng phụ đề...
+13:57:34 - INFO - AI context extracted successfully: Context: 视频为一部带有奇幻与科幻色彩的动作短片，叙事在游戏解说式对战与沉重的背景故事之间切换。核心矛盾围绕名为“老被诈”的怨灵与主角团的战斗，以及主角对背后组织“GTI”无视平民性命的冷酷行径感到失望，从而决 | Terms: {"老被诈": "Lão Bị Tạc", "怨铃": "Oán Linh", "GTI": "GTI", "红狼": "Hồng Lang", "蓝灯": "Lam Đăng", "卡尔": "Ca
+13:57:34 - INFO - Đang dịch 59/59 dòng phụ đề tiếng Trung chưa có cache (dùng lại cache 0 dòng) sang tiếng Việt...
+13:57:34 - INFO - Dịch AI bằng gemini model gemini-3.1-flash-lite theo batch 20 dòng...
+13:57:38 - INFO - Dịch AI batch 1: OK (20/20)
+13:57:42 - INFO - Dịch AI batch 2: OK (20/20)
+13:57:47 - INFO - Dịch AI batch 3: OK (19/19)
+13:57:47 - INFO - Mẫu dịch: '兄弟,你听说过老被诈吗?' -> 'Này, ông đã nghe về Lão Bị Tạc chưa?'
+13:57:47 - INFO - Mẫu dịch: '什么老被诈?' -> 'Lão Bị Tạc là gì?'
+13:57:47 - INFO - Mẫu dịch: '老被诈,由人类吐槽抱怨凝聚成的怨铃。' -> 'Lão Bị Tạc, Oán Linh ngưng tụ từ những lời phàn nàn.'
+13:57:47 - INFO - Đã dịch 59/59 dòng phụ đề, đồng bộ 0 subtitle cache và định dạng màu vàng cỡ chữ 5 thành công.
+13:57:47 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\template-2.tmp để dịch và cập nhật font/màu sắc...
+13:57:47 - WARNING - Không tìm thấy phụ đề nào trong bản nháp.
+13:57:47 - INFO - Đã patch phụ đề trên 1/2 file draft/timeline.
+13:57:47 - INFO - Đang chỉnh âm lượng track video về -20.5 dB (0.0944)...
+13:57:47 - INFO - Đã chỉnh âm lượng 2 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\draft_info.json.
+13:57:47 - INFO - Đã chỉnh âm lượng 1 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\template-2.tmp.
+13:57:47 - INFO - Đã chỉnh âm lượng tổng 3 đoạn trên 2 file về -20.5 dB.
+13:57:47 - INFO - Đã khóa 2 track/segment (video, effect) trên 1 file draft.
+13:57:47 - INFO - Đợi 1 giây sau khi patch âm lượng trước khi mở lại CapCut...
+13:57:48 - INFO - Đang kiểm tra và khởi động CapCut...
+13:57:49 - INFO - Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...
+13:57:49 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+13:57:52 - INFO - Khởi chạy CapCut từ shortcut: C:\Users\nguye\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\CapCut\CapCut.lnk
+13:57:57 - INFO - Đang kết nối với cửa sổ CapCut...
+13:58:00 - INFO - Đã kết nối thành công tới cửa sổ CapCut (Trạng thái: home)
+13:58:00 - INFO - Opening CapCut project '00000000000'...
+13:58:09 - INFO - Đang dùng ảnh project_title_marker.png để mở dự án, click lên trên 1.0cm ở giữa ảnh...
+13:58:10 - INFO - Đã thấy template project marker score=1.0000 và click tại (2342, 605).
+13:58:10 - INFO - Clicked project marker. Continue workflow.
+13:58:10 - INFO - Trước TTS: audio_segments=0, audio_materials=0.
+13:58:10 - INFO - Chạy TTS lần 1/3...
+13:58:10 - INFO - Chạy workflow nhận diện ảnh: Text to speech (rpa_tts.sample.json) lần 1/4
+13:58:10 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_tts.sample.json
+13:58:54 - WARNING - Workflow ảnh Text to speech lỗi lần 1/4: TimeoutError: template not found above threshold 0.68: C:\Users\nguye\Projects\CapCutAPI\rpa_templates\generate_speech_button.png, last score=0.5020
+13:58:54 - INFO - Đã lưu ảnh debug workflow lỗi: C:\Users\nguye\Projects\CapCutAPI\debug_rpa_tts.sample_attempt_1.png
+13:58:54 - INFO - Đợi 5s rồi nhận diện lại workflow Text to speech...
+13:58:59 - INFO - Chạy workflow nhận diện ảnh: Text to speech (rpa_tts.sample.json) lần 2/4
+13:58:59 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_tts.sample.json
+13:59:31 - WARNING - Workflow ảnh Text to speech lỗi lần 2/4: TimeoutError: template not found above threshold 0.68: C:\Users\nguye\Projects\CapCutAPI\rpa_templates\tts_button.png, last score=0.6686
+13:59:32 - INFO - Đã lưu ảnh debug workflow lỗi: C:\Users\nguye\Projects\CapCutAPI\debug_rpa_tts.sample_attempt_2.png
+13:59:32 - INFO - Đợi 5s rồi nhận diện lại workflow Text to speech...
+13:59:37 - INFO - Chạy workflow nhận diện ảnh: Text to speech (rpa_tts.sample.json) lần 3/4
+13:59:37 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_tts.sample.json
+14:00:09 - WARNING - Workflow ảnh Text to speech lỗi lần 3/4: TimeoutError: template not found above threshold 0.68: C:\Users\nguye\Projects\CapCutAPI\rpa_templates\tts_button.png, last score=0.6708
+14:00:10 - INFO - Đã lưu ảnh debug workflow lỗi: C:\Users\nguye\Projects\CapCutAPI\debug_rpa_tts.sample_attempt_3.png
+14:00:10 - INFO - Đợi 5s rồi nhận diện lại workflow Text to speech...
+14:00:15 - INFO - Chạy workflow nhận diện ảnh: Text to speech (rpa_tts.sample.json) lần 4/4
+14:00:15 - INFO - Bắt đầu run_workflow: C:\Users\nguye\Projects\CapCutAPI\rpa_tts.sample.json
+14:00:47 - WARNING - Workflow ảnh Text to speech lỗi lần 4/4: TimeoutError: template not found above threshold 0.68: C:\Users\nguye\Projects\CapCutAPI\rpa_templates\tts_button.png, last score=0.6708
+14:00:48 - INFO - Đã lưu ảnh debug workflow lỗi: C:\Users\nguye\Projects\CapCutAPI\debug_rpa_tts.sample_attempt_4.png
+14:00:48 - ERROR - Workflow ảnh Text to speech thất bại sau 4 lần; đánh dấu item hiện tại lỗi rồi chuyển item kế tiếp.
+Traceback (most recent call last):
+  File "C:\Users\nguye\Projects\CapCutAPI\capcut_gui_app.py", line 200, in run_image_workflow
+    result = run_workflow(workflow_path, dry_run=False)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\nguye\Projects\CapCutAPI\capcut_rpa.py", line 547, in run_workflow
+    result = click_template(
+             ^^^^^^^^^^^^^^^
+  File "C:\Users\nguye\Projects\CapCutAPI\capcut_rpa.py", line 373, in click_template
+    raise TimeoutError(f"template not found above threshold {threshold}: {template_path}, last score={score:.4f}")
+TimeoutError: template not found above threshold 0.68: C:\Users\nguye\Projects\CapCutAPI\rpa_templates\tts_button.png, last score=0.6708
+14:00:48 - ERROR - Lỗi CapCut GUI video 'C:\Users\nguye\Videos\Phim6\tap12.mp4': template not found above threshold 0.68: C:\Users\nguye\Projects\CapCutAPI\rpa_templates\tts_button.png, last score=0.6708
+14:00:48 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+14:00:51 - INFO - Worker 1 (Preprocess) đã dừng.
+14:00:52 - INFO - Worker 2 (CapCut GUI) đã dừng.
+14:05:32 - INFO - Đã khôi phục 10 item hàng chờ từ cache.
+14:05:32 - INFO - Khởi động server CapCut Automation Studio tại http://127.0.0.1:5000

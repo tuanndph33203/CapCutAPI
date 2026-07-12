@@ -27,15 +27,6 @@
                 0.66,
                 0.82
             ]
-        },
-        {
-            "action": "wait",
-            "template": "rpa_templates/exporting.png",
-            "interval": 3,
-            "require_seen": true,
-            "threshold": 0.82,
-            "mode": "gone",
-            "timeout": 1200
         }
     ]
 }

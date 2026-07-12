@@ -172,25 +172,13 @@ app = Flask(__name__, template_folder="templates")
 log_werkzeug = logging.getLogger('werkzeug')
 log_werkzeug.setLevel(logging.WARNING)
 
-def ensure_control_overlay_running():
-    if str(os.environ.get("CAPCUT_DISABLE_OVERLAY", "")).lower() in {"1", "true", "yes", "on"}:
-        return
-    try:
-        script_path = Path(__file__).resolve().parent / "tools" / "pipeline_control_overlay.py"
-        if not script_path.exists():
-            return
-        for proc in psutil.process_iter(["name", "cmdline"]):
-            cmdline = " ".join(proc.info.get("cmdline") or [])
-            if "pipeline_control_overlay.py" in cmdline:
-                return
-        subprocess.Popen(
-            [sys.executable, str(script_path)],
-            cwd=str(Path(__file__).resolve().parent),
-            creationflags=subprocess.CREATE_NO_WINDOW if os.name == "nt" else 0,
-        )
-        logger.info("Đã bật overlay điều khiển pipeline.")
-    except Exception as exc:
-        logger.warning(f"Không bật được overlay điều khiển pipeline: {exc}")
+
+def get_draft_parent_and_full_path(draft_id):
+    if "__preprocess_stage_" in str(draft_id):
+        temp_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "temp_drafts")
+        os.makedirs(temp_dir, exist_ok=True)
+        return temp_dir, os.path.join(temp_dir, draft_id)
+    return DEFAULT_CAPCUT_DRAFTS, os.path.join(DEFAULT_CAPCUT_DRAFTS, draft_id)
 
 # --- Helper RPA Functions ---
 
@@ -412,6 +400,11 @@ def move_latest_export_to_source_folder(video_path, before_snapshot, item_config
     if not wait_until_file_stable(newest):
         logger.warning(f"File export chưa ổn định kích thước sau khi chờ: {newest}")
         return None
+
+    # Tắt CapCut để nhả file ngay sau khi xuất xong hoàn toàn
+    logger.info("File xuất đã hoàn thành và ổn định. Đóng CapCut để giải phóng khóa file...")
+    kill_capcut()
+    time.sleep(1.5)
 
     suffix = newest.suffix.lower() if newest.suffix.lower() in VIDEO_EXPORT_EXTENSIONS else ".mp4"
     template = str(item_config.get("export_filename_template") or "{source_stem}_vi")
@@ -2883,7 +2876,13 @@ def run_pipeline_with_file_lock_retry(run_pipeline_func, draft_full_path, max_at
     last_error = None
     for attempt in range(1, max_attempts + 1):
         try:
-            kill_capcut()
+            any_gui_running = False
+            r = globals().get('runner')
+            if r:
+                with r.queue_lock:
+                    any_gui_running = any(item.get("status") == "gui_processing" for item in r.queue)
+            if not any_gui_running:
+                kill_capcut()
             wait_for_draft_files_unlocked(draft_full_path, timeout=20)
             if attempt > 1:
                 logger.info(f"Thử patch video lại lần {attempt}/{max_attempts} sau khi nhả khóa file...")
@@ -2947,8 +2946,8 @@ class QueueRunner:
                 # Dynamic buffer owners tracking to resolve conflicts on load
                 buffer_owners = {"00000000000": None, "111111111111111111": None}
                 for item in self.queue:
-                    # If item is success, it doesn't need a buffer anymore
-                    if item.get("status") == "success":
+                    # Nếu là item success, pending hoặc bị lỗi trước bước 5, giải phóng buffer về None để cấp phát động lại
+                    if item.get("status") == "success" or item.get("status") == "pending" or (item.get("status") == "failed" and int(item.get("resume_from_step", 1) or 1) < 5):
                         item["draft_id"] = None
                         item["project_folder"] = None
                         continue
@@ -3345,6 +3344,14 @@ class QueueRunner:
             if self.pause_requested:
                 break
                 
+            # Đếm số lượng video đang hoạt động trên hệ thống (đang chuẩn bị hoặc đang chạy GUI)
+            with self.queue_lock:
+                active_count = sum(1 for item in self.queue if item.get("status") in ("preprocessing", "ready_for_capcut", "gui_processing"))
+                
+            if active_count >= 2:
+                time.sleep(2)
+                continue
+                
             pending_item = None
             pending_idx = -1
             with self.queue_lock:
@@ -3616,45 +3623,44 @@ class QueueRunner:
 
             from capcut_pipeline import run_pipeline
 
-            logger.info(f"Chạy pipeline ngầm để tạo draft '{draft_id}'...")
-            draft_full_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, draft_id)
+            # Xac dinh thu muc luu tru nhap
+            draft_parent, draft_full_path = get_draft_parent_and_full_path(draft_id)
             pipeline_font_name = normalize_draft_font_name(font_name)
             
             self._wait_if_exporting()
 
-            logger.info("Preprocess Step 1 needs CapCut file access; waiting for GUI lock before save-draft patch...")
-            with self.gui_lock:
-                run_pipeline_with_file_lock_retry(
-                    run_pipeline,
-                    draft_full_path,
-                    video=Path(video_path),
-                    capcut_drafts=Path(DEFAULT_CAPCUT_DRAFTS),
-                    srt=None,
-                    width=int(item_config.get("width", 1080)),
-                    height=int(item_config.get("height", 1920)),
-                    speed=speed,
-                    clip_seconds=None,
-                    font=pipeline_font_name,
-                    font_size=font_size,
-                    copy_to_capcut=True,
-                    draft_id=draft_id,
-                    volume=1.0,
-                    preserve_blur_effect=False,
-                )
+            logger.info("Preprocess Step 1 starting offline pipeline patch...")
+            run_pipeline_with_file_lock_retry(
+                run_pipeline,
+                draft_full_path,
+                video=Path(video_path),
+                capcut_drafts=Path(draft_parent),
+                srt=None,
+                width=int(item_config.get("width", 1080)),
+                height=int(item_config.get("height", 1920)),
+                speed=speed,
+                clip_seconds=None,
+                font=pipeline_font_name,
+                font_size=font_size,
+                copy_to_capcut=True,
+                draft_id=draft_id,
+                volume=1.0,
+                preserve_blur_effect=False,
+            )
             self._check_cancel(item)
 
             try:
-                new_project_folder = os.path.join(DEFAULT_CAPCUT_DRAFTS, draft_id)
+                new_project_folder = draft_full_path
                 os.makedirs(new_project_folder, exist_ok=True)
                 config_path = os.path.join(new_project_folder, "pipeline_config.json")
                 with open(config_path, "w", encoding="utf-8") as f:
                     json.dump(item_config, f, ensure_ascii=False, indent=4)
             except Exception as e:
-                logger.warning(f"Không thể lưu pipeline_config cho dự án mới: {str(e)}")
+                logger.warning(f"Khong the luu pipeline_config cho du an moi: {str(e)}")
             item["resume_from_step"] = 2
             self._checkpoint_pause(item, next_step=2, progress=20)
 
-        draft_full_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, draft_id)
+        draft_parent, draft_full_path = get_draft_parent_and_full_path(draft_id)
         video_source_for_patch = configured_video_path or (item.get("video") if item.get("video") and Path(str(item.get("video"))).is_file() else None)
         if video_source_for_patch:
             self._check_cancel(item)
@@ -3976,16 +3982,19 @@ class QueueRunner:
             controller = launch_capcut(cancel_check=lambda: self._check_cancel(item))
             open_project_in_gui(controller, draft_id, cancel_check=lambda: self._check_cancel(item))
             
+            export_workflow_error = None
             self.is_gui_exporting = True
             try:
                 run_image_workflow("rpa_export.sample.json", "Export", attempts=1, retry_delay=5)
+            except Exception as _wf_err:
+                export_workflow_error = _wf_err
+                logger.warning(
+                    f"Workflow Export gặp lỗi ({_wf_err}), vẫn thử phát hiện file export và move..."
+                )
             finally:
                 self.is_gui_exporting = False
                 
             self._check_cancel(item)
-            logger.info("Đóng CapCut để nhả file export trước khi đổi tên và chuyển thư mục...")
-            kill_capcut()
-            time.sleep(1)
             exported_path = move_latest_export_to_source_folder(
                 export_source_video,
                 export_before_snapshot,
@@ -4563,6 +4572,5 @@ def get_logs():
 if __name__ == "__main__":
     # Ensure port 5000 is used
     logger.info("Khởi động server CapCut Automation Studio tại http://127.0.0.1:5000")
-    ensure_control_overlay_running()
     debug_enabled = str(os.environ.get("CAPCUT_DEBUG", "")).lower() in {"1", "true", "yes", "on"}
     app.run(host="127.0.0.1", port=5000, debug=debug_enabled, use_reloader=False)

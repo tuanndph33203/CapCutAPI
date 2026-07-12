@@ -967,11 +967,17 @@
 
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="detail-tts-speed">Tốc độ Đọc (Step 7)</label>
                                 <label for="detail-mirror-video">Mirror video mặc định</label>
                                 <label style="display:flex;align-items:center;gap:8px;height:38px;">
                                     <input type="checkbox" id="detail-mirror-video" checked>
                                     <span>Lật ngang video khi patch</span>
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label for="detail-hardsub-blur">Làm mờ chữ (Blur)</label>
+                                <label style="display:flex;align-items:center;gap:8px;height:38px;">
+                                    <input type="checkbox" id="detail-hardsub-blur" checked>
+                                    <span>Bật làm mờ chữ (Nặng/Slow)</span>
                                 </label>
                             </div>
                         </div>
@@ -2001,6 +2007,7 @@
                         document.getElementById('detail-target-language').value = config.target_language || 'Vietnamese';
                         document.getElementById('detail-ai-tone').value = config.ai_tone || 'natural and fluent';
                         document.getElementById('detail-ai-temperature').value = config.ai_temperature ?? 0.0;
+                        document.getElementById('detail-hardsub-blur').checked = config.hardsub_blur_enabled !== false;
 
                         // Toggle view
                         projectsGridContainer.style.display = 'none';
@@ -2030,7 +2037,8 @@
                     target_language: document.getElementById('detail-target-language').value,
                     ai_tone: document.getElementById('detail-ai-tone').value,
                     video_context: document.getElementById('detail-video-context').value,
-                    ai_temperature: parseFloat(document.getElementById('detail-ai-temperature').value)
+                    ai_temperature: parseFloat(document.getElementById('detail-ai-temperature').value),
+                    hardsub_blur_enabled: document.getElementById('detail-hardsub-blur').checked
                 };
             }
 
