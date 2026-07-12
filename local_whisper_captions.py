@@ -154,10 +154,14 @@ def transcribe_video_to_segments(
         "beam_size": 5,
         "condition_on_previous_text": True,
         "temperature": [0.0, 0.2, 0.4],
-        "hallucination_silence_threshold": 1.0,
+        # KHÔNG dùng hallucination_silence_threshold: nó lọc bỏ cả câu thoại có pause dài
         "vad_parameters": {
-            "min_silence_duration_ms": 500,
-            "speech_pad_ms": 200,
+            # Nhận biết giọng nói ngay cả khi có nhạc nền → threshold thấp hơn (mặc định 0.5)
+            "threshold": float(os.environ.get("WHISPER_VAD_THRESHOLD", "0.25")),
+            # Cho phép khoảng im lặng 250ms → ít bỏ sót câu hơn (cũ: 500ms)
+            "min_silence_duration_ms": int(os.environ.get("WHISPER_VAD_MIN_SILENCE_MS", "250")),
+            # Padding quanh đoạn phát hiện giọng nói → cũ 200ms, tăng lên 400ms
+            "speech_pad_ms": int(os.environ.get("WHISPER_VAD_SPEECH_PAD_MS", "400")),
         },
     }
 
@@ -263,9 +267,14 @@ def transcribe_video_to_segments(
                 word_text = str(getattr(word, "word", "") or "").strip()
                 if not word_text:
                     continue
+                w_start = float(getattr(word, "start", 0.0) or 0.0)
+                w_end = float(getattr(word, "end", 0.0) or 0.0)
+                # Giới hạn thời lượng từ đơn tối đa 1.0s (tránh lỗi Whisper kéo dài từ cuối qua nhạc nền/im lặng)
+                if w_end - w_start > 1.0:
+                    w_end = w_start + 0.5
                 words.append({
-                    "start": float(getattr(word, "start", 0.0) or 0.0),
-                    "end": float(getattr(word, "end", 0.0) or 0.0),
+                    "start": w_start,
+                    "end": w_end,
                     "word": word_text,
                     "probability": float(getattr(word, "probability", 0.0) or 0.0),
                 })
@@ -294,11 +303,15 @@ def transcribe_video_to_segments(
                 continue
 
             suspicious_reasons = []
-            if avg_logprob is not None and float(avg_logprob) < -1.25:
+            # Nới ngưỡng avg_logprob: game audio có nhạc nền làm logprob thấp hơn bình thường
+            logprob_thresh = float(os.environ.get("WHISPER_LOGPROB_THRESHOLD", "-1.5"))
+            if avg_logprob is not None and float(avg_logprob) < logprob_thresh:
                 suspicious_reasons.append("low_logprob")
             if temperature >= 0.8:
                 suspicious_reasons.append("high_temperature")
-            if no_speech_prob is not None and float(no_speech_prob) > 0.75:
+            # Nới ngưỡng no_speech_prob: game audio hay bị nhận nhầm là không có giọng nói
+            no_speech_thresh = float(os.environ.get("WHISPER_NO_SPEECH_THRESHOLD", "0.88"))
+            if no_speech_prob is not None and float(no_speech_prob) > no_speech_thresh:
                 suspicious_reasons.append("high_no_speech")
             if compression_ratio is not None and float(compression_ratio) > 2.8:
                 suspicious_reasons.append("high_compression")
@@ -357,6 +370,7 @@ def _import_srt_to_content(
     width: int,
     height: int,
     track_name: str = "subtitle",
+    subtitle_offset_ms: int = 0,
 ) -> int:
     script = draft.Script_file.load_template(str(content_path))
     before = len((script.content.get("materials") or {}).get("texts") or [])
@@ -364,7 +378,7 @@ def _import_srt_to_content(
     script.import_srt(
         srt_text,
         track_name=track_name,
-        time_offset=0,
+        time_offset=float(subtitle_offset_ms) / 1000.0,
         text_style=draft.Text_style(
             size=font_size,
             color=_hex_to_rgb(font_color),
@@ -607,7 +621,9 @@ def patch_draft_with_local_whisper(
     font_color: str = "#FFFFFF",
     width: int = 1920,
     height: int = 1080,
+    subtitle_offset_ms: int = 0,
     progress_callback: Callable[[str], None] | None = None,
+    translate_func: Callable[[list[str]], list[str]] | None = None,
 ) -> dict:
     draft_path = Path(draft_path)
     repo_root = Path(repo_root)
@@ -622,9 +638,116 @@ def patch_draft_with_local_whisper(
     if not segments:
         raise RuntimeError("Whisper không tạo ra dòng phụ đề nào.")
 
-    merged_segments = segments
-    srt_text_merged = segments_to_srt(merged_segments)
+    # Dịch toàn bộ ngữ cảnh tiếng Trung trước khi chia dòng
+    if translate_func:
+        if progress_callback:
+            progress_callback("Đang dịch AI toàn bộ phụ đề tiếng Trung trước để giữ nguyên ngữ cảnh...")
+        zh_texts = [seg["text"] for seg in segments]
+        try:
+            vi_texts = translate_func(zh_texts)
+            for seg, vi in zip(segments, vi_texts):
+                seg["text_vi"] = vi
+        except Exception as e:
+            if progress_callback:
+                progress_callback(f"Lỗi dịch AI trong lúc chuẩn bị ngắt câu: {e}. Dùng tiếng Trung gốc.")
+            for seg in segments:
+                seg["text_vi"] = seg["text"]
+    else:
+        for seg in segments:
+            seg["text_vi"] = seg["text"]
+
+    # Tiến hành chia nhỏ phụ đề dựa trên bản dịch tiếng Việt
+    max_duration = float(os.environ.get("WHISPER_MAX_SEGMENT_DURATION", "3.0"))
+    max_words = int(os.environ.get("WHISPER_MAX_SEGMENT_WORDS", "10"))
     
+    split_segments = []
+    for seg in segments:
+        text_vi = seg.get("text_vi", "").strip()
+        text_zh = seg.get("text", "").strip()
+        words = seg.get("words", [])
+        vi_words = text_vi.split()
+        # Tự động co ngắn mốc thời gian của segment dựa trên từ thực tế đầu/cuối của Whisper
+        # Điều này giúp loại bỏ khoảng im lặng dài / nhạc nền gây trôi hoặc kéo dài phụ đề
+        if words:
+            # Phát hiện khoảng trống (gap) lớn giữa các từ để cắt bỏ phần trôi
+            # Tăng từ 3.0s lên 6.0s: game dialogue thường có pause dài giữa câu
+            word_gap_cutoff = float(os.environ.get("WHISPER_WORD_GAP_CUTOFF_S", "6.0"))
+            cutoff_index = len(words)
+            for idx in range(1, len(words)):
+                gap = words[idx]["start"] - words[idx-1]["end"]
+                if gap > word_gap_cutoff:
+                    cutoff_index = idx
+                    break
+            
+            valid_words = words[:cutoff_index]
+            if valid_words:
+                actual_start = float(valid_words[0].get("start", seg["start"]))
+                actual_end = float(valid_words[-1].get("end", seg["end"]))
+                if seg["start"] <= actual_start < actual_end <= seg["end"]:
+                    seg["start"] = actual_start
+                    seg["end"] = actual_end
+                elif actual_start < actual_end:
+                    # Đảm bảo co thời gian an toàn nếu mốc trôi nhẹ ra ngoài khoảng segment gốc
+                    seg["start"] = max(seg["start"], actual_start)
+                    seg["end"] = min(seg["end"], actual_end)
+
+        if (seg["end"] - seg["start"] > max_duration or len(vi_words) > max_words) and words and vi_words:
+            chunks_vi = []
+            current_chunk = []
+            for w in vi_words:
+                current_chunk.append(w)
+                if len(current_chunk) >= max_words:
+                    chunks_vi.append(" ".join(current_chunk))
+                    current_chunk = []
+            if current_chunk:
+                chunks_vi.append(" ".join(current_chunk))
+                
+            num_chunks = len(chunks_vi)
+            if num_chunks > 1:
+                total_zh_words = len(words)
+                zh_words_per_chunk = max(1, total_zh_words // num_chunks)
+                start_time = seg["start"]
+                for idx, chunk_vi in enumerate(chunks_vi):
+                    start_zh_idx = idx * zh_words_per_chunk
+                    end_zh_idx = min(total_zh_words - 1, (idx + 1) * zh_words_per_chunk - 1)
+                    
+                    if idx == 0:
+                        chunk_start = seg["start"]
+                    else:
+                        chunk_start = float(words[start_zh_idx].get("start", start_time))
+                        
+                    if idx == num_chunks - 1:
+                        chunk_end = seg["end"]
+                    else:
+                        chunk_end = float(words[end_zh_idx].get("end", seg["end"]))
+                        
+                    if chunk_end <= chunk_start:
+                        chunk_end = chunk_start + 0.5
+                        
+                    split_segments.append({
+                        "id": len(split_segments) + 1,
+                        "start": chunk_start,
+                        "end": chunk_end,
+                        "text": chunk_vi,
+                    })
+                    start_time = chunk_end
+            else:
+                split_segments.append({
+                    "id": len(split_segments) + 1,
+                    "start": seg["start"],
+                    "end": seg["end"],
+                    "text": text_vi,
+                })
+        else:
+            split_segments.append({
+                "id": len(split_segments) + 1,
+                "start": seg["start"],
+                "end": seg["end"],
+                "text": text_vi or text_zh,
+            })
+            
+    merged_segments = split_segments
+    srt_text_merged = segments_to_srt(merged_segments)
     srt_path = draft_path / "whisper_zh.srt"
 
     added = _import_srt_to_content(
@@ -635,6 +758,7 @@ def patch_draft_with_local_whisper(
         font_color=font_color,
         width=width,
         height=height,
+        subtitle_offset_ms=subtitle_offset_ms,
     )
 
     repo_draft_path = repo_root / draft_id

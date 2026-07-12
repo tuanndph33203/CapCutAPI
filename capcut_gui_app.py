@@ -881,6 +881,7 @@ def run_local_whisper_captions_for_draft(draft_full_path, draft_id, video_path, 
         font_color=font_color_hex,
         width=int(item_config.get("canvas_width", item_config.get("width", 1920))),
         height=int(item_config.get("canvas_height", item_config.get("height", 1080))),
+        subtitle_offset_ms=int(item_config.get("whisper_subtitle_offset_ms", 0) or 0),
         progress_callback=lambda message: logger.info(f"Whisper local: {message}"),
     )
     logger.info(
@@ -2442,8 +2443,8 @@ def build_atempo_filter(speed):
     return ",".join(f"atempo={factor:.8g}" for factor in factors)
 
 
-def detect_hardsub_blur_config(video_path, sample_count=10, blur_radius=24):
-    """Detect yellow burned-in subtitles from random frames in the lower third."""
+def detect_hardsub_blur_config(video_path, sample_count=20, blur_radius=24):
+    """Detect yellow burned-in subtitles from random frames in the lower third. Retries up to 3 times."""
     source = Path(video_path)
     meta = probe_video_metadata(source)
     width = int(meta["width"])
@@ -2452,104 +2453,176 @@ def detect_hardsub_blur_config(video_path, sample_count=10, blur_radius=24):
     if width <= 0 or height <= 0 or duration <= 0:
         return {"enabled": False}
 
-    lower_y = height * 2 // 3
+    # Subtitle hardsub luôn nằm ở đáy video (dưới 25% chiều cao cuối)
+    # Dùng bottom 25% thay vì bottom 20% để có vùng tìm rộng hơn
+    lower_y = height * 3 // 4
     lower_height = height - lower_y
     stat = source.stat()
-    rng = random.Random(f"{source.resolve()}:{stat.st_size}:{stat.st_mtime_ns}")
-    start = max(0.2, duration * 0.05)
-    end = max(start, duration * 0.95)
-    timestamps = sorted(rng.uniform(start, end) for _ in range(max(1, int(sample_count))))
-    detections = []
+    
+    max_attempts = 3
+    for attempt in range(1, max_attempts + 1):
+        # Sử dụng seed khác nhau cho mỗi lần thử bằng cách cộng thêm index
+        seed_str = f"{source.resolve()}:{stat.st_size}:{stat.st_mtime_ns}:{attempt}"
+        rng = random.Random(seed_str)
+        start = max(0.2, duration * 0.05)
+        end = max(start, duration * 0.95)
+        timestamps = sorted(rng.uniform(start, end) for _ in range(max(1, int(sample_count))))
+        detections = []
 
-    for timestamp in timestamps:
-        command = [
-            "ffmpeg", "-v", "error", "-ss", f"{timestamp:.3f}", "-i", str(source),
-            "-frames:v", "1", "-vf", f"crop={width}:{lower_height}:0:{lower_y}",
-            "-f", "image2pipe", "-vcodec", "png", "pipe:1",
-        ]
-        completed = subprocess.run(command, capture_output=True)
-        if completed.returncode != 0 or not completed.stdout:
+        for timestamp in timestamps:
+            command = [
+                "ffmpeg", "-v", "error", "-ss", f"{timestamp:.3f}", "-i", str(source),
+                "-frames:v", "1", "-vf", f"crop={width}:{lower_height}:0:{lower_y}",
+                "-f", "image2pipe", "-vcodec", "png", "pipe:1",
+            ]
+            completed = subprocess.run(command, capture_output=True)
+            if completed.returncode != 0 or not completed.stdout:
+                continue
+
+            try:
+                rgb = np.asarray(Image.open(io.BytesIO(completed.stdout)).convert("RGB"))
+            except Exception:
+                continue
+
+            red = rgb[:, :, 0].astype(np.int16)
+            green = rgb[:, :, 1].astype(np.int16)
+            blue = rgb[:, :, 2].astype(np.int16)
+            # Nới lỏng ngưỡng màu: phát hiện cả chữ vàng, vàng nhạt, trắng, trắng ngà
+            yellow_mask = (red >= 160) & (green >= 120) & (blue <= 180) & ((red - blue) >= 30)
+            white_mask = (red >= 210) & (green >= 210) & (blue >= 210)
+            mask = yellow_mask | white_mask
+            mask[:, :width // 12] = False
+            mask[:, width * 11 // 12:] = False
+
+            # Mở rộng vùng tìm kiếm: 10% → 95% của lower_height
+            search_top = int(lower_height * 0.10)
+            search_bottom = int(lower_height * 0.92)
+            mask[:search_top, :] = False
+            mask[search_bottom:, :] = False
+
+            row_counts = mask.sum(axis=1)
+            peak_row = int(row_counts.argmax())
+            peak_count = int(row_counts[peak_row])
+            min_peak = max(8, int(width * 0.004))
+            if peak_count < min_peak:
+                print(f"  [frame@{timestamp:.1f}s] skip: peak_count={peak_count} < min={min_peak}")
+                continue
+
+            row_threshold = max(3, int(peak_count * 0.10))
+            window_top = max(search_top, peak_row - max(50, height // 12))
+            window_bottom = min(search_bottom - 1, peak_row + max(50, height // 12))
+            active_rows = np.where(row_counts[window_top:window_bottom + 1] >= row_threshold)[0]
+            top = window_top + int(active_rows.min()) if active_rows.size else peak_row
+            bottom = window_top + int(active_rows.max()) if active_rows.size else peak_row
+            if bottom - top + 1 < 5:
+                top = max(0, peak_row - 18)
+                bottom = min(lower_height - 1, peak_row + 18)
+
+            ys, xs = np.where(mask[top:bottom + 1])
+            if xs.size < 15:
+                print(f"  [frame@{timestamp:.1f}s] skip: pixel_count={xs.size} < 15")
+                continue
+            xs = xs.astype(np.int32)
+            x1 = int(np.percentile(xs, 1))
+            x2 = int(np.percentile(xs, 99))
+            min_w_ratio = width * 0.05
+            max_w_ratio = width * 0.95
+            if x2 - x1 < min_w_ratio:
+                print(f"  [frame@{timestamp:.1f}s] skip: text_width={x2-x1:.0f} < min={min_w_ratio:.0f}")
+                continue
+            if x2 - x1 > max_w_ratio:
+                print(f"  [frame@{timestamp:.1f}s] skip: text_width={x2-x1:.0f} > max={max_w_ratio:.0f}")
+                continue
+
+            # Lọc bỏ detection có chiều cao quá lớn (game UI, background) — subtitle tối đa ~10% height
+            box_h = (lower_y + bottom) - (lower_y + top)
+            if box_h > height * 0.12:
+                print(f"  [frame@{timestamp:.1f}s] skip: box_h={box_h} > max={height*0.12:.0f} (quá cao, không phải subtitle)")
+                continue
+
+            # Lọc bỏ detection có center_y quá cao (phải ở dưới 75% height)
+            center_y_abs = lower_y + (top + bottom) / 2
+            if center_y_abs < height * 0.72:
+                print(f"  [frame@{timestamp:.1f}s] skip: center_y={center_y_abs:.0f} < {height*0.72:.0f} (quá cao so với video)")
+                continue
+
+            print(f"  [frame@{timestamp:.1f}s] OK: peak={peak_count}, xs=[{x1},{x2}], y=[{lower_y+top},{lower_y+bottom}], h={box_h}")
+            detections.append((x1, lower_y + top, x2, lower_y + bottom))
+
+
+        minimum_hits = max(2, min(3, int(sample_count) // 5))
+        if len(detections) < minimum_hits:
+            print(f"[Lần thử {attempt}/{max_attempts}] Không phát hiện đủ hardsub: {len(detections)}/{sample_count} frame (cần {minimum_hits}). Thử lại...")
             continue
 
-        try:
-            rgb = np.asarray(Image.open(io.BytesIO(completed.stdout)).convert("RGB"))
-        except Exception:
+        # --- Cluster-based picking: chọn cluster được phát hiện nhiều nhất ở đáy video ---
+        # Nhóm các detection có center_y gần nhau (±5% height)
+        cluster_tol = height * 0.05
+        clusters = []  # list of (cluster_center_y, [boxes])
+        for box in sorted(detections, key=lambda b: (b[1] + b[3]) / 2):
+            cy = (box[1] + box[3]) / 2
+            placed = False
+            for cl in clusters:
+                if abs(cy - cl[0]) <= cluster_tol:
+                    cl[1].append(box)
+                    cl[0] = sum((b[1] + b[3]) / 2 for b in cl[1]) / len(cl[1])  # update centroid
+                    placed = True
+                    break
+            if not placed:
+                clusters.append([cy, [box]])
+
+        # Chọn cluster có ít nhất minimum_hits và nằm thấp nhất (y cao nhất)
+        valid_clusters = [(cl[0], cl[1]) for cl in clusters if len(cl[1]) >= minimum_hits]
+        if not valid_clusters:
+            print(f"[Lần thử {attempt}/{max_attempts}] Không có cluster nào đủ {minimum_hits} detection (tổng={len(detections)}). Thử lại...")
             continue
 
-        red = rgb[:, :, 0].astype(np.int16)
-        green = rgb[:, :, 1].astype(np.int16)
-        blue = rgb[:, :, 2].astype(np.int16)
-        yellow_mask = (red >= 170) & (green >= 135) & (blue <= 165) & ((red - green) <= 105)
-        white_mask = (red >= 225) & (green >= 225) & (blue >= 225)
-        mask = yellow_mask | white_mask
-        mask[:, :width // 10] = False
-        mask[:, width * 9 // 10:] = False
-        # Ignore the upper edge of the search area and the very bottom UI/border.
-        search_top = int(lower_height * 0.15)
-        search_bottom = int(lower_height * 0.88)
-        mask[:search_top, :] = False
-        mask[search_bottom:, :] = False
+        # Chọn cluster thấp nhất (center_y lớn nhất) → subtitle ở đáy video
+        best_cluster_y, consistent = max(valid_clusters, key=lambda c: c[0])
+        print(f"  >> Chọn cluster tại center_y={best_cluster_y:.0f} với {len(consistent)} frames")
 
-        row_counts = mask.sum(axis=1)
-        peak_row = int(row_counts.argmax())
-        peak_count = int(row_counts[peak_row])
-        if peak_count < max(12, int(width * 0.006)):
-            continue
+        # Tìm thấy thành công!
+        # Lọc outlier: bỏ box có height > 1.5x median height của cluster
+        heights_arr = [box[3] - box[1] for box in consistent]
+        median_h = float(np.median(heights_arr))
+        filtered = [box for box in consistent if (box[3] - box[1]) <= median_h * 1.5]
+        if len(filtered) < 1:
+            filtered = consistent  # fallback nếu lọc quá nhiều
 
-        row_threshold = max(5, int(peak_count * 0.12))
-        window_top = max(search_top, peak_row - max(45, height // 14))
-        window_bottom = min(search_bottom - 1, peak_row + max(45, height // 14))
-        active_rows = np.where(row_counts[window_top:window_bottom + 1] >= row_threshold)[0]
-        top = window_top + int(active_rows.min()) if active_rows.size else peak_row
-        bottom = window_top + int(active_rows.max()) if active_rows.size else peak_row
-        if bottom - top + 1 < 5:
-            top = max(0, peak_row - 18)
-            bottom = min(lower_height - 1, peak_row + 18)
+        # Tính y1/y2 động từ phạm vi thực tế của chữ (percentile 5~95 để tránh noise)
+        tops = [box[1] for box in filtered]
+        bottoms = [box[3] for box in filtered]
+        padding_y = 4
+        y1 = max(lower_y, int(np.percentile(tops, 5)) - padding_y)
+        y2 = min(height, int(np.percentile(bottoms, 95)) + padding_y)
 
-        ys, xs = np.where(mask[top:bottom + 1])
-        if xs.size < 30:
-            continue
-        xs = xs.astype(np.int32)
-        x1 = int(np.percentile(xs, 1))
-        x2 = int(np.percentile(xs, 99))
-        if x2 - x1 < width * 0.08 or x2 - x1 > width * 0.85:
-            continue
-        detections.append((x1, lower_y + top, x2, lower_y + bottom))
+        # Đảm bảo chiều cao tối thiểu
+        min_band_height = max(24, height // 60)
+        if y2 - y1 < min_band_height:
+            center_y = int(np.median([(box[1] + box[3]) / 2 for box in filtered]))
+            half_h = max(12, min_band_height // 2)
+            y1 = max(lower_y, center_y - half_h)
+            y2 = min(height, center_y + half_h)
 
-    minimum_hits = max(2, min(4, int(sample_count) // 3))
-    if len(detections) < minimum_hits:
-        logger.info(f"Không phát hiện hardsub ổn định trong 1/3 dưới: {len(detections)}/{sample_count} frame.")
-        return {"enabled": False, "detected_frames": len(detections), "sampled_frames": int(sample_count)}
+        print(f"  >> y1={y1}, y2={y2}, h={y2-y1} (tu {len(filtered)} frames sau outlier filter)")
 
-    center_ys = np.array([(box[1] + box[3]) / 2 for box in detections])
-    median_y = float(np.median(center_ys))
-    consistent = [box for box in detections if abs(((box[1] + box[3]) / 2) - median_y) <= height * 0.035]
-    if len(consistent) < minimum_hits:
-        return {"enabled": False, "detected_frames": len(consistent), "sampled_frames": int(sample_count)}
+        result = {
+            "enabled": True,
+            "x": 0,
+            "y": y1,
+            "w": width,
+            "h": y2 - y1,
+            "radius": int(blur_radius),
+            "detected_frames": len(consistent),
+            "sampled_frames": int(sample_count),
+            "attempts_used": attempt,
+        }
+        print(f"Da tu phat hien vung hardsub lan thu {attempt}/{max_attempts}: {result}")
+        return result
 
-    # Fixed padding of 5px above/below the detected subtitle band — detection is already precise
-    padding_y = 5
-    # Keep horizontal blur full-width, but tighten the subtitle band vertically.
-    y1 = max(lower_y, int(np.percentile([box[1] for box in consistent], 35)) - padding_y)
-    y2 = min(height, int(np.percentile([box[3] for box in consistent], 65)) + padding_y)
-    min_band_height = max(28, height // 45)
-    if y2 - y1 < min_band_height:
-        center_y = int(np.median([(box[1] + box[3]) / 2 for box in consistent]))
-        half_h = max(14, min_band_height // 2)
-        y1 = max(lower_y, center_y - half_h)
-        y2 = min(height, center_y + half_h)
-    result = {
-        "enabled": True,
-        "x": 0,
-        "y": y1,
-        "w": width,
-        "h": y2 - y1,
-        "radius": int(blur_radius),
-        "detected_frames": len(consistent),
-        "sampled_frames": int(sample_count),
-    }
-    logger.info(f"Đã tự phát hiện vùng hardsub từ {len(consistent)}/{sample_count} frame: {result}")
-    return result
+
+    print(f"Đã thử tìm kiếm 3 lần (tổng cộng {max_attempts * sample_count} frame) nhưng không phát hiện thấy hardsub.")
+    return {"enabled": False, "sampled_frames": int(sample_count) * max_attempts}
 
 _FFMPEG_H264_NVENC_AVAILABLE = None
 
@@ -2622,7 +2695,7 @@ def render_preprocessed_video(source, output_path, speed=1.0, blur_config=None):
             logger.warning(f"Vung blur qua nho, bo qua blur FFmpeg: x={x}, y={y}, w={w}, h={h}")
             video_filter = f"[0:v]setpts={1 / speed:.12g}*PTS[v]"
         else:
-            video_filter = f"[0:v]split=2[base][tmp];[tmp]crop={w}:{h}:{x}:{y},boxblur={radius}:2[blur];[base][blur]overlay={x}:{y},setpts={1 / speed:.12g}*PTS[v]"
+            video_filter = f"[0:v]split=2[base][tmp];[tmp]crop={w}:{h}:{x}:{y},boxblur={radius}:2[blur];[base][blur]overlay={x}:{y}:eof_action=repeat,setpts={1 / speed:.12g}*PTS[v]"
     else:
         video_filter = f"[0:v]setpts={1 / speed:.12g}*PTS[v]"
     filter_complex = video_filter
@@ -2646,6 +2719,8 @@ def render_preprocessed_video(source, output_path, speed=1.0, blur_config=None):
         "-movflags", "+faststart",
         str(temp_path),
     ]
+    logger.info("FFmpeg filter_complex: " + filter_complex)
+    logger.info("FFmpeg command: " + " ".join(command))
     completed = subprocess.run(
         command,
         text=True,
@@ -3670,15 +3745,22 @@ class QueueRunner:
                 self._wait_if_exporting()
                 blur_config = detect_hardsub_blur_config(
                     video_source_for_patch,
-                    sample_count=int(item_config.get("hardsub_blur_samples", 10)),
+                    sample_count=int(item_config.get("hardsub_blur_samples", 20)),
                     blur_radius=int(item_config.get("hardsub_blur_radius", 24)),
                 )
+                if not blur_config.get("enabled", False):
+                    logger.warning(
+                        "[Blur] Auto-detect thất bại sau 3 lần thử — không áp dụng blur. "
+                        "Xem log để biết chi tiết từng frame bị bỏ qua."
+                    )
+                else:
+                    logger.info(f"[Blur] Auto-detect thành công: {blur_config}")
             elif blur_enabled:
                 blur_config = {
                     "enabled": True,
-                    "x": int(item_config.get("hardsub_blur_x", 410)),
+                    "x": int(item_config.get("hardsub_blur_x", 0)),
                     "y": int(item_config.get("hardsub_blur_y", 910)),
-                    "w": int(item_config.get("hardsub_blur_w", 1100)),
+                    "w": int(item_config.get("hardsub_blur_w", 1920)),
                     "h": int(item_config.get("hardsub_blur_h", 135)),
                     "radius": int(item_config.get("hardsub_blur_radius", 24)),
                 }

@@ -1011,6 +1011,14 @@
                             </div>
                         </div>
 
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="detail-subtitle-offset">Lệch sub (ms) <span style="font-size:0.8em;color:var(--text-muted)">+delay / -sớm</span></label>
+                                <input type="number" id="detail-subtitle-offset" step="50" value="0"
+                                    title="Sub hiện sớm hơn lời? → nhập số dương (vd: 200). Sub hiện trễ? → nhập số âm (vd: -100)">
+                            </div>
+                        </div>
+
                         <h4
                             style="margin: 20px 0 10px; color: var(--text-muted); font-size: 0.95rem; border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">
                             Dịch phụ đề</h4>
@@ -1994,6 +2002,7 @@
                         document.getElementById('detail-font-size').value = config.font_size;
                         document.getElementById('detail-font-color').value = config.font_color;
                         document.getElementById('detail-font-name').value = config.font_name;
+                        document.getElementById('detail-subtitle-offset').value = config.whisper_subtitle_offset_ms || 0;
                         document.getElementById('detail-translation-method').value = config.translation_method || 'google';
                         renderDetailAiProfileSelects(
                             config.available_ai_profiles || [],
@@ -2038,7 +2047,8 @@
                     ai_tone: document.getElementById('detail-ai-tone').value,
                     video_context: document.getElementById('detail-video-context').value,
                     ai_temperature: parseFloat(document.getElementById('detail-ai-temperature').value),
-                    hardsub_blur_enabled: document.getElementById('detail-hardsub-blur').checked
+                    hardsub_blur_enabled: document.getElementById('detail-hardsub-blur').checked,
+                    whisper_subtitle_offset_ms: parseInt(document.getElementById('detail-subtitle-offset').value) || 0
                 };
             }
 

@@ -340,9 +340,21 @@ def run_pipeline(
     capcut_draft = capcut_drafts / draft_id
     restored_effect_files = 0
     if copy_to_capcut:
-        if capcut_draft.exists():
-            shutil.rmtree(capcut_draft)
-        shutil.copytree(repo_draft, capcut_draft)
+        import time
+        max_attempts = 10
+        for attempt in range(1, max_attempts + 1):
+            try:
+                if capcut_draft.exists():
+                    shutil.rmtree(capcut_draft)
+                shutil.copytree(repo_draft, capcut_draft)
+                break
+            except (PermissionError, OSError) as e:
+                if attempt == max_attempts:
+                    raise e
+                print(f"[{attempt}/{max_attempts}] Không thể copy thư mục nháp sang CapCut vì file bị khóa. "
+                      f"Đang force kill CapCut.exe và thử lại sau 1.5s... Chi tiết: {e}")
+                subprocess.run(["taskkill", "/F", "/IM", "CapCut.exe"], capture_output=True)
+                time.sleep(1.5)
 
     draft_info = repo_draft / "draft_info.json"
     draft_text = draft_info.read_text(encoding="utf-8") if draft_info.exists() else ""
