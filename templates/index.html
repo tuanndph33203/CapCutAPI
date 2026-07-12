@@ -984,6 +984,23 @@
 
                         <div class="form-row">
                             <div class="form-group">
+                                <label for="detail-use-local-ocr">Nhận diện phụ đề bằng OCR</label>
+                                <label style="display:flex;align-items:center;gap:8px;height:38px;">
+                                    <input type="checkbox" id="detail-use-local-ocr">
+                                    <span>Sử dụng PaddleOCR quét chữ thay vì Whisper</span>
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label for="detail-use-local-whisper">Sử dụng local Whisper</label>
+                                <label style="display:flex;align-items:center;gap:8px;height:38px;">
+                                    <input type="checkbox" id="detail-use-local-whisper" checked>
+                                    <span>Dùng Whisper nhận dạng tiếng (Mặc định)</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
                                 <label for="detail-tts-speed">Tốc độ Đọc (Step 7)</label>
                                 <input type="number" id="detail-tts-speed" step="0.01" value="1.17">
                             </div>
@@ -2017,6 +2034,8 @@
                         document.getElementById('detail-ai-tone').value = config.ai_tone || 'natural and fluent';
                         document.getElementById('detail-ai-temperature').value = config.ai_temperature ?? 0.0;
                         document.getElementById('detail-hardsub-blur').checked = config.hardsub_blur_enabled !== false;
+                        document.getElementById('detail-use-local-ocr').checked = config.use_local_ocr === true;
+                        document.getElementById('detail-use-local-whisper').checked = config.use_local_whisper !== false;
 
                         // Toggle view
                         projectsGridContainer.style.display = 'none';
@@ -2048,9 +2067,12 @@
                     video_context: document.getElementById('detail-video-context').value,
                     ai_temperature: parseFloat(document.getElementById('detail-ai-temperature').value),
                     hardsub_blur_enabled: document.getElementById('detail-hardsub-blur').checked,
+                    use_local_ocr: document.getElementById('detail-use-local-ocr').checked,
+                    use_local_whisper: document.getElementById('detail-use-local-whisper').checked,
                     whisper_subtitle_offset_ms: parseInt(document.getElementById('detail-subtitle-offset').value) || 0
                 };
             }
+
 
             // Save project configuration form from details screen
             formDetailConfig.addEventListener('submit', (e) => {

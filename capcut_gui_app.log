@@ -14931,3 +14931,415 @@ TimeoutError: template not found above threshold 0.68: C:\Users\nguye\Projects\C
 20:31:08 - INFO - Đã chỉnh âm lượng 1 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\template-2.tmp.
 20:31:08 - INFO - Đã chỉnh âm lượng tổng 3 đoạn trên 2 file về -15.5 dB.
 20:31:08 - INFO - Đã khóa 2 track/segment (effect, video) trên 1 file draft.
+21:17:19 - INFO - Tạo/Cập nhật bản sao lưu cho dự án 00000000000_backup tại C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000_backup_backup...
+21:17:23 - INFO - Tạo/Cập nhật bản sao lưu cho dự án 00000000000_backup tại C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000_backup_backup...
+21:17:23 - ERROR - Lỗi khi sao lưu dự án 00000000000_backup: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\nguye\\AppData\\Local\\CapCut\\User Data\\Projects\\com.lveditor.draft\\00000000000_backup_backup\\assets\\video\\video_e0cb4d48ed8b8882.mp4'
+21:17:23 - INFO - Đã thêm 1 job vào hàng chờ cho dự án 00000000000_backup.
+21:17:23 - INFO - Đã thêm 1 job vào hàng chờ cho dự án 00000000000_backup.
+21:17:25 - INFO - Khôi phục dự án từ backup 00000000000_backup_backup sang buffer 111111111111111111...
+21:17:25 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 111111111111111111: C:\Users\nguye\Videos\Phim6\tap11.mp4
+21:17:25 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim6\tap11.mp4 ===
+21:17:25 - INFO - Preprocess Step 1 starting offline pipeline patch...
+21:17:25 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+21:17:28 - INFO - Received save draft request: draft_id=111111111111111111, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
+21:17:28 - INFO - Task 111111111111111111 has been created.
+21:17:28 - INFO - Successfully retrieved draft 111111111111111111 from cache.
+21:17:28 - INFO - Task 111111111111111111 status updated to 'processing': Preparing draft files.
+21:17:28 - WARNING - Deleting existing draft folder (current working directory): 111111111111111111
+21:17:28 - INFO - Starting to save draft: 111111111111111111
+21:17:28 - INFO - Found registered draft_id 'BA2B6229-A530-4f0c-A8BC-00C4BA081322' for folder '111111111111111111' in root_meta_info.json
+21:17:28 - INFO - Updated draft_meta_info.json for 111111111111111111 with draft_id=BA2B6229-A530-4f0c-A8BC-00C4BA081322
+21:17:28 - INFO - Task 111111111111111111 progress 5%: Updating media file metadata.
+21:17:28 - INFO - No audio files found in the draft.
+21:17:28 - INFO - Successfully set video video_e0cb4d48ed8b8882.mp4 dimensions: 2560x1440.
+21:17:28 - INFO - Successfully obtained video video_e0cb4d48ed8b8882.mp4 duration: 472.82 seconds (472816667 microseconds).
+21:17:28 - INFO - Adjusted video segment c952f77edcb54389b325bde28020a98c timerange to fit the new video duration.
+21:17:28 - INFO - Checking track segment time range conflicts...
+21:17:28 - INFO - Updated script total duration to: 591020833 microseconds.
+21:17:28 - INFO - Processing pending keyframes...
+21:17:28 - INFO - Task 111111111111111111 progress 10%: Collected 1 download tasks in total.
+21:17:28 - INFO - Starting concurrent download of 1 files...
+21:17:29 - INFO - Task 111111111111111111: Successfully downloaded video file, progress 70.
+21:17:29 - INFO - Task 111111111111111111: Concurrent download completed, downloaded 1 files in total.
+21:17:29 - INFO - Task 111111111111111111 progress 70%: Saving draft information.
+21:17:29 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\111111111111111111\draft_info.json.
+21:17:29 - INFO - Task 111111111111111111 completed, draft URL: 
+21:17:36 - INFO - Đã xóa item khỏi hàng chờ: C:/Users/nguye/Videos/Phim6/tap11.mp4
+21:17:37 - INFO - [Blur] Auto-detect thành công: {'enabled': True, 'x': 0, 'y': 1254, 'w': 2560, 'h': 159, 'radius': 24, 'detected_frames': 8, 'sampled_frames': 20, 'attempts_used': 1}
+21:17:37 - INFO - Đang render video đã làm chậm thật bằng ffmpeg: speed=0.8, output=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\assets\video\video_ae98f916640b51d39341fbf4e9fcb77e_preprocessed.mp4
+21:17:37 - INFO - FFmpeg video encoder: -c:v h264_nvenc -preset p4 -cq 23 -b:v 0 -pix_fmt yuv420p
+21:17:37 - INFO - FFmpeg filter_complex: [0:v]split=2[base][tmp];[tmp]crop=2560:158:0:1254,boxblur=24:2[blur];[base][blur]overlay=0:1254:eof_action=repeat,setpts=1.25*PTS[v];[0:a]atempo=0.8[a]
+21:17:37 - INFO - FFmpeg command: ffmpeg -y -i C:\Users\nguye\Videos\Phim6\tap11.mp4 -filter_complex [0:v]split=2[base][tmp];[tmp]crop=2560:158:0:1254,boxblur=24:2[blur];[base][blur]overlay=0:1254:eof_action=repeat,setpts=1.25*PTS[v];[0:a]atempo=0.8[a] -map [v] -map [a] -c:v h264_nvenc -preset p4 -cq 23 -b:v 0 -pix_fmt yuv420p -c:a aac -b:a 192k -movflags +faststart C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\assets\video\video_ae98f916640b51d39341fbf4e9fcb77e_preprocessed.tmp.mp4
+21:19:30 - INFO - Đã patch video track vào draft: files=3, source_duration=591016667, target_duration=591016667, speed=0.8, asset=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\assets\video\video_ae98f916640b51d39341fbf4e9fcb77e_preprocessed.mp4
+21:19:30 - INFO - Auto-detect canvas từ video gốc: 2560x1440 -> ratio=16:9
+21:19:30 - INFO - Đã chỉnh canvas 16:9 (2560x1440) trên 2 file draft.
+21:19:30 - INFO - Đã bật mirror ngang video trên 2 segment / 2 file draft.
+21:19:30 - INFO - Đã khóa 4 track/segment (effect, video) trên 2 file draft.
+21:19:30 - INFO - Đã mở khóa 0 track/segment (audio, text) trên 0 file draft.
+21:19:30 - INFO - Dùng local Whisper nên chưa mở CapCut ở bước 2. Sẽ mở sau khi dịch/patch xong.
+21:19:30 - INFO - Chạy local faster-whisper GPU để tạo phụ đề: draft=111111111111111111, language=zh, video=C:\Users\nguye\Videos\Phim6\tap11.mp4
+21:19:30 - INFO - Whisper local: Đang trích audio đã làm chậm speed=0.8 trước khi Whisper...
+21:19:31 - INFO - Whisper local: Đang chạy Whisper local cho audio/video: C:\Users\nguye\AppData\Local\Temp\tmpdo2cvlbf.wav
+21:19:55 - INFO - Whisper local: Whisper hoàn thành: 105 dòng, language=zh, duration=591.08s.
+21:19:55 - INFO - Whisper local: Whisper filter: kept=105/112, removed={'high_compression': 7, 'repeat_tail': 7}
+21:19:55 - INFO - Đã patch phụ đề Whisper local vào draft: segments=105, added_texts=105, srt=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\whisper_zh.srt
+21:19:55 - INFO - CapCut chưa được mở trong luồng Whisper local, patch draft trực tiếp.
+21:19:55 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\draft_info.json để dịch và cập nhật font/màu sắc...
+21:19:55 - INFO - Đang dùng AI lấy video_context và asr_text từ 105 dòng phụ đề...
+21:19:59 - INFO - AI context extracted successfully: Context: 视频为科幻战斗风格，讲述了反派特华博士利用“构造体”技术制造出主角麦小文的复制体，企图取代本体并统治世界。主角通过战斗对抗被操控的构造体，最终在同伴协助下进行净化，过程中穿插了大量荒诞的玩梗台词和战斗 | Terms: {"麦小文": "Mạch Tiểu Văn", "构造体": "Cấu tạo thể", "特华博士": "Tiến sĩ Đặc Hoa", "GTI": "GTI", "特勤处": "Cục 
+21:19:59 - INFO - Đang dịch 96/105 dòng phụ đề tiếng Trung chưa có cache (dùng lại cache 9 dòng) sang tiếng Việt...
+21:19:59 - INFO - Dịch AI bằng gemini model gemini-3.1-flash-lite theo batch 20 dòng...
+21:20:02 - INFO - Dịch AI batch 1: OK (20/20)
+21:20:06 - INFO - Dịch AI batch 2: OK (20/20)
+21:20:09 - INFO - Dịch AI batch 3: OK (20/20)
+21:20:13 - INFO - Dịch AI batch 4: OK (20/20)
+21:20:16 - INFO - Dịch AI batch 5: OK (16/16)
+21:20:16 - INFO - Mẫu dịch: '这是利用麦小文身体构造创造出的复制体' -> 'Đây là bản sao tạo từ cơ thể Mạch Tiểu Văn'
+21:20:16 - INFO - Mẫu dịch: '名为构造的麦小文' -> 'Gọi là Mạch Tiểu Văn Cấu tạo thể'
+21:20:16 - INFO - Mẫu dịch: '简称构造文' -> 'Gọi tắt là Văn Cấu tạo'
+21:20:16 - INFO - Đã dịch 105/105 dòng phụ đề, đồng bộ 0 subtitle cache và định dạng màu vàng cỡ chữ 5 thành công.
+21:20:16 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\template-2.tmp để dịch và cập nhật font/màu sắc...
+21:20:16 - WARNING - Không tìm thấy phụ đề nào trong bản nháp.
+21:20:16 - INFO - Đã patch phụ đề trên 1/2 file draft/timeline.
+21:20:16 - INFO - Đang chỉnh âm lượng track video về -15.5 dB (0.1679)...
+21:20:16 - INFO - Đã chỉnh âm lượng 2 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\draft_info.json.
+21:20:16 - INFO - Đã chỉnh âm lượng 1 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\template-2.tmp.
+21:20:16 - INFO - Đã chỉnh âm lượng tổng 3 đoạn trên 2 file về -15.5 dB.
+21:20:16 - INFO - Đã khóa 2 track/segment (effect, video) trên 1 file draft.
+23:11:53 - INFO - Đã khôi phục 1 item hàng chờ từ cache.
+23:11:53 - INFO - Khởi động server CapCut Automation Studio tại http://127.0.0.1:5000
+23:30:09 - INFO - Đã khôi phục 1 item hàng chờ từ cache.
+23:30:09 - INFO - Khởi động server CapCut Automation Studio tại http://127.0.0.1:5000
+23:47:29 - INFO - Tạo/Cập nhật bản sao lưu cho dự án 00000000000_backup tại C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000_backup_backup...
+23:47:34 - INFO - Đã thêm 1 job vào hàng chờ cho dự án 00000000000_backup.
+23:47:34 - INFO - Worker 1 (Preprocess) đã bắt đầu...
+23:47:34 - INFO - Worker 2 (GUI) đã khởi tạo UIAutomation.
+23:47:34 - INFO - Worker 2 (CapCut GUI) đã bắt đầu...
+23:47:34 - INFO - Khôi phục dự án từ backup 00000000000_backup_backup sang buffer 00000000000...
+23:47:36 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 00000000000: C:\Users\nguye\Videos\Phim6\tap11.mp4
+23:47:36 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim6\tap11.mp4 ===
+23:47:37 - INFO - Preprocess Step 1 starting offline pipeline patch...
+23:47:37 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+23:47:40 - INFO - Received save draft request: draft_id=00000000000, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
+23:47:40 - INFO - Task 00000000000 has been created.
+23:47:40 - INFO - Successfully retrieved draft 00000000000 from cache.
+23:47:40 - INFO - Task 00000000000 status updated to 'processing': Preparing draft files.
+23:47:40 - WARNING - Deleting existing draft folder (current working directory): 00000000000
+23:47:40 - INFO - Starting to save draft: 00000000000
+23:47:40 - INFO - Found registered draft_id '3D08E8DD-C0CD-4d71-B5AA-CD868B1B6C83' for folder '00000000000' in root_meta_info.json
+23:47:40 - INFO - Updated draft_meta_info.json for 00000000000 with draft_id=3D08E8DD-C0CD-4d71-B5AA-CD868B1B6C83
+23:47:40 - INFO - Task 00000000000 progress 5%: Updating media file metadata.
+23:47:40 - INFO - No audio files found in the draft.
+23:47:40 - INFO - Successfully set video video_e0cb4d48ed8b8882.mp4 dimensions: 2560x1440.
+23:47:40 - INFO - Successfully obtained video video_e0cb4d48ed8b8882.mp4 duration: 472.82 seconds (472816667 microseconds).
+23:47:40 - INFO - Adjusted video segment 69a87b14f5fa4495bbaf0f7e95b6efe5 timerange to fit the new video duration.
+23:47:40 - INFO - Checking track segment time range conflicts...
+23:47:40 - INFO - Updated script total duration to: 591020833 microseconds.
+23:47:40 - INFO - Processing pending keyframes...
+23:47:40 - INFO - Task 00000000000 progress 10%: Collected 1 download tasks in total.
+23:47:40 - INFO - Starting concurrent download of 1 files...
+23:47:40 - INFO - Task 00000000000: Successfully downloaded video file, progress 70.
+23:47:40 - INFO - Task 00000000000: Concurrent download completed, downloaded 1 files in total.
+23:47:40 - INFO - Task 00000000000 progress 70%: Saving draft information.
+23:47:40 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\00000000000\draft_info.json.
+23:47:40 - INFO - Task 00000000000 completed, draft URL: 
+23:47:41 - ERROR - Lỗi preprocess video 'C:\Users\nguye\Videos\Phim6\tap11.mp4': 'charmap' codec can't encode character '\u1ea3' in position 60: character maps to <undefined>
+23:47:41 - INFO - Khôi phục dự án từ backup 00000000000_backup_backup sang buffer 00000000000...
+23:47:43 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 00000000000: C:\Users\nguye\Videos\Phim6\tap11.mp4
+23:47:43 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim6\tap11.mp4 ===
+23:47:43 - INFO - Preprocess Step 1 starting offline pipeline patch...
+23:47:43 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+23:47:46 - INFO - Received save draft request: draft_id=00000000000, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
+23:47:46 - INFO - Task 00000000000 has been created.
+23:47:46 - INFO - Successfully retrieved draft 00000000000 from cache.
+23:47:46 - INFO - Task 00000000000 status updated to 'processing': Preparing draft files.
+23:47:46 - WARNING - Deleting existing draft folder (current working directory): 00000000000
+23:47:46 - INFO - Starting to save draft: 00000000000
+23:47:46 - INFO - Found registered draft_id '3D08E8DD-C0CD-4d71-B5AA-CD868B1B6C83' for folder '00000000000' in root_meta_info.json
+23:47:46 - INFO - Updated draft_meta_info.json for 00000000000 with draft_id=3D08E8DD-C0CD-4d71-B5AA-CD868B1B6C83
+23:47:46 - INFO - Task 00000000000 progress 5%: Updating media file metadata.
+23:47:46 - INFO - No audio files found in the draft.
+23:47:46 - INFO - Successfully set video video_e0cb4d48ed8b8882.mp4 dimensions: 2560x1440.
+23:47:46 - INFO - Successfully obtained video video_e0cb4d48ed8b8882.mp4 duration: 472.82 seconds (472816667 microseconds).
+23:47:46 - INFO - Adjusted video segment d0b2f946f594495fbddc052b694eb64f timerange to fit the new video duration.
+23:47:46 - INFO - Checking track segment time range conflicts...
+23:47:46 - INFO - Updated script total duration to: 591020833 microseconds.
+23:47:46 - INFO - Processing pending keyframes...
+23:47:46 - INFO - Task 00000000000 progress 10%: Collected 1 download tasks in total.
+23:47:46 - INFO - Starting concurrent download of 1 files...
+23:47:46 - INFO - Task 00000000000: Successfully downloaded video file, progress 70.
+23:47:46 - INFO - Task 00000000000: Concurrent download completed, downloaded 1 files in total.
+23:47:46 - INFO - Task 00000000000 progress 70%: Saving draft information.
+23:47:46 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\00000000000\draft_info.json.
+23:47:46 - INFO - Task 00000000000 completed, draft URL: 
+23:47:46 - ERROR - Lỗi preprocess video 'C:\Users\nguye\Videos\Phim6\tap11.mp4': 'charmap' codec can't encode character '\u1ea3' in position 60: character maps to <undefined>
+23:47:48 - INFO - Worker 2 (CapCut GUI) đã dừng.
+23:47:48 - INFO - Đang hoàn trả dự án gốc 00000000000_backup từ backup...
+23:47:48 - INFO - Worker 1 (Preprocess) đã dừng.
+23:47:48 - INFO - Đang hoàn trả dự án gốc 00000000000_backup từ backup...
+23:47:48 - ERROR - Lỗi khi hoàn trả dự án gốc 00000000000_backup: [WinError 32] The process cannot access the file because it is being used by another process: 'C:\\Users\\nguye\\AppData\\Local\\CapCut\\User Data\\Projects\\com.lveditor.draft\\00000000000_backup\\assets\\video\\video_ae98f916640b51d39341fbf4e9fcb77e_preprocessed.mp4'
+23:49:07 - INFO - Đã khôi phục 1 item hàng chờ từ cache.
+23:49:07 - INFO - Khởi động server CapCut Automation Studio tại http://127.0.0.1:5000
+23:50:07 - INFO - Worker 1 (Preprocess) đã bắt đầu...
+23:50:07 - INFO - Worker 2 (GUI) đã khởi tạo UIAutomation.
+23:50:07 - INFO - Worker 2 (CapCut GUI) đã bắt đầu...
+23:50:07 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 00000000000: C:\Users\nguye\Videos\Phim6\tap11.mp4
+23:50:07 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim6\tap11.mp4 ===
+23:50:07 - INFO - Preprocess Step 1 starting offline pipeline patch...
+23:50:07 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+23:50:10 - INFO - Received save draft request: draft_id=00000000000, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
+23:50:10 - INFO - Task 00000000000 has been created.
+23:50:10 - INFO - Successfully retrieved draft 00000000000 from cache.
+23:50:10 - INFO - Task 00000000000 status updated to 'processing': Preparing draft files.
+23:50:10 - WARNING - Deleting existing draft folder (current working directory): 00000000000
+23:50:10 - INFO - Starting to save draft: 00000000000
+23:50:10 - INFO - Found registered draft_id '3D08E8DD-C0CD-4d71-B5AA-CD868B1B6C83' for folder '00000000000' in root_meta_info.json
+23:50:10 - INFO - Updated draft_meta_info.json for 00000000000 with draft_id=3D08E8DD-C0CD-4d71-B5AA-CD868B1B6C83
+23:50:10 - INFO - Task 00000000000 progress 5%: Updating media file metadata.
+23:50:10 - INFO - No audio files found in the draft.
+23:50:10 - INFO - Successfully set video video_e0cb4d48ed8b8882.mp4 dimensions: 2560x1440.
+23:50:10 - INFO - Successfully obtained video video_e0cb4d48ed8b8882.mp4 duration: 472.82 seconds (472816667 microseconds).
+23:50:10 - INFO - Adjusted video segment 464a9da53dcb410a993134da159f61af timerange to fit the new video duration.
+23:50:10 - INFO - Checking track segment time range conflicts...
+23:50:10 - INFO - Updated script total duration to: 591020833 microseconds.
+23:50:10 - INFO - Processing pending keyframes...
+23:50:10 - INFO - Task 00000000000 progress 10%: Collected 1 download tasks in total.
+23:50:10 - INFO - Starting concurrent download of 1 files...
+23:50:10 - INFO - Task 00000000000: Successfully downloaded video file, progress 70.
+23:50:10 - INFO - Task 00000000000: Concurrent download completed, downloaded 1 files in total.
+23:50:10 - INFO - Task 00000000000 progress 70%: Saving draft information.
+23:50:10 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\00000000000\draft_info.json.
+23:50:10 - INFO - Task 00000000000 completed, draft URL: 
+23:50:19 - INFO - [Blur] Auto-detect thành công: {'enabled': True, 'x': 0, 'y': 1254, 'w': 2560, 'h': 159, 'radius': 24, 'detected_frames': 8, 'sampled_frames': 20, 'attempts_used': 1}
+23:50:19 - INFO - Đang render video đã làm chậm thật bằng ffmpeg: speed=0.8, output=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\assets\video\video_ae98f916640b51d39341fbf4e9fcb77e_preprocessed.mp4
+23:50:19 - INFO - FFmpeg video encoder: -c:v h264_nvenc -preset p4 -cq 23 -b:v 0 -pix_fmt yuv420p
+23:50:19 - INFO - FFmpeg filter_complex: [0:v]split=2[base][tmp];[tmp]crop=2560:158:0:1254,boxblur=24:2[blur];[base][blur]overlay=0:1254:eof_action=repeat,setpts=1.25*PTS[v];[0:a]atempo=0.8[a]
+23:50:19 - INFO - FFmpeg command: ffmpeg -y -i C:\Users\nguye\Videos\Phim6\tap11.mp4 -filter_complex [0:v]split=2[base][tmp];[tmp]crop=2560:158:0:1254,boxblur=24:2[blur];[base][blur]overlay=0:1254:eof_action=repeat,setpts=1.25*PTS[v];[0:a]atempo=0.8[a] -map [v] -map [a] -c:v h264_nvenc -preset p4 -cq 23 -b:v 0 -pix_fmt yuv420p -c:a aac -b:a 192k -movflags +faststart C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\assets\video\video_ae98f916640b51d39341fbf4e9fcb77e_preprocessed.tmp.mp4
+23:50:36 - INFO - Tạo/Cập nhật bản sao lưu cho dự án 00000000000_backup tại C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000_backup_backup...
+23:50:40 - INFO - Đã thêm 1 job vào hàng chờ cho dự án 00000000000_backup.
+23:51:53 - INFO - Worker 2 (CapCut GUI) đã dừng.
+23:51:57 - INFO - Tạo/Cập nhật bản sao lưu cho dự án 00000000000_backup tại C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000_backup_backup...
+23:52:02 - INFO - Đã thêm 1 job vào hàng chờ cho dự án 00000000000_backup.
+23:52:12 - INFO - Đã patch video track vào draft: files=3, source_duration=591016667, target_duration=591016667, speed=0.8, asset=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\assets\video\video_ae98f916640b51d39341fbf4e9fcb77e_preprocessed.mp4
+23:52:12 - INFO - Auto-detect canvas từ video gốc: 2560x1440 -> ratio=16:9
+23:52:12 - INFO - Đã chỉnh canvas 16:9 (2560x1440) trên 2 file draft.
+23:52:12 - INFO - Đã bật mirror ngang video trên 2 segment / 2 file draft.
+23:52:12 - INFO - Đã khóa 4 track/segment (effect, video) trên 2 file draft.
+23:52:12 - INFO - Đã mở khóa 0 track/segment (text, audio) trên 0 file draft.
+23:52:12 - INFO - Dùng local Whisper hoặc OCR nên chưa mở CapCut ở bước 2. Sẽ mở sau khi dịch/patch xong.
+23:52:12 - INFO - Đã tạm dừng preprocess dự án 'C:\Users\nguye\Videos\Phim6\tap11.mp4' tại checkpoint.
+23:52:12 - INFO - Khôi phục dự án từ backup 00000000000_backup_backup sang buffer 00000000000...
+23:52:14 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 00000000000: C:\Users\nguye\Videos\Phim6\tap11.mp4
+23:52:14 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim6\tap11.mp4 ===
+23:52:14 - INFO - Preprocess Step 1 starting offline pipeline patch...
+23:52:14 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+23:52:17 - INFO - Received save draft request: draft_id=00000000000, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
+23:52:17 - INFO - Task 00000000000 has been created.
+23:52:17 - INFO - Successfully retrieved draft 00000000000 from cache.
+23:52:17 - INFO - Task 00000000000 status updated to 'processing': Preparing draft files.
+23:52:17 - WARNING - Deleting existing draft folder (current working directory): 00000000000
+23:52:17 - INFO - Starting to save draft: 00000000000
+23:52:17 - INFO - Found registered draft_id '3D08E8DD-C0CD-4d71-B5AA-CD868B1B6C83' for folder '00000000000' in root_meta_info.json
+23:52:17 - INFO - Updated draft_meta_info.json for 00000000000 with draft_id=3D08E8DD-C0CD-4d71-B5AA-CD868B1B6C83
+23:52:17 - INFO - Task 00000000000 progress 5%: Updating media file metadata.
+23:52:17 - INFO - No audio files found in the draft.
+23:52:17 - INFO - Successfully set video video_e0cb4d48ed8b8882.mp4 dimensions: 2560x1440.
+23:52:17 - INFO - Successfully obtained video video_e0cb4d48ed8b8882.mp4 duration: 472.82 seconds (472816667 microseconds).
+23:52:17 - INFO - Adjusted video segment 8a08275f9c4942cc87ecad1b1736f0e3 timerange to fit the new video duration.
+23:52:17 - INFO - Checking track segment time range conflicts...
+23:52:17 - INFO - Updated script total duration to: 591020833 microseconds.
+23:52:17 - INFO - Processing pending keyframes...
+23:52:17 - INFO - Task 00000000000 progress 10%: Collected 1 download tasks in total.
+23:52:17 - INFO - Starting concurrent download of 1 files...
+23:52:17 - INFO - Task 00000000000: Successfully downloaded video file, progress 70.
+23:52:17 - INFO - Task 00000000000: Concurrent download completed, downloaded 1 files in total.
+23:52:17 - INFO - Task 00000000000 progress 70%: Saving draft information.
+23:52:17 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\00000000000\draft_info.json.
+23:52:17 - INFO - Task 00000000000 completed, draft URL: 
+23:52:26 - INFO - [Blur] Auto-detect thành công: {'enabled': True, 'x': 0, 'y': 1254, 'w': 2560, 'h': 159, 'radius': 24, 'detected_frames': 8, 'sampled_frames': 20, 'attempts_used': 1}
+23:52:26 - INFO - Đang render video đã làm chậm thật bằng ffmpeg: speed=0.8, output=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\assets\video\video_ae98f916640b51d39341fbf4e9fcb77e_preprocessed.mp4
+23:52:26 - INFO - FFmpeg video encoder: -c:v h264_nvenc -preset p4 -cq 23 -b:v 0 -pix_fmt yuv420p
+23:52:26 - INFO - FFmpeg filter_complex: [0:v]split=2[base][tmp];[tmp]crop=2560:158:0:1254,boxblur=24:2[blur];[base][blur]overlay=0:1254:eof_action=repeat,setpts=1.25*PTS[v];[0:a]atempo=0.8[a]
+23:52:26 - INFO - FFmpeg command: ffmpeg -y -i C:\Users\nguye\Videos\Phim6\tap11.mp4 -filter_complex [0:v]split=2[base][tmp];[tmp]crop=2560:158:0:1254,boxblur=24:2[blur];[base][blur]overlay=0:1254:eof_action=repeat,setpts=1.25*PTS[v];[0:a]atempo=0.8[a] -map [v] -map [a] -c:v h264_nvenc -preset p4 -cq 23 -b:v 0 -pix_fmt yuv420p -c:a aac -b:a 192k -movflags +faststart C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\assets\video\video_ae98f916640b51d39341fbf4e9fcb77e_preprocessed.tmp.mp4
+23:54:20 - INFO - Đã patch video track vào draft: files=3, source_duration=591016667, target_duration=591016667, speed=0.8, asset=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\assets\video\video_ae98f916640b51d39341fbf4e9fcb77e_preprocessed.mp4
+23:54:21 - INFO - Auto-detect canvas từ video gốc: 2560x1440 -> ratio=16:9
+23:54:21 - INFO - Đã chỉnh canvas 16:9 (2560x1440) trên 2 file draft.
+23:54:21 - INFO - Đã bật mirror ngang video trên 2 segment / 2 file draft.
+23:54:21 - INFO - Đã khóa 4 track/segment (effect, video) trên 2 file draft.
+23:54:21 - INFO - Đã mở khóa 0 track/segment (text, audio) trên 0 file draft.
+23:54:21 - INFO - Dùng local Whisper hoặc OCR nên chưa mở CapCut ở bước 2. Sẽ mở sau khi dịch/patch xong.
+23:54:21 - INFO - Chạy local OCR (PaddleOCR) để tạo phụ đề: draft=00000000000, language=zh, video=C:\Users\nguye\Videos\Phim6\tap11.mp4
+23:54:21 - INFO - OCR local: Đã thêm NVIDIA DLL dirs vào PATH cho CUDA OCR: C:\Users\nguye\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\site-packages\nvidia\cublas\bin; C:\Users\nguye\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\site-packages\nvidia\cudnn\bin; C:\Users\nguye\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\site-packages\nvidia\cuda_nvrtc\bin; C:\Users\nguye\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\Lib\site-packages\ctranslate2
+23:54:27 - INFO - OCR local: Bắt đầu PaddleOCR quét phụ đề cứng. FPS: 60.00, Step: 30 frames (0.5s/lần)
+23:54:27 - INFO - OCR local: Đang phân tích video OCR... 0.0% (0.0s), tìm thấy=0 frames có sub
+23:54:29 - INFO - OCR local: Đang phân tích video OCR... 3.2% (15.0s), tìm thấy=23 frames có sub
+23:54:31 - INFO - OCR local: Đang phân tích video OCR... 6.3% (30.0s), tìm thấy=40 frames có sub
+23:54:33 - INFO - OCR local: Đang phân tích video OCR... 9.5% (45.0s), tìm thấy=58 frames có sub
+23:54:35 - INFO - OCR local: Đang phân tích video OCR... 12.7% (60.0s), tìm thấy=75 frames có sub
+23:54:37 - INFO - OCR local: Đang phân tích video OCR... 15.9% (75.0s), tìm thấy=92 frames có sub
+23:54:39 - INFO - OCR local: Đang phân tích video OCR... 19.0% (90.0s), tìm thấy=108 frames có sub
+23:54:40 - INFO - OCR local: Đang phân tích video OCR... 22.2% (105.0s), tìm thấy=125 frames có sub
+23:54:42 - INFO - OCR local: Đang phân tích video OCR... 25.4% (120.0s), tìm thấy=137 frames có sub
+23:54:44 - INFO - OCR local: Đang phân tích video OCR... 28.6% (135.0s), tìm thấy=163 frames có sub
+23:54:46 - INFO - OCR local: Đang phân tích video OCR... 31.7% (150.0s), tìm thấy=189 frames có sub
+23:54:48 - INFO - OCR local: Đang phân tích video OCR... 34.9% (165.0s), tìm thấy=211 frames có sub
+23:54:50 - INFO - OCR local: Đang phân tích video OCR... 38.1% (180.0s), tìm thấy=214 frames có sub
+23:54:51 - INFO - OCR local: Đang phân tích video OCR... 41.2% (195.0s), tìm thấy=219 frames có sub
+23:54:53 - INFO - OCR local: Đang phân tích video OCR... 44.4% (210.0s), tìm thấy=230 frames có sub
+23:54:55 - INFO - OCR local: Đang phân tích video OCR... 47.6% (225.0s), tìm thấy=249 frames có sub
+23:54:57 - INFO - OCR local: Đang phân tích video OCR... 50.8% (240.0s), tìm thấy=275 frames có sub
+23:54:59 - INFO - OCR local: Đang phân tích video OCR... 53.9% (255.0s), tìm thấy=301 frames có sub
+23:55:00 - INFO - OCR local: Đang phân tích video OCR... 57.1% (270.0s), tìm thấy=317 frames có sub
+23:55:02 - INFO - OCR local: Đang phân tích video OCR... 60.3% (285.0s), tìm thấy=333 frames có sub
+23:55:04 - INFO - OCR local: Đang phân tích video OCR... 63.5% (300.0s), tìm thấy=359 frames có sub
+23:55:06 - INFO - OCR local: Đang phân tích video OCR... 66.6% (315.0s), tìm thấy=363 frames có sub
+23:55:08 - INFO - OCR local: Đang phân tích video OCR... 69.8% (330.0s), tìm thấy=383 frames có sub
+23:55:10 - INFO - OCR local: Đang phân tích video OCR... 73.0% (345.0s), tìm thấy=393 frames có sub
+23:55:11 - INFO - OCR local: Đang phân tích video OCR... 76.1% (360.0s), tìm thấy=411 frames có sub
+23:55:13 - INFO - OCR local: Đang phân tích video OCR... 79.3% (375.0s), tìm thấy=420 frames có sub
+23:55:15 - INFO - OCR local: Đang phân tích video OCR... 82.5% (390.0s), tìm thấy=443 frames có sub
+23:55:17 - INFO - OCR local: Đang phân tích video OCR... 85.7% (405.0s), tìm thấy=463 frames có sub
+23:55:18 - INFO - OCR local: Đang phân tích video OCR... 88.8% (420.0s), tìm thấy=470 frames có sub
+23:55:20 - INFO - OCR local: Đang phân tích video OCR... 92.0% (435.0s), tìm thấy=487 frames có sub
+23:55:22 - INFO - OCR local: Đang phân tích video OCR... 95.2% (450.0s), tìm thấy=494 frames có sub
+23:55:23 - INFO - OCR local: Đang phân tích video OCR... 98.4% (465.0s), tìm thấy=517 frames có sub
+23:55:24 - INFO - OCR local: Hoàn thành trích xuất phụ đề cứng. Tìm thấy 164 câu thoại.
+23:55:24 - INFO - OCR local: Đang tiến hành dịch AI phụ đề đã quét sang tiếng Việt...
+23:55:24 - INFO - OCR local: Lỗi dịch AI phụ đề quét OCR: name 'translate_batch_ai' is not defined. Dùng tiếng Trung gốc.
+23:55:24 - INFO - Đã patch phụ đề OCR local vào draft: segments=164, added_texts=164, srt=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\ocr_zh.srt
+23:55:24 - INFO - CapCut chưa được mở trong luồng Whisper local, patch draft trực tiếp.
+23:55:24 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\draft_info.json để dịch và cập nhật font/màu sắc...
+23:55:24 - INFO - Đang dùng AI lấy video_context và asr_text từ 164 dòng phụ đề...
+23:55:28 - INFO - AI context extracted successfully: Context: 视频为一部带有荒诞幽默风格的动作短片，剧情围绕“构造人”计划展开。反派试图通过制造“构造雯”（麦小雯的复制体）并潜入GTI内部夺舍。主角一行人与受控者进行了一场混乱的战斗，充斥着各种动漫招式梗。整体语 | Terms: {"麦小雯": "Mạch Tiểu Văn", "构造人": "Người Kiến Tạo", "构造雯": "Cấu Tạo Văn", "侧滑博士": "Tiến sĩ Sách Họa", 
+23:55:28 - INFO - Đang dịch 154/155 dòng phụ đề tiếng Trung chưa có cache (dùng lại cache 1 dòng) sang tiếng Việt...
+23:55:28 - INFO - Dịch AI bằng gemini model gemini-3.1-flash-lite theo batch 20 dòng...
+23:55:32 - INFO - Dịch AI batch 1: OK (20/20)
+23:55:36 - INFO - Dịch AI batch 2: OK (20/20)
+23:55:40 - INFO - Dịch AI batch 3: OK (20/20)
+23:55:43 - INFO - Dịch AI batch 4: OK (20/20)
+23:55:47 - INFO - Dịch AI batch 5: OK (20/20)
+23:55:50 - INFO - Dịch AI batch 6: OK (20/20)
+23:55:54 - INFO - Dịch AI batch 7: OK (20/20)
+23:55:56 - INFO - Dịch AI batch 8: OK (14/14)
+23:55:56 - INFO - Mẫu dịch: '这是利用麦小雯身体构造' -> 'Đây là cấu tạo từ cơ thể Mạch Tiểu Văn'
+23:55:56 - INFO - Mẫu dịch: '创造出的复制体' -> 'tạo ra bản sao này'
+23:55:56 - INFO - Mẫu dịch: '名为构造的麦小雯' -> 'gọi là Mạch Tiểu Văn được kiến tạo'
+23:55:56 - INFO - Đã dịch 164/164 dòng phụ đề, đồng bộ 0 subtitle cache và định dạng màu vàng cỡ chữ 5 thành công.
+23:55:56 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\template-2.tmp để dịch và cập nhật font/màu sắc...
+23:55:56 - WARNING - Không tìm thấy phụ đề nào trong bản nháp.
+23:55:56 - INFO - Đã patch phụ đề trên 1/2 file draft/timeline.
+23:55:56 - INFO - Đang chỉnh âm lượng track video về -15.5 dB (0.1679)...
+23:55:56 - INFO - Đã chỉnh âm lượng 2 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\draft_info.json.
+23:55:56 - INFO - Đã chỉnh âm lượng 1 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\00000000000\template-2.tmp.
+23:55:56 - INFO - Đã chỉnh âm lượng tổng 3 đoạn trên 2 file về -15.5 dB.
+23:55:56 - INFO - Đã khóa 2 track/segment (effect, video) trên 1 file draft.
+23:55:57 - INFO - Khôi phục dự án từ backup 00000000000_backup_backup sang buffer 111111111111111111...
+23:56:01 - INFO - Project has reusable source video; forcing Step 1 video patch into draft 111111111111111111: C:\Users\nguye\Videos\Phim6\tap11.mp4
+23:56:01 - INFO - === BẮT ĐẦU AUTOMATION TẠO DỰ ÁN MỚI CHO VIDEO: C:\Users\nguye\Videos\Phim6\tap11.mp4 ===
+23:56:01 - INFO - Preprocess Step 1 starting offline pipeline patch...
+23:56:01 - INFO - Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...
+23:56:04 - INFO - Received save draft request: draft_id=111111111111111111, draft_folder=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft
+23:56:04 - INFO - Task 111111111111111111 has been created.
+23:56:04 - INFO - Successfully retrieved draft 111111111111111111 from cache.
+23:56:04 - INFO - Task 111111111111111111 status updated to 'processing': Preparing draft files.
+23:56:04 - WARNING - Deleting existing draft folder (current working directory): 111111111111111111
+23:56:04 - INFO - Starting to save draft: 111111111111111111
+23:56:04 - INFO - Found registered draft_id 'BA2B6229-A530-4f0c-A8BC-00C4BA081322' for folder '111111111111111111' in root_meta_info.json
+23:56:04 - INFO - Updated draft_meta_info.json for 111111111111111111 with draft_id=BA2B6229-A530-4f0c-A8BC-00C4BA081322
+23:56:04 - INFO - Task 111111111111111111 progress 5%: Updating media file metadata.
+23:56:04 - INFO - No audio files found in the draft.
+23:56:04 - INFO - Successfully set video video_e0cb4d48ed8b8882.mp4 dimensions: 2560x1440.
+23:56:04 - INFO - Successfully obtained video video_e0cb4d48ed8b8882.mp4 duration: 472.82 seconds (472816667 microseconds).
+23:56:04 - INFO - Adjusted video segment 12d04e36455e4d60b369e3afcc9a8500 timerange to fit the new video duration.
+23:56:04 - INFO - Checking track segment time range conflicts...
+23:56:04 - INFO - Updated script total duration to: 591020833 microseconds.
+23:56:04 - INFO - Processing pending keyframes...
+23:56:04 - INFO - Task 111111111111111111 progress 10%: Collected 1 download tasks in total.
+23:56:04 - INFO - Starting concurrent download of 1 files...
+23:56:04 - INFO - Task 111111111111111111: Successfully downloaded video file, progress 70.
+23:56:04 - INFO - Task 111111111111111111: Concurrent download completed, downloaded 1 files in total.
+23:56:04 - INFO - Task 111111111111111111 progress 70%: Saving draft information.
+23:56:04 - INFO - Draft information has been saved to C:\Users\nguye\Projects\CapCutAPI\111111111111111111\draft_info.json.
+23:56:04 - INFO - Task 111111111111111111 completed, draft URL: 
+23:56:12 - INFO - [Blur] Auto-detect thành công: {'enabled': True, 'x': 0, 'y': 1254, 'w': 2560, 'h': 159, 'radius': 24, 'detected_frames': 8, 'sampled_frames': 20, 'attempts_used': 1}
+23:56:12 - INFO - Đang render video đã làm chậm thật bằng ffmpeg: speed=0.8, output=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\assets\video\video_ae98f916640b51d39341fbf4e9fcb77e_preprocessed.mp4
+23:56:12 - INFO - FFmpeg video encoder: -c:v h264_nvenc -preset p4 -cq 23 -b:v 0 -pix_fmt yuv420p
+23:56:12 - INFO - FFmpeg filter_complex: [0:v]split=2[base][tmp];[tmp]crop=2560:158:0:1254,boxblur=24:2[blur];[base][blur]overlay=0:1254:eof_action=repeat,setpts=1.25*PTS[v];[0:a]atempo=0.8[a]
+23:56:12 - INFO - FFmpeg command: ffmpeg -y -i C:\Users\nguye\Videos\Phim6\tap11.mp4 -filter_complex [0:v]split=2[base][tmp];[tmp]crop=2560:158:0:1254,boxblur=24:2[blur];[base][blur]overlay=0:1254:eof_action=repeat,setpts=1.25*PTS[v];[0:a]atempo=0.8[a] -map [v] -map [a] -c:v h264_nvenc -preset p4 -cq 23 -b:v 0 -pix_fmt yuv420p -c:a aac -b:a 192k -movflags +faststart C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\assets\video\video_ae98f916640b51d39341fbf4e9fcb77e_preprocessed.tmp.mp4
+23:58:06 - INFO - Đã patch video track vào draft: files=3, source_duration=591016667, target_duration=591016667, speed=0.8, asset=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\assets\video\video_ae98f916640b51d39341fbf4e9fcb77e_preprocessed.mp4
+23:58:06 - INFO - Auto-detect canvas từ video gốc: 2560x1440 -> ratio=16:9
+23:58:06 - INFO - Đã chỉnh canvas 16:9 (2560x1440) trên 2 file draft.
+23:58:06 - INFO - Đã bật mirror ngang video trên 2 segment / 2 file draft.
+23:58:06 - INFO - Đã khóa 4 track/segment (effect, video) trên 2 file draft.
+23:58:06 - INFO - Đã mở khóa 0 track/segment (text, audio) trên 0 file draft.
+23:58:06 - INFO - Dùng local Whisper hoặc OCR nên chưa mở CapCut ở bước 2. Sẽ mở sau khi dịch/patch xong.
+23:58:06 - INFO - Chạy local OCR (PaddleOCR) để tạo phụ đề: draft=111111111111111111, language=zh, video=C:\Users\nguye\Videos\Phim6\tap11.mp4
+23:58:11 - INFO - OCR local: Bắt đầu PaddleOCR quét phụ đề cứng. FPS: 60.00, Step: 30 frames (0.5s/lần)
+23:58:11 - INFO - OCR local: Đang phân tích video OCR... 0.0% (0.0s), tìm thấy=0 frames có sub
+23:58:13 - INFO - OCR local: Đang phân tích video OCR... 3.2% (15.0s), tìm thấy=23 frames có sub
+23:58:15 - INFO - OCR local: Đang phân tích video OCR... 6.3% (30.0s), tìm thấy=40 frames có sub
+23:58:16 - INFO - OCR local: Đang phân tích video OCR... 9.5% (45.0s), tìm thấy=58 frames có sub
+23:58:17 - INFO - OCR local: Đang phân tích video OCR... 12.7% (60.0s), tìm thấy=75 frames có sub
+23:58:19 - INFO - OCR local: Đang phân tích video OCR... 15.9% (75.0s), tìm thấy=92 frames có sub
+23:58:20 - INFO - OCR local: Đang phân tích video OCR... 19.0% (90.0s), tìm thấy=108 frames có sub
+23:58:22 - INFO - OCR local: Đang phân tích video OCR... 22.2% (105.0s), tìm thấy=125 frames có sub
+23:58:23 - INFO - OCR local: Đang phân tích video OCR... 25.4% (120.0s), tìm thấy=137 frames có sub
+23:58:25 - INFO - OCR local: Đang phân tích video OCR... 28.6% (135.0s), tìm thấy=163 frames có sub
+23:58:26 - INFO - OCR local: Đang phân tích video OCR... 31.7% (150.0s), tìm thấy=189 frames có sub
+23:58:28 - INFO - OCR local: Đang phân tích video OCR... 34.9% (165.0s), tìm thấy=211 frames có sub
+23:58:30 - INFO - OCR local: Đang phân tích video OCR... 38.1% (180.0s), tìm thấy=214 frames có sub
+23:58:31 - INFO - OCR local: Đang phân tích video OCR... 41.2% (195.0s), tìm thấy=219 frames có sub
+23:58:32 - INFO - OCR local: Đang phân tích video OCR... 44.4% (210.0s), tìm thấy=230 frames có sub
+23:58:34 - INFO - OCR local: Đang phân tích video OCR... 47.6% (225.0s), tìm thấy=249 frames có sub
+23:58:35 - INFO - OCR local: Đang phân tích video OCR... 50.8% (240.0s), tìm thấy=275 frames có sub
+23:58:37 - INFO - OCR local: Đang phân tích video OCR... 53.9% (255.0s), tìm thấy=301 frames có sub
+23:58:39 - INFO - OCR local: Đang phân tích video OCR... 57.1% (270.0s), tìm thấy=317 frames có sub
+23:58:40 - INFO - OCR local: Đang phân tích video OCR... 60.3% (285.0s), tìm thấy=333 frames có sub
+23:58:42 - INFO - OCR local: Đang phân tích video OCR... 63.5% (300.0s), tìm thấy=359 frames có sub
+23:58:43 - INFO - OCR local: Đang phân tích video OCR... 66.6% (315.0s), tìm thấy=363 frames có sub
+23:58:45 - INFO - OCR local: Đang phân tích video OCR... 69.8% (330.0s), tìm thấy=383 frames có sub
+23:58:46 - INFO - OCR local: Đang phân tích video OCR... 73.0% (345.0s), tìm thấy=393 frames có sub
+23:58:48 - INFO - OCR local: Đang phân tích video OCR... 76.1% (360.0s), tìm thấy=411 frames có sub
+23:58:49 - INFO - OCR local: Đang phân tích video OCR... 79.3% (375.0s), tìm thấy=420 frames có sub
+23:58:51 - INFO - OCR local: Đang phân tích video OCR... 82.5% (390.0s), tìm thấy=443 frames có sub
+23:58:52 - INFO - OCR local: Đang phân tích video OCR... 85.7% (405.0s), tìm thấy=463 frames có sub
+23:58:54 - INFO - OCR local: Đang phân tích video OCR... 88.8% (420.0s), tìm thấy=470 frames có sub
+23:58:56 - INFO - OCR local: Đang phân tích video OCR... 92.0% (435.0s), tìm thấy=487 frames có sub
+23:58:57 - INFO - OCR local: Đang phân tích video OCR... 95.2% (450.0s), tìm thấy=494 frames có sub
+23:58:58 - INFO - OCR local: Đang phân tích video OCR... 98.4% (465.0s), tìm thấy=517 frames có sub
+23:58:59 - INFO - OCR local: Hoàn thành trích xuất phụ đề cứng. Tìm thấy 164 câu thoại.
+23:58:59 - INFO - OCR local: Đang tiến hành dịch AI phụ đề đã quét sang tiếng Việt...
+23:58:59 - INFO - OCR local: Lỗi dịch AI phụ đề quét OCR: name 'translate_batch_ai' is not defined. Dùng tiếng Trung gốc.
+23:58:59 - INFO - Đã patch phụ đề OCR local vào draft: segments=164, added_texts=164, srt=C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\ocr_zh.srt
+23:58:59 - INFO - CapCut chưa được mở trong luồng Whisper local, patch draft trực tiếp.
+23:58:59 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\draft_info.json để dịch và cập nhật font/màu sắc...
+23:58:59 - INFO - Đang dùng AI lấy video_context và asr_text từ 164 dòng phụ đề...
+23:59:04 - INFO - AI context extracted successfully: Context: 视频以科幻动作短剧的形式呈现，讲述了名为“构造雯”的复制体试图潜入GTI组织夺舍真身麦小雯的故事。剧情融合了荒诞的动作打斗、动漫招式梗以及突兀的“洗脑式”转场。主要人物包括麦小雯、阿列克谢及反派构造人 | Terms: {"麦小雯": "Mạch Tiểu Văn", "构造体": "Cấu tạo thể", "构造雯": "Cấu tạo Văn", "GTI": "GTI", "特勤处": "Sở Đặc vụ
+23:59:04 - INFO - Đang dịch 154/155 dòng phụ đề tiếng Trung chưa có cache (dùng lại cache 1 dòng) sang tiếng Việt...
+23:59:04 - INFO - Dịch AI bằng gemini model gemini-3.1-flash-lite theo batch 20 dòng...
+23:59:07 - INFO - Dịch AI batch 1: OK (20/20)
+23:59:11 - INFO - Dịch AI batch 2: OK (20/20)
+23:59:15 - INFO - Dịch AI batch 3: OK (20/20)
+23:59:18 - INFO - Dịch AI batch 4: OK (20/20)
+23:59:22 - INFO - Dịch AI batch 5: OK (20/20)
+23:59:26 - INFO - Dịch AI batch 6: OK (20/20)
+23:59:29 - INFO - Dịch AI batch 7: OK (20/20)
+23:59:33 - INFO - Dịch AI batch 8: OK (14/14)
+23:59:33 - INFO - Mẫu dịch: '这是利用麦小雯身体构造' -> 'Đây là cơ thể Mạch Tiểu Văn'
+23:59:33 - INFO - Mẫu dịch: '创造出的复制体' -> 'được tạo ra thành bản sao'
+23:59:33 - INFO - Mẫu dịch: '名为构造的麦小雯' -> 'gọi là Mạch Tiểu Văn cấu tạo'
+23:59:33 - INFO - Đã dịch 164/164 dòng phụ đề, đồng bộ 0 subtitle cache và định dạng màu vàng cỡ chữ 5 thành công.
+23:59:33 - INFO - Đang đọc C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\template-2.tmp để dịch và cập nhật font/màu sắc...
+23:59:33 - WARNING - Không tìm thấy phụ đề nào trong bản nháp.
+23:59:33 - INFO - Đã patch phụ đề trên 1/2 file draft/timeline.
+23:59:33 - INFO - Đang chỉnh âm lượng track video về -15.5 dB (0.1679)...
+23:59:33 - INFO - Đã chỉnh âm lượng 2 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\draft_info.json.
+23:59:33 - INFO - Đã chỉnh âm lượng 1 đoạn trong C:\Users\nguye\AppData\Local\CapCut\User Data\Projects\com.lveditor.draft\111111111111111111\template-2.tmp.
+23:59:33 - INFO - Đã chỉnh âm lượng tổng 3 đoạn trên 2 file về -15.5 dB.
+23:59:33 - INFO - Đã khóa 2 track/segment (effect, video) trên 1 file draft.
+00:02:00 - INFO - Đã khôi phục 2 item hàng chờ từ cache.
+00:02:00 - INFO - Khởi động server CapCut Automation Studio tại http://127.0.0.1:5000
+00:28:44 - INFO - Đã khôi phục 2 item hàng chờ từ cache.
+00:28:44 - INFO - Khởi động server CapCut Automation Studio tại http://127.0.0.1:5000
+00:30:47 - INFO - Đã khôi phục 2 item hàng chờ từ cache.
+00:30:47 - INFO - Khởi động server CapCut Automation Studio tại http://127.0.0.1:5000
