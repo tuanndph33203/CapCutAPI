@@ -1,15 +1,28 @@
 import json
 import os
 import subprocess
-import tempfile
 import site
 import copy
+import tempfile
 from pathlib import Path
 from typing import Callable, Iterable
 
 import pyJianYingDraft as draft
 
 _WHISPER_MODEL_CACHE = {}
+
+
+def _build_atempo_filter(speed: float) -> str:
+    factors = []
+    remaining = float(speed)
+    while remaining < 0.5:
+        factors.append(0.5)
+        remaining /= 0.5
+    while remaining > 2.0:
+        factors.append(2.0)
+        remaining /= 2.0
+    factors.append(remaining)
+    return ",".join(f"atempo={factor:.8g}" for factor in factors)
 
 
 def _format_ts(seconds: float) -> str:
@@ -85,20 +98,6 @@ def _path_has_cuda_runtime() -> bool:
     return {"cublas", "cudnn"}.issubset(found)
 
 
-def _build_atempo_filter(speed: float) -> str:
-    filters = []
-    tempo = float(speed or 1.0)
-    while tempo > 2.0:
-        filters.append("atempo=2.0")
-        tempo /= 2.0
-    while tempo < 0.5:
-        filters.append("atempo=0.5")
-        tempo /= 0.5
-    if abs(tempo - 1.0) > 0.001:
-        filters.append(f"atempo={tempo}")
-    return ",".join(filters)
-
-
 def transcribe_video_to_segments(
     video_path: str | os.PathLike,
     *,
@@ -107,6 +106,7 @@ def transcribe_video_to_segments(
     model_size: str | None = None,
     device: str | None = None,
     compute_type: str | None = None,
+    transcribe_options: dict | None = None,
     progress_callback: Callable[[str], None] | None = None,
 ) -> tuple[list[dict], dict]:
     try:
@@ -164,42 +164,66 @@ def transcribe_video_to_segments(
             "speech_pad_ms": int(os.environ.get("WHISPER_VAD_SPEECH_PAD_MS", "400")),
         },
     }
+    if isinstance(transcribe_options, dict):
+        option_aliases = {
+            "logprob_threshold": "log_prob_threshold",
+        }
+        allowed_options = {
+            "language",
+            "task",
+            "vad_filter",
+            "vad_parameters",
+            "word_timestamps",
+            "beam_size",
+            "best_of",
+            "temperature",
+            "condition_on_previous_text",
+            "log_prob_threshold",
+            "no_speech_threshold",
+            "compression_ratio_threshold",
+        }
+        for key, value in transcribe_options.items():
+            target_key = option_aliases.get(key, key)
+            if target_key in allowed_options:
+                kwargs[target_key] = value
 
     transcribe_path = str(video_path)
     temp_audio_path = None
     try:
-        speed = float(speed or 1.0)
+        requested_speed = float(speed or 1.0)
     except Exception:
-        speed = 1.0
-    if abs(speed - 1.0) > 0.001:
-        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
-        temp_audio_path = temp_file.name
-        temp_file.close()
+        requested_speed = 1.0
+    if abs(requested_speed - 1.0) > 0.001:
+        with tempfile.NamedTemporaryFile(prefix="capcut_whisper_speed_", suffix=".wav", delete=False) as temp_file:
+            temp_audio_path = temp_file.name
+        command = [
+            "ffmpeg",
+            "-y",
+            "-v",
+            "error",
+            "-i",
+            str(video_path),
+            "-vn",
+            "-filter:a",
+            _build_atempo_filter(requested_speed),
+            "-ar",
+            "16000",
+            "-ac",
+            "1",
+            temp_audio_path,
+        ]
         if progress_callback:
-            progress_callback(f"Đang trích audio đã làm chậm speed={speed} trước khi Whisper...")
-        atempo_filter = _build_atempo_filter(speed)
-        subprocess.run(
-            [
-                "ffmpeg",
-                "-y",
-                "-i",
-                str(video_path),
-                "-vn",
-                "-filter:a",
-                atempo_filter,
-                "-ac",
-                "1",
-                "-ar",
-                "16000",
-                temp_audio_path,
-            ],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            check=True,
-        )
+            progress_callback(
+                f"Tách audio và chỉnh speed={requested_speed:g} trước Whisper: {temp_audio_path}"
+            )
+        completed = subprocess.run(command, text=True, capture_output=True)
+        if completed.returncode != 0:
+            try:
+                os.unlink(temp_audio_path)
+            except OSError:
+                pass
+            temp_audio_path = None
+            raise RuntimeError(f"ffmpeg render audio cho Whisper thất bại: {completed.stderr[-1200:]}")
         transcribe_path = temp_audio_path
 
     if progress_callback:
@@ -250,9 +274,12 @@ def transcribe_video_to_segments(
             "repeat_tail": 0,
         }
         recent_texts = []
-        strict_filter = os.environ.get("CAPCUT_WHISPER_STRICT_FILTER", "true").strip().lower() in {
-            "1", "true", "yes", "on"
-        }
+        if isinstance(transcribe_options, dict) and "strict_filter" in transcribe_options:
+            strict_filter = bool(transcribe_options.get("strict_filter"))
+        else:
+            strict_filter = os.environ.get("CAPCUT_WHISPER_STRICT_FILTER", "true").strip().lower() in {
+                "1", "true", "yes", "on"
+            }
         for segment in raw_segment_objects:
             text = (segment.text or "").strip()
             start = float(segment.start or 0.0)
@@ -304,13 +331,13 @@ def transcribe_video_to_segments(
 
             suspicious_reasons = []
             # Nới ngưỡng avg_logprob: game audio có nhạc nền làm logprob thấp hơn bình thường
-            logprob_thresh = float(os.environ.get("WHISPER_LOGPROB_THRESHOLD", "-1.5"))
+            logprob_thresh = float(kwargs.get("log_prob_threshold", os.environ.get("WHISPER_LOGPROB_THRESHOLD", "-1.5")))
             if avg_logprob is not None and float(avg_logprob) < logprob_thresh:
                 suspicious_reasons.append("low_logprob")
             if temperature >= 0.8:
                 suspicious_reasons.append("high_temperature")
             # Nới ngưỡng no_speech_prob: game audio hay bị nhận nhầm là không có giọng nói
-            no_speech_thresh = float(os.environ.get("WHISPER_NO_SPEECH_THRESHOLD", "0.88"))
+            no_speech_thresh = float(kwargs.get("no_speech_threshold", os.environ.get("WHISPER_NO_SPEECH_THRESHOLD", "0.88")))
             if no_speech_prob is not None and float(no_speech_prob) > no_speech_thresh:
                 suspicious_reasons.append("high_no_speech")
             if compression_ratio is not None and float(compression_ratio) > 2.8:

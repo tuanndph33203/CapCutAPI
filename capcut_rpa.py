@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import logging
 import sys
 import time
 from dataclasses import dataclass
@@ -28,6 +29,7 @@ except Exception:
 pyautogui.FAILSAFE = False
 pyautogui.PAUSE = 0.05
 FAILSAFE_EDGE_MARGIN = 8
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -543,16 +545,45 @@ def run_workflow(config_path: Path, dry_run: bool) -> dict[str, Any]:
             template = Path(step["template"])
             if not template.is_absolute():
                 template = base / template
+            step_attempts = max(1, int(step.get("attempts", 1) or 1))
+            retry_delay = float(step.get("retry_delay", 0.0) or 0.0)
+            warn_after = float(step.get("warn_after", 0) or 0)
+            step_started = time.time()
+            last_exc: Exception | None = None
             try:
-                result = click_template(
-                    template,
-                    threshold=float(step.get("threshold", 0.82)),
-                    dry_run=dry_run,
-                    timeout=float(step.get("timeout", 20)),
-                    click_offset_x=int(step.get("click_offset_x", 0)),
-                    click_offset_y=int(step.get("click_offset_y", 0)),
-                    search_region=step.get("search_region"),
-                )
+                for attempt in range(1, step_attempts + 1):
+                    try:
+                        result = click_template(
+                            template,
+                            threshold=float(step.get("threshold", 0.82)),
+                            dry_run=dry_run,
+                            timeout=float(step.get("timeout", 20)),
+                            click_offset_x=int(step.get("click_offset_x", 0)),
+                            click_offset_y=int(step.get("click_offset_y", 0)),
+                            search_region=step.get("search_region"),
+                        )
+                        result["attempt"] = attempt
+                        result["attempts"] = step_attempts
+                        break
+                    except Exception as exc:
+                        last_exc = exc
+                        elapsed = time.time() - step_started
+                        if warn_after > 0 and elapsed >= warn_after:
+                            logger.warning(
+                                "RPA step %s: chua click duoc %s sau %.1fs "
+                                "(attempt %s/%s): %s",
+                                index,
+                                template.name,
+                                elapsed,
+                                attempt,
+                                step_attempts,
+                                exc,
+                            )
+                            warn_after = 0
+                        if attempt >= step_attempts:
+                            raise
+                        if retry_delay > 0 and not dry_run:
+                            time.sleep(retry_delay)
             except Exception as exc:
                 if not bool(step.get("optional", False)):
                     raise
@@ -561,7 +592,7 @@ def run_workflow(config_path: Path, dry_run: bool) -> dict[str, Any]:
                     "template": str(template),
                     "optional": True,
                     "skipped": True,
-                    "error": str(exc),
+                    "error": str(last_exc or exc),
                     "dry_run": dry_run,
                 }
         elif action == "wait":

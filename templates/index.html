@@ -2035,7 +2035,7 @@
                         document.getElementById('detail-ai-temperature').value = config.ai_temperature ?? 0.0;
                         document.getElementById('detail-hardsub-blur').checked = config.hardsub_blur_enabled !== false;
                         document.getElementById('detail-use-local-ocr').checked = config.use_local_ocr === true;
-                        document.getElementById('detail-use-local-whisper').checked = config.use_local_whisper !== false;
+                        document.getElementById('detail-use-local-whisper').checked = config.use_local_whisper === true;
 
                         // Toggle view
                         projectsGridContainer.style.display = 'none';

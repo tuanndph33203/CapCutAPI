@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 import os
 # Tắt cơ chế spin-wait của ONNXRuntime trên CPU để tránh FULL CPU (100%) khi chờ GPU DirectML xử lý
 os.environ["ONNXRUNTIME_CPU_THREAD_ALLOW_SPINNING"] = "0"
@@ -635,14 +635,32 @@ def open_project_in_gui(controller, project_name, cancel_check=None):
             f"Đang dùng ảnh {template_file.name} để mở dự án, "
             f"click lên trên {PROJECT_TITLE_MARKER_CLICK_ABOVE_CM}cm ở giữa ảnh..."
         )
-        click_result = click_template(
-            template_file,
-            threshold=0.82,
-            dry_run=False,
-            timeout=90,
-            click_offset_y=click_above_px,
-            search_region=[0.0, 0.12, 1.0, 0.85],
-        )
+        click_result = None
+        marker_started = time.time()
+        marker_warned = False
+        last_marker_error = None
+        for marker_attempt in range(1, 31):
+            try:
+                click_result = click_template(
+                    template_file,
+                    threshold=0.82,
+                    dry_run=False,
+                    timeout=0.5,
+                    click_offset_y=click_above_px,
+                    search_region=[0.0, 0.12, 1.0, 0.85],
+                )
+                break
+            except Exception as marker_error:
+                last_marker_error = marker_error
+                elapsed = time.time() - marker_started
+                if elapsed >= 10 and not marker_warned:
+                    marker_warned = True
+                    logger.warning(
+                        f"Chua click duoc project marker {template_file.name} sau {elapsed:.1f}s "
+                        f"(lan {marker_attempt}/30): {marker_error}. Van retry ngam..."
+                    )
+        if click_result is None:
+            raise last_marker_error or RuntimeError(f"Khong click duoc project marker {template_file.name}.")
         logger.info(
             f"Đã thấy template project marker score={click_result['score']:.4f} "
             f"và click tại ({click_result['x']}, {click_result['y']})."
@@ -807,9 +825,11 @@ def draft_json_paths(draft_path):
     for path in [
         root / "draft_content.json",
         root / "draft_info.json",
+        root / "template.tmp",
         *root.glob("template-*.tmp"),
         *root.glob("Timelines/*/draft_content.json"),
         *root.glob("Timelines/*/draft_info.json"),
+        *root.glob("Timelines/*/template.tmp"),
         *root.glob("Timelines/*/template-*.tmp"),
     ]:
         if not path.exists() or not path.is_file():
@@ -867,33 +887,28 @@ def should_use_local_whisper(item_config):
         return config_bool(item_config.get("use_local_whisper"), True)
     if "use_whisper_captions" in item_config:
         return config_bool(item_config.get("use_whisper_captions"), True)
-    return config_bool(os.environ.get("CAPCUT_USE_LOCAL_WHISPER"), True)
+    if should_use_local_ocr(item_config):
+        return False
+    return config_bool(os.environ.get("CAPCUT_USE_LOCAL_WHISPER"), False)
 
 def should_use_local_ocr(item_config):
     if "use_local_ocr" in item_config:
         return config_bool(item_config.get("use_local_ocr"), False)
-    return config_bool(os.environ.get("CAPCUT_USE_LOCAL_OCR"), False)
+    return config_bool(os.environ.get("CAPCUT_USE_LOCAL_OCR"), True)
 
-def run_local_ocr_captions_for_draft(draft_full_path, draft_id, video_path, item_config, font_name, font_size, font_color_hex):
+def run_local_ocr_captions_for_draft(
+    draft_full_path,
+    draft_id,
+    video_path,
+    item_config,
+    font_name,
+    font_size,
+    font_color_hex,
+    cancel_check=None,
+):
     from local_ocr_captions import patch_draft_with_local_ocr
 
-    # Dùng hàm dịch AI được định cấu hình giống như Whisper
-    translation_method = item_config.get("translation_method") or "google"
-    
-    def translate_list(texts):
-        if translation_method == "google":
-            source_lang = item_config.get("source_language") or "zh-CN"
-            target_lang = item_config.get("target_language") or "vi"
-            return translate_batch_google(texts, source_lang=source_lang, target_lang=target_lang)
-        elif translation_method == "ai":
-            # Tái sử dụng hàm dịch AI bằng Gemini
-            profile_id = item_config.get("translation_ai_profile_id")
-            context = item_config.get("video_context") or ""
-            tone = item_config.get("ai_tone") or "natural"
-            temp = float(item_config.get("ai_temperature", 0.3) or 0.3)
-            return translate_batch_ai(texts, profile_id=profile_id, video_context=context, tone=tone, temperature=temp)
-        return texts
-
+    configured_speed = float(item_config.get("speed", 1.0) or 1.0)
     language = (
         item_config.get("whisper_language")
         or item_config.get("source_language_code")
@@ -904,21 +919,95 @@ def run_local_ocr_captions_for_draft(draft_full_path, draft_id, video_path, item
         f"Chạy local OCR (PaddleOCR) để tạo phụ đề: draft={draft_id}, "
         f"language={language}, video={video_path}"
     )
+    default_ocr_config = {
+        "fast_sample_ratios": [0.2, 0.5, 0.8],
+        "fast_pass_max_duration_ms": int(item_config.get("ocr_fast_pass_max_duration_ms", 1500) or 1500),
+        "coarse_step_ms": int(item_config.get("ocr_coarse_step_ms", 1000) or 1000),
+        "long_region_step_ms": int(item_config.get("ocr_long_region_step_ms", 1000) or 1000),
+        "fallback_full_scan_below_segments": int(item_config.get("ocr_fallback_full_scan_below_segments", 8) or 8),
+        "min_score": float(item_config.get("ocr_min_score", 0.68) or 0.68),
+        "max_same_text_gap_ms": int(item_config.get("ocr_max_same_text_gap_ms", 1800) or 1800),
+        "max_segment_duration_ms": int(item_config.get("ocr_max_segment_duration_ms", 6000) or 6000),
+        "min_segment_duration_ms": int(item_config.get("ocr_min_segment_duration_ms", 700) or 700),
+        "min_display_duration_ms": int(item_config.get("ocr_min_display_duration_ms", 850) or 850),
+        "read_ms_per_char": int(item_config.get("ocr_read_ms_per_char", 55) or 55),
+        "drop_noise_text": config_bool(item_config.get("ocr_drop_noise_text"), True),
+        "ocr_only_scan": {
+            "enabled": config_bool(item_config.get("ocr_only_scan_enabled"), False),
+            "step_ms": int(item_config.get("ocr_only_scan_step_ms", 1000) or 1000),
+        },
+    }
+    if isinstance(item_config.get("local_ocr"), dict):
+        ocr_config = {**default_ocr_config, **item_config.get("local_ocr")}
+        if isinstance(default_ocr_config.get("ocr_only_scan"), dict) and isinstance((item_config.get("local_ocr") or {}).get("ocr_only_scan"), dict):
+            ocr_config["ocr_only_scan"] = {
+                **default_ocr_config["ocr_only_scan"],
+                **(item_config.get("local_ocr") or {}).get("ocr_only_scan"),
+            }
+    else:
+        ocr_config = default_ocr_config
+
+    timestamp_source = (
+        ocr_config.get("timestamp_source")
+        or item_config.get("ocr_timestamp_source")
+        or "whisper"
+    )
+    def progress(message):
+        if cancel_check:
+            cancel_check()
+        logger.info(f"OCR local: {message}")
+
     result = patch_draft_with_local_ocr(
         draft_path=draft_full_path,
         draft_id=draft_id,
         video_path=video_path,
         repo_root=Path(__file__).resolve().parent,
         language=language,
-        speed=float(item_config.get("speed", 1.0) or 1.0),
+        speed=configured_speed,
         font=normalize_draft_font_name(font_name),
         font_size=font_size,
         font_color=font_color_hex,
         width=int(item_config.get("canvas_width", item_config.get("width", 1920))),
         height=int(item_config.get("canvas_height", item_config.get("height", 1080))),
         subtitle_offset_ms=int(item_config.get("whisper_subtitle_offset_ms", 0) or 0),
-        progress_callback=lambda message: logger.info(f"OCR local: {message}"),
-        translate_func=translate_list,
+        progress_callback=progress,
+        translate_func=None,
+        speech_config=(
+            {**item_config.get("speech_detection"), "speed": configured_speed}
+            if isinstance(item_config.get("speech_detection"), dict)
+            else {
+            "engine": item_config.get("speech_detection_engine", "faster-whisper"),
+            "fallback_engine": item_config.get("speech_detection_fallback_engine", "scan"),
+            "speed": configured_speed,
+            "model": item_config.get("speech_detection_model", "large-v3-turbo"),
+            "device": item_config.get("speech_detection_device", "cuda"),
+            "compute_type": item_config.get("speech_detection_compute_type", "float16"),
+            "language": language,
+            "task": "transcribe",
+            "beam_size": int(item_config.get("speech_detection_beam_size", 1) or 1),
+            "best_of": int(item_config.get("speech_detection_best_of", 1) or 1),
+            "temperature": float(item_config.get("speech_detection_temperature", 0.0) or 0.0),
+            "word_timestamps": config_bool(item_config.get("speech_detection_word_timestamps"), True),
+            "condition_on_previous_text": config_bool(item_config.get("speech_detection_condition_on_previous_text"), False),
+            "vad_filter": config_bool(item_config.get("speech_detection_vad_filter"), True),
+            "threshold": float(item_config.get("speech_detection_threshold", 0.35) or 0.35),
+            "min_speech_duration_ms": int(item_config.get("speech_detection_min_speech_duration_ms", 100) or 100),
+            "min_silence_duration_ms": int(item_config.get("speech_detection_min_silence_duration_ms", 180) or 180),
+            "speech_pad_ms": int(item_config.get("speech_detection_speech_pad_ms", 200) or 200),
+            "merge_gap_ms": int(item_config.get("speech_detection_merge_gap_ms", 0) or 0),
+            "logprob_threshold": float(item_config.get("speech_detection_logprob_threshold", -2.0) or -2.0),
+            "no_speech_threshold": float(item_config.get("speech_detection_no_speech_threshold", 0.75) or 0.75),
+            "max_segment_duration": float(item_config.get("speech_detection_max_segment_duration", 6.0) or 6.0),
+            "max_segment_words": int(item_config.get("speech_detection_max_segment_words", 100) or 100),
+            "word_gap_cutoff": float(item_config.get("speech_detection_word_gap_cutoff", 0.6) or 0.6),
+            "strict_filter": config_bool(item_config.get("speech_detection_strict_filter"), False),
+            "ocr_padding_before_ms": int(item_config.get("speech_detection_ocr_padding_before_ms", 250) or 250),
+            "ocr_padding_after_ms": int(item_config.get("speech_detection_ocr_padding_after_ms", 350) or 350),
+            "speech_coverage_below_ratio": float(item_config.get("speech_detection_coverage_below_ratio", 0.05) or 0.05),
+            }
+        ),
+        ocr_config=ocr_config,
+        timestamp_source=timestamp_source,
     )
     logger.info(
         f"Đã patch phụ đề OCR local vào draft: segments={result['segments']}, "
@@ -927,9 +1016,19 @@ def run_local_ocr_captions_for_draft(draft_full_path, draft_id, video_path, item
     return result
 
 
-def run_local_whisper_captions_for_draft(draft_full_path, draft_id, video_path, item_config, font_name, font_size, font_color_hex):
+def run_local_whisper_captions_for_draft(
+    draft_full_path,
+    draft_id,
+    video_path,
+    item_config,
+    font_name,
+    font_size,
+    font_color_hex,
+    cancel_check=None,
+):
     from local_whisper_captions import patch_draft_with_local_whisper
 
+    configured_speed = float(item_config.get("speed", 1.0) or 1.0)
     language = (
         item_config.get("whisper_language")
         or item_config.get("source_language_code")
@@ -940,20 +1039,25 @@ def run_local_whisper_captions_for_draft(draft_full_path, draft_id, video_path, 
         f"Chạy local faster-whisper GPU để tạo phụ đề: draft={draft_id}, "
         f"language={language}, video={video_path}"
     )
+    def progress(message):
+        if cancel_check:
+            cancel_check()
+        logger.info(f"Whisper local: {message}")
+
     result = patch_draft_with_local_whisper(
         draft_path=draft_full_path,
         draft_id=draft_id,
         video_path=video_path,
         repo_root=Path(__file__).resolve().parent,
         language=language,
-        speed=float(item_config.get("speed", 1.0) or 1.0),
+        speed=configured_speed,
         font=normalize_draft_font_name(font_name),
         font_size=font_size,
         font_color=font_color_hex,
         width=int(item_config.get("canvas_width", item_config.get("width", 1920))),
         height=int(item_config.get("canvas_height", item_config.get("height", 1080))),
         subtitle_offset_ms=int(item_config.get("whisper_subtitle_offset_ms", 0) or 0),
-        progress_callback=lambda message: logger.info(f"Whisper local: {message}"),
+        progress_callback=progress,
     )
     logger.info(
         f"Đã patch phụ đề Whisper local vào draft: segments={result['segments']}, "
@@ -1432,6 +1536,10 @@ def apply_global_settings_to_config(config):
         "default_context_ai_profile_id": global_settings.get("default_context_ai_profile_id"),
         "translation_ai_profile_id": global_settings.get("default_translation_ai_profile_id"),
         "context_ai_profile_id": global_settings.get("default_context_ai_profile_id"),
+        "translation_method": "ai" if global_settings.get("default_translation_ai_profile_id") else "google",
+        "speed": 0.77,
+        "tts_speed": 1.17,
+        "volume_db": -15.5,
     }
     if config:
         merged.update(config)
@@ -2175,6 +2283,47 @@ def patch_subtitles_file(content_path, font_size=5.0, font_color=DEFAULT_SUBTITL
             f"Dừng patch phụ đề vì {len(failed_translations)} dòng chưa dịch được, tránh ghi tiếng gốc vào draft. Ví dụ: {preview}"
         )
 
+    text_by_material_id = {}
+    for text_mat, content_json, _raw_text in parsed_items:
+        material_id = text_mat.get("id")
+        if not material_id:
+            continue
+        translated_text = str(content_json.get("text") or "").strip()
+        if translated_text:
+            text_by_material_id[material_id] = translated_text
+
+    min_display_us = int(float((item_config or {}).get("ocr_min_display_duration_ms", 850) or 850) * 1000)
+    read_us_per_char = int(float((item_config or {}).get("ocr_read_ms_per_char", 55) or 55) * 1000)
+    max_display_us = int(float((item_config or {}).get("ocr_max_segment_duration_ms", 6000) or 6000) * 1000)
+    min_gap_us = int(float((item_config or {}).get("subtitle_min_gap_ms", 20) or 20) * 1000)
+    duration_adjusted = 0
+    for track in data.get("tracks", []) or []:
+        if track.get("type") != "text":
+            continue
+        segments = sorted(
+            [seg for seg in track.get("segments", []) or [] if isinstance(seg.get("target_timerange"), dict)],
+            key=lambda seg: int((seg.get("target_timerange") or {}).get("start", 0) or 0),
+        )
+        for idx, segment in enumerate(segments):
+            material_id = segment.get("material_id")
+            translated_text = text_by_material_id.get(material_id)
+            if not translated_text:
+                continue
+            target_timerange = segment.get("target_timerange") or {}
+            start_us = int(target_timerange.get("start", 0) or 0)
+            old_duration = int(target_timerange.get("duration", 0) or 0)
+            compact_len = len("".join(str(translated_text).split()))
+            desired = max(min_display_us, compact_len * read_us_per_char)
+            desired = min(desired, max_display_us)
+            if idx + 1 < len(segments):
+                next_start = int((segments[idx + 1].get("target_timerange") or {}).get("start", 0) or 0)
+                available = max(0, next_start - start_us - min_gap_us)
+                if available > 0:
+                    desired = min(desired, available)
+            if desired > old_duration:
+                target_timerange["duration"] = desired
+                duration_adjusted += 1
+
     cache_updated = sync_subtitle_cache_info(data, translated_texts)
 
     remaining_source = []
@@ -2195,7 +2344,8 @@ def patch_subtitles_file(content_path, font_size=5.0, font_color=DEFAULT_SUBTITL
         logger.info(f"Mẫu dịch: '{raw_sample}' -> '{translated_sample}'")
     logger.info(
         f"Đã dịch {translated_count}/{len(parsed_items)} dòng phụ đề, "
-        f"đồng bộ {cache_updated} subtitle cache và định dạng màu vàng cỡ chữ 5 thành công."
+        f"đồng bộ {cache_updated} subtitle cache, nới duration {duration_adjusted} captions "
+        f"và định dạng màu vàng cỡ chữ 5 thành công."
     )
     return True
 
@@ -2501,19 +2651,6 @@ def probe_video_metadata(video_path):
         "has_audio": any(item.get("codec_type") == "audio" for item in streams),
     }
 
-def build_atempo_filter(speed):
-    factors = []
-    remaining = float(speed)
-    while remaining < 0.5:
-        factors.append(0.5)
-        remaining /= 0.5
-    while remaining > 2.0:
-        factors.append(2.0)
-        remaining /= 2.0
-    factors.append(remaining)
-    return ",".join(f"atempo={factor:.8g}" for factor in factors)
-
-
 def detect_hardsub_blur_config(video_path, sample_count=20, blur_radius=24):
     """Detect yellow burned-in subtitles from random frames in the lower third. Retries up to 3 times."""
     source = Path(video_path)
@@ -2663,16 +2800,16 @@ def detect_hardsub_blur_config(video_path, sample_count=20, blur_radius=24):
         # Tinh y1/y2 dong tu pham vi thuc te cua chu (percentile 5~95 de tranh noise)
         tops = [box[1] for box in filtered]
         bottoms = [box[3] for box in filtered]
-        padding_y = 4
-        y1 = max(lower_y, int(np.percentile(tops, 5)) - padding_y)
-        y2 = min(height, int(np.percentile(bottoms, 95)) + padding_y)
+        raw_y1 = int(np.percentile(tops, 5))
+        raw_y2 = int(np.percentile(bottoms, 95))
+        text_height = max(1, raw_y2 - raw_y1)
+        padding_y = max(3, int(round(text_height * 0.10)))
+        y1 = max(lower_y, raw_y1 - padding_y)
+        y2 = min(height, raw_y2 + padding_y)
 
-        # Tinh x1/x2 dong dua tren be rong cua chu thuc te tim thay
-        lefts = [box[0] for box in filtered]
-        rights = [box[2] for box in filtered]
-        padding_x = 16
-        x1 = max(0, int(np.percentile(lefts, 5)) - padding_x)
-        x2 = min(width, int(np.percentile(rights, 95)) + padding_x)
+        # OCR/blur cần lấy rộng 90% video để không cắt mất chữ dài hoặc chữ lệch tâm.
+        x1 = int(width * 0.05)
+        x2 = int(width * 0.95)
 
         # Dam bao chieu cao toi thieu
         min_band_height = max(24, height // 60)
@@ -2682,14 +2819,10 @@ def detect_hardsub_blur_config(video_path, sample_count=20, blur_radius=24):
             y1 = max(lower_y, center_y - half_h)
             y2 = min(height, center_y + half_h)
 
-        # Dam bao chieu rong toi thieu hop ly (vi du it nhat 30% chieu rong man hinh de che tron ven)
-        if x2 - x1 < width * 0.30:
-            center_x = int(np.median([(box[0] + box[2]) / 2 for box in filtered]))
-            half_w = max(int(width * 0.15), (x2 - x1) // 2)
-            x1 = max(0, center_x - half_w)
-            x2 = min(width, center_x + half_w)
-
-        print(f"  >> x=[{x1},{x2}], y=[{y1},{y2}], dim={x2-x1}x{y2-y1} (tu {len(filtered)} frames sau outlier filter)")
+        print(
+            f"  >> x=[{x1},{x2}] (90% width), y=[{y1},{y2}] (+10% text-height vertical padding), "
+            f"dim={x2-x1}x{y2-y1} (tu {len(filtered)} frames sau outlier filter)"
+        )
 
         result = {
             "enabled": True,
@@ -2745,7 +2878,14 @@ def render_preprocessed_video(source, output_path, speed=1.0, blur_config=None):
     if temp_path.exists():
         temp_path.unlink()
 
-    speed = float(speed or 1.0)
+    try:
+        requested_speed = float(speed or 1.0)
+    except Exception:
+        requested_speed = 1.0
+    if abs(requested_speed - 1.0) > 0.001:
+        logger.warning(
+            f"Bo qua speed={requested_speed} khi render preprocessed; speed chi duoc patch o Step 7."
+        )
     meta = probe_video_metadata(source)
     blur_config = blur_config or {}
     if blur_config.get("enabled", False):
@@ -2778,18 +2918,17 @@ def render_preprocessed_video(source, output_path, speed=1.0, blur_config=None):
         radius = max(1, min(radius, max_radius))
         if w < 4 or h < 4:
             logger.warning(f"Vung blur qua nho, bo qua blur FFmpeg: x={x}, y={y}, w={w}, h={h}")
-            video_filter = f"[0:v]setpts={1 / speed:.12g}*PTS[v]"
+            video_filter = "[0:v]null[v]"
         else:
-            video_filter = f"[0:v]split=2[base][tmp];[tmp]crop={w}:{h}:{x}:{y},boxblur={radius}:2[blur];[base][blur]overlay={x}:{y}:eof_action=repeat,setpts={1 / speed:.12g}*PTS[v]"
+            video_filter = f"[0:v]split=2[base][tmp];[tmp]crop={w}:{h}:{x}:{y},boxblur={radius}:2[blur];[base][blur]overlay={x}:{y}:eof_action=repeat[v]"
     else:
-        video_filter = f"[0:v]setpts={1 / speed:.12g}*PTS[v]"
+        video_filter = "[0:v]null[v]"
     filter_complex = video_filter
     maps = ["[v]"]
     audio_args = []
     if meta.get("has_audio"):
-        filter_complex += f";[0:a]{build_atempo_filter(speed)}[a]"
-        maps.append("[a]")
-        audio_args = ["-c:a", "aac", "-b:a", "192k"]
+        maps.append("0:a:0?")
+        audio_args = ["-c:a", "copy"]
     video_encode_args = ffmpeg_video_encode_args()
     logger.info("FFmpeg video encoder: " + " ".join(video_encode_args))
     command = [
@@ -2818,16 +2957,13 @@ def render_preprocessed_video(source, output_path, speed=1.0, blur_config=None):
             temp_path.unlink()
         if blur_config.get("enabled", False):
             logger.warning(
-                f"FFmpeg blur failed, retrying speed-only render. "
+                f"FFmpeg blur failed, retrying without blur and keeping original duration/audio. "
                 f"Blur config={blur_config}; stderr={completed.stderr[-600:]}"
             )
             return render_preprocessed_video(source, output_path, speed=speed, blur_config={"enabled": False})
-        raise RuntimeError(f"ffmpeg speed render failed: {completed.stderr[-1200:]}")
+        raise RuntimeError(f"ffmpeg preprocessed render failed: {completed.stderr[-1200:]}")
     os.replace(temp_path, output_path)
     return output_path
-
-def render_speed_adjusted_video(source, output_path, speed):
-    return render_preprocessed_video(source, output_path, speed=speed)
 
 def ensure_video_track_in_draft(draft_path, video_path, speed=1.0, volume=1.0, blur_config=None, wait_if_exporting=None):
     root = Path(draft_path)
@@ -2835,9 +2971,15 @@ def ensure_video_track_in_draft(draft_path, video_path, speed=1.0, volume=1.0, b
     if not source.exists() or not source.is_file():
         raise FileNotFoundError(f"Source video not found for draft patch: {source}")
 
-    speed = float(speed or 1.0)
-    if speed <= 0:
+    requested_speed = float(speed or 1.0)
+    if requested_speed <= 0:
         raise ValueError("Video speed must be greater than 0")
+    if abs(requested_speed - 1.0) > 0.001:
+        logger.warning(
+            f"Bo qua speed={requested_speed} trong buoc patch video ban dau; "
+            "video speed chi duoc patch o Step 7."
+        )
+    speed = 1.0
 
     blur_config = blur_config or {}
     blur_enabled = bool(blur_config.get("enabled", False))
@@ -2860,8 +3002,7 @@ def ensure_video_track_in_draft(draft_path, video_path, speed=1.0, volume=1.0, b
         if not asset_path.exists() or asset_path.stat().st_size <= 0:
             if callable(wait_if_exporting):
                 wait_if_exporting()
-            logger.info(f"Dang render video lam mo bang ffmpeg (speed=1.0): {asset_path}")
-            # Goi render voi speed=1.0 de giu nguyen thoi luong goc
+            logger.info(f"Dang render video blur bang ffmpeg, giu nguyen audio/duration goc: {asset_path}")
             render_preprocessed_video(source, asset_path, speed=1.0, blur_config=blur_config)
     else:
         if not asset_path.exists() or asset_path.stat().st_size != source.stat().st_size:
@@ -2872,9 +3013,9 @@ def ensure_video_track_in_draft(draft_path, video_path, speed=1.0, volume=1.0, b
     if source_duration <= 0:
         source_duration = original_duration
     
-    # De CapCut tu lo buoc lam cham video bang cach set draft_speed va keo dai target_duration
-    draft_speed = float(speed or 1.0)
-    target_duration = int(round(source_duration / draft_speed))
+    # Step 1 chi dua video vao draft voi duration goc; speed project chi patch o Step 7.
+    draft_speed = 1.0
+    target_duration = source_duration
 
     material_id = uuid.uuid5(uuid.NAMESPACE_URL, str(asset_path.resolve())).hex
     speed_id = uuid.uuid5(uuid.NAMESPACE_URL, f"{asset_path.resolve()}:speed:{draft_speed}").hex
@@ -3006,7 +3147,7 @@ def ensure_video_track_in_draft(draft_path, video_path, speed=1.0, volume=1.0, b
 
     logger.info(
         f"Đã patch video track vào draft: files={patched}, source_duration={source_duration}, "
-        f"target_duration={target_duration}, speed={speed}, asset={asset_path}"
+        f"target_duration={target_duration}, speed={draft_speed}, asset={asset_path}"
     )
     return patched
 
@@ -3060,17 +3201,18 @@ def run_pipeline_with_file_lock_retry(run_pipeline_func, draft_full_path, max_at
             time.sleep(3)
     raise last_error
 
-def patch_audio_speed_in_json(draft_path, target_speed=1.17):
+def patch_audio_speed_in_json(draft_path, target_speed=1.0):
     """
     Chinh toc do rieng cho cac segment audio TTS tieng Viet trong timeline JSON.
     Giu nguyen luong thoi gian cu cua ban.
     """
-    target_speed = float(target_speed or 1.17)
+    target_speed = float(target_speed or 1.0)
     logger.info(f"[AudioSpeed] Dang chinh toc do audio TTS len {target_speed} tren timeline...")
     total_updated = 0
     patched_files = 0
 
     for content_path in draft_json_paths(draft_path):
+        content_path = Path(content_path)
         try:
             with open(content_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -3080,40 +3222,83 @@ def patch_audio_speed_in_json(draft_path, target_speed=1.17):
             materials = data.setdefault("materials", {})
             speeds_material = materials.setdefault("speeds", [])
             
-            # Tim tat ca cac audio materials duoc tao boi TTS
+            # Tim tat ca cac audio materials duoc tao boi TTS. CapCut thuong luu
+            # TTS duoi type=text_to_audio va path textReading, khong phai material_name.
             tts_material_ids = set()
             for mat in materials.get("audios", []) + materials.get("videos", []):
-                name = mat.get("material_name", "")
-                if "tts" in name.lower() or "text_to_speech" in name.lower() or name.endswith(".mp3") or name.endswith(".wav"):
-                    tts_material_ids.add(mat.get("id"))
+                mat_id = mat.get("id")
+                haystack = " ".join(
+                    str(mat.get(key) or "")
+                    for key in ("material_name", "name", "path", "type", "category_name")
+                ).lower()
+                if (
+                    "text_to_audio" in haystack
+                    or "text_to_speech" in haystack
+                    or "textreading" in haystack
+                    or "tts" in haystack
+                ):
+                    if mat_id:
+                        tts_material_ids.add(mat_id)
+
+            if not tts_material_ids:
+                logger.warning(
+                    "[AudioSpeed] Khong nhan dien duoc material TTS theo metadata; "
+                    "fallback patch tat ca audio segments trong audio tracks."
+                )
 
             for track in tracks:
                 if track.get("type") == "audio":
                     for seg in track.get("segments", []):
-                        if seg.get("material_id") in tts_material_ids:
+                        if not tts_material_ids or seg.get("material_id") in tts_material_ids:
                             curr_speed = float(seg.get("speed", 1.0))
-                            if abs(curr_speed - target_speed) > 0.001:
-                                seg["speed"] = target_speed
-                                src_dur = seg["source_timerange"]["duration"]
-                                seg["target_timerange"]["duration"] = int(round(src_dur / target_speed))
-                                
-                                seg_speed_id = seg.get("extra_material_refs", [None])[0]
-                                if seg_speed_id:
-                                    for sm in speeds_material:
-                                        if sm.get("id") == seg_speed_id:
+                            source_timerange = seg.get("source_timerange") or {}
+                            target_timerange = seg.get("target_timerange") or {}
+                            src_dur = int(source_timerange.get("duration") or target_timerange.get("duration") or 0)
+                            new_duration = speed_adjusted_duration_us(src_dur, target_speed)
+                            current_duration = int(target_timerange.get("duration") or 0)
+                            needs_update = abs(curr_speed - target_speed) > 0.001
+                            if new_duration > 0 and current_duration != new_duration:
+                                needs_update = True
+
+                            speed_ref_updated = False
+                            for seg_speed_id in seg.get("extra_material_refs", [])[:1]:
+                                for sm in speeds_material:
+                                    if sm.get("id") == seg_speed_id:
+                                        sm_speed = float(sm.get("speed", 1.0))
+                                        if abs(sm_speed - target_speed) > 0.001:
                                             sm["speed"] = target_speed
+                                            speed_ref_updated = True
+
+                            if needs_update or speed_ref_updated:
+                                seg["speed"] = target_speed
+                                if new_duration > 0:
+                                    target_timerange["duration"] = new_duration
+                                    seg["target_timerange"] = target_timerange
                                 modified = True
+                                total_updated += 1
             
             if modified:
                 with open(content_path, "w", encoding="utf-8") as f:
                     json.dump(data, f, ensure_ascii=False, indent=4)
                 logger.info(f"[AudioSpeed] Da cap nhat toc do TTS cho: {content_path.name}")
-                total_updated += 1
             patched_files += 1
         except Exception as e:
             logger.error(f"Loi khi cap nhat toc do audio file {content_path.name}: {e}")
 
     return {"patched_files": patched_files, "total_updated": total_updated}
+
+def speed_adjusted_duration_us(source_duration_us, speed, fps=30):
+    """
+    CapCut UI snaps speed-adjusted segment duration to timeline frames.
+    Matching that behavior avoids tiny drift versus manually edited drafts.
+    """
+    source_duration_us = int(source_duration_us or 0)
+    speed = float(speed or 1.0)
+    if source_duration_us <= 0 or speed <= 0:
+        return 0
+    raw_duration = source_duration_us / speed
+    frame_count = max(1, int(round(raw_duration * float(fps) / 1_000_000)))
+    return int(round(frame_count * 1_000_000 / float(fps)))
 
 def patch_video_speed_in_json(draft_path, speed=1.0):
     """
@@ -3126,6 +3311,7 @@ def patch_video_speed_in_json(draft_path, speed=1.0):
     patched_files = 0
 
     for content_path in draft_json_paths(draft_path):
+        content_path = Path(content_path)
         try:
             with open(content_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -3142,16 +3328,30 @@ def patch_video_speed_in_json(draft_path, speed=1.0):
                 if track_type == "video":
                     for seg in segments:
                         curr_speed = float(seg.get("speed", 1.0))
-                        if abs(curr_speed - speed) > 0.001:
-                            seg["speed"] = speed
-                            src_dur = seg["source_timerange"]["duration"]
-                            seg["target_timerange"]["duration"] = int(round(src_dur / speed))
-                            
-                            seg_speed_id = seg.get("extra_material_refs", [None])[0]
-                            if seg_speed_id:
-                                for sm in speeds_material:
-                                    if sm.get("id") == seg_speed_id:
+                        source_timerange = seg.get("source_timerange") or {}
+                        target_timerange = seg.get("target_timerange") or {}
+                        src_dur = int(source_timerange.get("duration") or target_timerange.get("duration") or 0)
+                        new_duration = speed_adjusted_duration_us(src_dur, speed)
+                        current_duration = int(target_timerange.get("duration") or 0)
+                        needs_update = abs(curr_speed - speed) > 0.001
+                        if new_duration > 0 and current_duration != new_duration:
+                            needs_update = True
+
+                        speed_ref_updated = False
+                        seg_speed_id = seg.get("extra_material_refs", [None])[0]
+                        if seg_speed_id:
+                            for sm in speeds_material:
+                                if sm.get("id") == seg_speed_id:
+                                    sm_speed = float(sm.get("speed", 1.0))
+                                    if abs(sm_speed - speed) > 0.001:
                                         sm["speed"] = speed
+                                        speed_ref_updated = True
+
+                        if needs_update or speed_ref_updated:
+                            seg["speed"] = speed
+                            if new_duration > 0:
+                                target_timerange["duration"] = new_duration
+                                seg["target_timerange"] = target_timerange
                             modified = True
             
             if modified:
@@ -3195,7 +3395,7 @@ class QueueRunner:
         if not QUEUE_CACHE_PATH.exists():
             return
         try:
-            data = json.loads(QUEUE_CACHE_PATH.read_text(encoding="utf-8"))
+            data = json.loads(QUEUE_CACHE_PATH.read_text(encoding="utf-8-sig"))
             cached_queue = data.get("queue", [])
             if isinstance(cached_queue, list):
                 self.queue = cached_queue
@@ -3479,12 +3679,24 @@ class QueueRunner:
         return self.config["auto_shutdown"]
 
     def clear(self):
-        if self.is_processing:
-            return
-        self.queue = []
-        self.current_index = -1
-        self.is_paused = False
-        self.save_cache()
+        active_count = 0
+        with self.queue_lock:
+            for item in self.queue:
+                if item.get("status") in ("pending", "preprocessing", "ready_for_capcut", "gui_processing", "paused", "running"):
+                    item["cancel_requested"] = True
+                    active_count += 1
+            self.is_processing = False
+            self.pause_requested = False
+            self.is_paused = False
+            self.current_index = -1
+            self.is_gui_exporting = False
+            self.queue = []
+            self.save_cache()
+        if active_count:
+            logger.info(f"Đã dừng và xóa toàn bộ hàng chờ/pipeline: {active_count} item.")
+            kill_capcut()
+        else:
+            logger.info("Đã xóa hàng chờ.")
 
     def _pause_item(self, item, next_step, progress, message):
         item["status"] = "paused"
@@ -3750,6 +3962,26 @@ class QueueRunner:
         while self.is_processing:
             if self.pause_requested:
                 break
+
+            with self.queue_lock:
+                offline_preprocess_item = next(
+                    (
+                        item for item in self.queue
+                        if item.get("status") == "preprocessing"
+                        and (
+                            should_use_local_ocr(apply_global_settings_to_config(item.get("config") or self.config or {}))
+                            or should_use_local_whisper(apply_global_settings_to_config(item.get("config") or self.config or {}))
+                        )
+                    ),
+                    None,
+                )
+            if offline_preprocess_item is not None:
+                logger.info(
+                    "Worker 2 chờ vì Worker 1 đang tạo phụ đề offline "
+                    f"(OCR/Whisper) cho '{offline_preprocess_item.get('video') or offline_preprocess_item.get('draft_id')}'."
+                )
+                time.sleep(3)
+                continue
                 
             gui_item = None
             gui_idx = -1
@@ -3852,7 +4084,12 @@ class QueueRunner:
 
         item_config = apply_global_settings_to_config(item.get("config") or self.config or {})
 
-        speed = float(item_config.get("speed", 0.77))
+        configured_speed = float(item_config.get("speed", 0.77) or 0.77)
+        if abs(configured_speed - 1.0) > 0.001:
+            logger.warning(
+                f"Step 1 giữ video speed=1.0 để tránh kéo duration sớm; speed={configured_speed} sẽ được patch ở Step 7."
+            )
+        speed = 1.0
         volume_db = float(item_config.get("volume_db", -15.5))
         font_size = float(item_config.get("font_size", 5.0))
         font_color_hex = item_config.get("font_color", DEFAULT_SUBTITLE_COLOR_HEX)
@@ -3928,7 +4165,7 @@ class QueueRunner:
                 srt=None,
                 width=int(item_config.get("width", 1080)),
                 height=int(item_config.get("height", 1920)),
-                speed=speed,
+                speed=1.0,
                 clip_seconds=None,
                 font=pipeline_font_name,
                 font_size=font_size,
@@ -3952,6 +4189,7 @@ class QueueRunner:
 
         draft_parent, draft_full_path = get_draft_parent_and_full_path(draft_id)
         video_source_for_patch = configured_video_path or (item.get("video") if item.get("video") and Path(str(item.get("video"))).is_file() else None)
+        subtitle_source_video = video_source_for_patch
         if video_source_for_patch:
             self._check_cancel(item)
             blur_enabled = config_bool(item_config.get("hardsub_blur_enabled", True), True)
@@ -3970,6 +4208,15 @@ class QueueRunner:
                     )
                 else:
                     logger.info(f"[Blur] Auto-detect thành công: {blur_config}")
+                    local_ocr_config = item_config.get("local_ocr") if isinstance(item_config.get("local_ocr"), dict) else {}
+                    local_ocr_config = dict(local_ocr_config)
+                    local_ocr_config["crop_rect"] = {
+                        "x": int(blur_config.get("x", 0)),
+                        "y": int(blur_config.get("y", 0)),
+                        "w": int(blur_config.get("w", 0)),
+                        "h": int(blur_config.get("h", 0)),
+                    }
+                    item_config["local_ocr"] = local_ocr_config
             elif blur_enabled:
                 blur_config = {
                     "enabled": True,
@@ -3979,29 +4226,26 @@ class QueueRunner:
                     "h": int(item_config.get("hardsub_blur_h", 135)),
                     "radius": int(item_config.get("hardsub_blur_radius", 24)),
                 }
+                local_ocr_config = item_config.get("local_ocr") if isinstance(item_config.get("local_ocr"), dict) else {}
+                local_ocr_config = dict(local_ocr_config)
+                local_ocr_config["crop_rect"] = {
+                    "x": int(blur_config.get("x", 0)),
+                    "y": int(blur_config.get("y", 0)),
+                    "w": int(blur_config.get("w", 0)),
+                    "h": int(blur_config.get("h", 0)),
+                }
+                item_config["local_ocr"] = local_ocr_config
             else:
                 blur_config = {"enabled": False}
             ensure_video_track_in_draft(
                 draft_full_path,
                 video_source_for_patch,
-                speed=speed,
+                speed=1.0,
                 volume=1.0,
                 blur_config=blur_config,
                 wait_if_exporting=lambda: self._wait_if_exporting(),
             )
-            # Tinh toan lai duong dan video da lam cham de truyen vao Whisper/OCR
-            try:
-                if bool(blur_config.get("enabled", False)):
-                    preprocess_key = f":blur:{json.dumps(blur_config, sort_keys=True)}"
-                    material_name = f"video_{uuid.uuid5(uuid.NAMESPACE_URL, str(Path(video_source_for_patch).resolve()) + preprocess_key).hex}_preprocessed.mp4"
-                else:
-                    material_name = f"video_{uuid.uuid5(uuid.NAMESPACE_URL, str(Path(video_source_for_patch).resolve())).hex}.mp4"
-                asset_path = Path(draft_full_path) / "assets" / "video" / material_name
-                if asset_path.exists():
-                    video_source_for_patch = str(asset_path)
-                    logger.info(f"Da chuyen huong input video cua Whisper/OCR sang video preprocessed: {video_source_for_patch}")
-            except Exception as redir_err:
-                logger.warning(f"Khong the chuyen huong video cho OCR: {redir_err}")
+            logger.info(f"Whisper/OCR dung video goc de lay audio/timestamp/text: {subtitle_source_video}")
 
         project_opened_this_run = False
         if resume_from_step <= 2:
@@ -4090,24 +4334,29 @@ class QueueRunner:
                         run_local_ocr_captions_for_draft(
                             draft_full_path,
                             draft_id,
-                            video_source_for_patch,
+                            subtitle_source_video or video_source_for_patch,
                             item_config,
                             font_name,
                             font_size,
                             font_color_hex,
+                            cancel_check=lambda: self._check_cancel(item),
                         )
                     else:
                         run_local_whisper_captions_for_draft(
                             draft_full_path,
                             draft_id,
-                            video_source_for_patch,
+                            subtitle_source_video or video_source_for_patch,
                             item_config,
                             font_name,
                             font_size,
                             font_color_hex,
+                            cancel_check=lambda: self._check_cancel(item),
                         )
                 except Exception as sub_err:
-                    fallback_enabled = config_bool(item_config.get("whisper_fallback_auto_captions", True), True)
+                    fallback_enabled = (
+                        (not prefer_local_ocr)
+                        and config_bool(item_config.get("whisper_fallback_auto_captions", True), True)
+                    )
                     if fallback_enabled:
                         logger.warning(
                             f"Trích xuất phụ đề offline thất bại: {sub_err}. "
@@ -4198,7 +4447,6 @@ class QueueRunner:
         resume_from_step = int(item.get("resume_from_step", 5) or 5)
         item_config = apply_global_settings_to_config(item.get("config") or self.config or {})
         
-        tts_speed = float(item_config.get("tts_speed", 1.17))
         video_name = os.path.basename(str(item.get("video") or draft_id or "project"))
         draft_full_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, draft_id)
         
@@ -4240,9 +4488,9 @@ class QueueRunner:
                 self.save_cache()
                 logger.info(f"Chạy TTS lần {attempt}/{max_tts_attempts}...")
                 if attempt == 1:
-                    run_image_workflow("rpa_tts.sample.json", "Text to speech", attempts=4, retry_delay=5)
+                    run_image_workflow("rpa_tts.sample.json", "Text to speech", attempts=1, retry_delay=0)
                 else:
-                    run_image_workflow("rpa_tts_retry.sample.json", "Text to speech retry", attempts=4, retry_delay=5)
+                    run_image_workflow("rpa_tts_retry.sample.json", "Text to speech retry", attempts=1, retry_delay=0)
                 self._check_cancel(item)
 
                 tts_ready, tts_audio_after = wait_for_new_audio_assets(
@@ -4288,12 +4536,17 @@ class QueueRunner:
         if resume_from_step <= 7:
             self._check_cancel(item)
             item["progress"] = 85
-            speed = float(item_config.get("speed", 1.0) or 1.0)
-            item["message"] = f"Bước 7: Đang chỉnh tốc độ tts ({tts_speed}x) và làm chậm video ({speed}x)..."
+            tts_speed = float(item_config.get("tts_speed", 1.17) or 1.17)
+            video_speed = float(item_config.get("speed", 0.77) or 0.77)
+            item["message"] = f"Bước 7: Đang chỉnh tốc độ TTS ({tts_speed}x) và video ({video_speed}x)..."
             self.save_cache()
             
             patch_audio_speed_in_json(draft_full_path, target_speed=tts_speed)
-            patch_video_speed_in_json(draft_full_path, speed=speed)
+            patch_video_speed_in_json(draft_full_path, speed=video_speed)
+            logger.info(
+                f"Đã patch speed sau khi đóng CapCut, trước export: "
+                f"tts_speed={tts_speed}, video_speed={video_speed}."
+            )
             item["resume_from_step"] = 8
             self._checkpoint_pause(item, next_step=8, progress=88)
 
@@ -4870,10 +5123,12 @@ def delete_queue_item():
 @app.route('/api/test_connection', methods=['POST'])
 def test_connection():
     try:
-        controller = launch_capcut()
+        if capcut_main_hwnd_and_rect() is None:
+            return jsonify({"ok": False, "error": "CapCut window not found"})
+        controller = CapCutController()
         return jsonify({
             "ok": True,
-            "window": controller.app.Name,
+            "window": controller.app.Name if controller.app else "CapCut",
             "status": controller.app_status
         })
     except Exception as e:
@@ -4905,3 +5160,4 @@ if __name__ == "__main__":
     logger.info("Khởi động server CapCut Automation Studio tại http://127.0.0.1:5000")
     debug_enabled = str(os.environ.get("CAPCUT_DEBUG", "")).lower() in {"1", "true", "yes", "on"}
     app.run(host="127.0.0.1", port=5000, debug=debug_enabled, use_reloader=False)
+
