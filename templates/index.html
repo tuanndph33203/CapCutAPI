@@ -955,6 +955,7 @@
                                     <span style="font-size: 0.8rem; color: var(--text-muted); margin-right: auto;" id="detail-video-count-info">0 video</span>
                                     <button class="btn btn-secondary" id="btn-add-detail-video-manual" type="button" style="width: auto; padding: 4px 10px; font-size: 0.75rem;">+ Thêm thủ công</button>
                                     <button class="btn btn-secondary" id="btn-browse-detail-video" type="button" style="width: auto; padding: 4px 10px; font-size: 0.75rem; display: flex; align-items: center; gap: 4px;">📂 Chọn file</button>
+                                    <button class="btn btn-danger" id="btn-clear-detail-videos" type="button" style="width: auto; padding: 4px 10px; font-size: 0.75rem; background: var(--error-color); border: none; display: flex; align-items: center; gap: 4px;">🗑️ Xóa hết</button>
                                 </div>
                             </div>
                         </div>
@@ -1372,6 +1373,7 @@
 
             const formDetailConfig = document.getElementById('form-detail-config');
             const btnBrowseDetailVideo = document.getElementById('btn-browse-detail-video');
+            const btnClearDetailVideos = document.getElementById('btn-clear-detail-videos');
             const btnDetailRun = document.getElementById('btn-detail-run');
             const detailVideoPathInput = document.getElementById('detail-video-path');
 
@@ -1602,14 +1604,21 @@
                                 <label for="ai-profile-provider">Provider</label>
                                 <select id="ai-profile-provider">
                                     <option value="openai">OpenAI Compatible</option>
+                                    <option value="chat">Chat (OpenAI Format)</option>
+                                    <option value="chatgpt">ChatGPT</option>
                                     <option value="gemini">Gemini</option>
                                     <option value="anthropic">Anthropic</option>
+                                    <option value="custom">Khác (Tự nhập)...</option>
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label for="ai-profile-model">Model</label>
                                 <input type="text" id="ai-profile-model" placeholder="google/gemma-4-31b-it">
                             </div>
+                        </div>
+                        <div class="form-group" id="ai-profile-provider-custom-container" style="display: none; margin-bottom: 12px;">
+                            <label for="ai-profile-provider-custom">Tên Provider tùy chỉnh</label>
+                            <input type="text" id="ai-profile-provider-custom" placeholder="Ví dụ: deepseek">
                         </div>
                         <div class="form-group">
                             <label for="ai-profile-api-key">API key</label>
@@ -1704,7 +1713,24 @@
                 document.getElementById('ai-profile-modal-title').textContent = aiProfileEditingIndex >= 0 ? 'Sửa AI Profile' : 'Thêm AI Profile';
                 document.getElementById('ai-profile-label').value = profile?.label || '';
                 document.getElementById('ai-profile-id').value = profile?.id || '';
-                document.getElementById('ai-profile-provider').value = profile?.provider || 'openai';
+                
+                const selectProvider = document.getElementById('ai-profile-provider');
+                const customProviderContainer = document.getElementById('ai-profile-provider-custom-container');
+                const customProviderInput = document.getElementById('ai-profile-provider-custom');
+                
+                const standardProviders = ['openai', 'chat', 'chatgpt', 'gemini', 'anthropic'];
+                const currentProvider = profile?.provider || 'openai';
+                
+                if (standardProviders.includes(currentProvider)) {
+                    selectProvider.value = currentProvider;
+                    customProviderContainer.style.display = 'none';
+                    customProviderInput.value = '';
+                } else {
+                    selectProvider.value = 'custom';
+                    customProviderContainer.style.display = 'block';
+                    customProviderInput.value = currentProvider;
+                }
+                
                 document.getElementById('ai-profile-model').value = profile?.model || '';
                 document.getElementById('ai-profile-api-key').value = profile?.api_key || '';
                 document.getElementById('ai-profile-base-url').value = profile?.base_url || '';
@@ -1734,10 +1760,14 @@
                     return;
                 }
 
+                const selectProvider = document.getElementById('ai-profile-provider').value;
+                const customProvider = document.getElementById('ai-profile-provider-custom').value.trim();
+                const finalProvider = selectProvider === 'custom' ? (customProvider || 'custom-provider') : selectProvider;
+
                 const profile = {
                     id: manualId || slugifyProfileId(label) || `custom-ai-${settingsProfilesDraft.length + 1}`,
                     label: label || manualId || `AI ${settingsProfilesDraft.length + 1}`,
-                    provider: document.getElementById('ai-profile-provider').value,
+                    provider: finalProvider,
                     model: document.getElementById('ai-profile-model').value.trim(),
                     api_key: document.getElementById('ai-profile-api-key').value.trim(),
                     base_url: document.getElementById('ai-profile-base-url').value.trim()
@@ -1999,6 +2029,21 @@
                         }
                     });
             });
+
+            if (btnClearDetailVideos) {
+                btnClearDetailVideos.addEventListener('click', () => {
+                    const paths = detailVideoPathInput.value.split(/\r?\n/).map(v => v.trim()).filter(Boolean);
+                    if (paths.length === 0) {
+                        alert('Danh sách video đã trống.');
+                        return;
+                    }
+                    if (confirm(`Bạn chắc chắn muốn xóa toàn bộ ${paths.length} video khỏi danh sách?`)) {
+                        detailVideoPathInput.value = '';
+                        updateVideoListUI();
+                        log('Đã xóa toàn bộ video khỏi danh sách.', 'warning');
+                    }
+                });
+            }
 
             // Back to projects grid
             btnBackToProjects.addEventListener('click', () => {

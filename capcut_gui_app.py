@@ -1648,8 +1648,12 @@ def build_ai_translation_config(item_config=None, purpose="translation"):
                 fallback_envs.append(label_env)
 
     # 3. Fallback based on provider (e.g. openai -> OPENAI_API_KEY)
-    if provider == "openai":
+    if provider in ["openai", "chat", "chatgpt"]:
         fallback_envs.append("OPENAI_API_KEY")
+        if provider != "openai":
+            prov_env = f"{provider.upper()}_API_KEY"
+            if prov_env not in fallback_envs:
+                fallback_envs.insert(0, prov_env)  # Prioritize CHAT_API_KEY / CHATGPT_API_KEY
     elif provider == "gemini":
         fallback_envs.append("GEMINI_API_KEY")
     elif provider == "anthropic":
@@ -4784,19 +4788,23 @@ def clear_runner():
 @app.route('/api/select_files', methods=['POST'])
 def select_files():
     try:
-        import tkinter as tk
-        from tkinter import filedialog
+        import subprocess
+        import sys
 
-        root = tk.Tk()
-        root.withdraw()
-        root.wm_attributes('-topmost', 1)
-
-        file_paths = filedialog.askopenfilenames(
-            title="Chọn các file video",
-            filetypes=[("Video files", "*.mp4 *.avi *.mkv *.mov *.flv *.ts"), ("All files", "*.*")]
+        script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "select_helper.py")
+        res = subprocess.run(
+            [sys.executable, script_path, "files"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
         )
-        root.destroy()
-        return jsonify({"files": list(file_paths)})
+        stdout = res.stdout.strip()
+        if res.stderr.strip():
+            logger.warning(f"select_helper stderr: {res.stderr.strip()[:300]}")
+        if not stdout:
+            return jsonify({"files": []})
+        files = json.loads(stdout)
+        return jsonify({"files": files if isinstance(files, list) else []})
     except Exception as e:
         logger.error(f"Lỗi khi chọn file: {str(e)}")
         return jsonify({"files": []})
@@ -4804,16 +4812,21 @@ def select_files():
 @app.route('/api/select_folder', methods=['POST'])
 def select_folder():
     try:
-        import tkinter as tk
-        from tkinter import filedialog
+        import subprocess
+        import sys
 
-        root = tk.Tk()
-        root.withdraw()
-        root.wm_attributes('-topmost', 1)
-
-        folder_path = filedialog.askdirectory(title="Chọn thư mục chứa video")
-        root.destroy()
-
+        script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "select_helper.py")
+        res = subprocess.run(
+            [sys.executable, script_path, "folder"],
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+        )
+        stdout = res.stdout.strip()
+        if res.stderr.strip():
+            logger.warning(f"select_helper stderr: {res.stderr.strip()[:300]}")
+        folder_path = json.loads(stdout) if stdout else ""
+        
         video_files = []
         if folder_path:
             for r, d, files in os.walk(folder_path):
