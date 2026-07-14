@@ -300,18 +300,60 @@ def select_all_timeline(
     click_y_from_bottom: int = 150,
     pause_after_click: float = 0.5,
     pause_after_hotkey: float = 1.0,
+    verify_template: Path | None = None,
+    verify_threshold: float = 0.68,
 ) -> dict[str, Any]:
     window = find_capcut_window()
     activate_window(window)
     x = int(window.left + window.width * click_x_ratio)
     y = int(window.bottom - click_y_from_bottom)
 
-    if not dry_run:
-        ensure_cursor_safe(window)
-        pyautogui.click(x, y)
-        time.sleep(pause_after_click)
-        pyautogui.hotkey("ctrl", "a")
-        time.sleep(pause_after_hotkey)
+    attempts = 10
+    success = False
+    last_score = 0.0
+    attempt = 1
+
+    for attempt in range(1, attempts + 1):
+        if not dry_run:
+            ensure_cursor_safe(window)
+            pyautogui.click(x, y)
+            time.sleep(pause_after_click)
+            pyautogui.hotkey("ctrl", "a")
+            time.sleep(pause_after_hotkey)
+
+        if not verify_template or dry_run:
+            success = True
+            break
+
+        try:
+            match = best_template_score(verify_template)
+            last_score = float(match["score"])
+            if last_score >= verify_threshold:
+                logger.info(f"Verify template {verify_template.name} thành công với score {last_score:.4f} ở lần thử {attempt}")
+                success = True
+                break
+            else:
+                logger.warning(
+                    f"Verify template {verify_template.name} chưa xuất hiện (score {last_score:.4f} < {verify_threshold}) ở lần thử {attempt}/{attempts}"
+                )
+        except Exception as e:
+            logger.warning(f"Lỗi khi verify template: {e}")
+
+        if attempt == 5:
+            # "SAU 5 LẦN KHÔNG ĐƯỢC BÁO LỖI"
+            logger.error(
+                f"CẢNH BÁO LỖI: Đã thử 5 lần click timeline + Ctrl+A nhưng vẫn không xuất hiện {verify_template.name} (score gần nhất: {last_score:.4f})!"
+            )
+
+        if attempt < attempts:
+            logger.info("Đợi 1 giây rồi thử lại click timeline và nhấn Ctrl+A...")
+            time.sleep(1.0)
+
+    if not success:
+        # "10 LẦN KHÔNG ĐƯỢC THÌ LÀ LỖI"
+        raise RuntimeError(
+            f"LỖI HỆ THỐNG: Đã thử 10 lần click timeline + Ctrl+A nhưng vẫn không xuất hiện {verify_template.name} (score gần nhất: {last_score:.4f})!"
+        )
 
     return {
         "action": "select_all_timeline",
@@ -321,8 +363,12 @@ def select_all_timeline(
         "y": y,
         "click_x_ratio": click_x_ratio,
         "click_y_from_bottom": click_y_from_bottom,
+        "verify_template": str(verify_template) if verify_template else None,
+        "verify_score": last_score if verify_template else None,
+        "attempts_used": attempt,
         "dry_run": dry_run,
     }
+
 
 
 def click_template(
@@ -534,12 +580,22 @@ def run_workflow(config_path: Path, dry_run: bool) -> dict[str, Any]:
                 debug_image=Path(step["debug_image"]) if step.get("debug_image") else None,
             )
         elif action == "select_all_timeline":
+            verify_template = step.get("verify_template")
+            if verify_template:
+                verify_template_path = Path(verify_template)
+                if not verify_template_path.is_absolute():
+                    verify_template_path = base / verify_template_path
+            else:
+                verify_template_path = None
+
             result = select_all_timeline(
                 dry_run=dry_run,
                 click_x_ratio=float(step.get("click_x_ratio", 0.5)),
                 click_y_from_bottom=int(step.get("click_y_from_bottom", 150)),
                 pause_after_click=float(step.get("pause_after_click", 0.5)),
                 pause_after_hotkey=float(step.get("pause_after_hotkey", 1.0)),
+                verify_template=verify_template_path,
+                verify_threshold=float(step.get("verify_threshold", 0.68)),
             )
         elif action == "click_template":
             template = Path(step["template"])

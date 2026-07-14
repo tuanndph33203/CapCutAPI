@@ -146,9 +146,47 @@ def _build_ocr_sample_times(
     sample_rate_sec: float,
     ocr_config: dict | None = None,
 ) -> list[float]:
+    def _add_dense_uncovered_samples(
+        sample_times: set[float],
+        *,
+        scan_start: float,
+        scan_end: float,
+        step: float,
+        covered_regions: list[dict],
+    ) -> int:
+        if scan_end <= scan_start or step <= 0:
+            return 0
+        added = 0
+        current = scan_start
+        epsilon = min(0.02, step / 4.0)
+        while current < scan_end:
+            covered = any(
+                float(region.get("start", 0.0)) - epsilon <= current <= float(region.get("end", 0.0)) + epsilon
+                for region in covered_regions
+            )
+            if not covered:
+                before = len(sample_times)
+                sample_times.add(round(current, 3))
+                if len(sample_times) > before:
+                    added += 1
+            current += step
+        return added
+
     if not regions:
         step = max(0.1, sample_rate_sec)
-        return [round(float(t), 3) for t in np.arange(0.0, max(0.0, duration), step)]
+        sample_times = {round(float(t), 3) for t in np.arange(0.0, max(0.0, duration), step)}
+        dense_start = _config_get(ocr_config, "dense_start_gap_scan", {})
+        if isinstance(dense_start, dict) and bool(dense_start.get("enabled", True)):
+            dense_end = min(duration, float(dense_start.get("duration_sec", 8.0) or 8.0))
+            dense_step = max(0.05, int(dense_start.get("step_ms", 100) or 100) / 1000.0)
+            _add_dense_uncovered_samples(
+                sample_times,
+                scan_start=0.0,
+                scan_end=dense_end,
+                step=dense_step,
+                covered_regions=[],
+            )
+        return sorted(t for t in sample_times if 0.0 <= t < duration)
 
     fast_max = int(_config_get(ocr_config, "fast_pass_max_duration_ms", 1500)) / 1000.0
     coarse_step = int(_config_get(ocr_config, "coarse_step_ms", 1000)) / 1000.0
@@ -181,6 +219,21 @@ def _build_ocr_sample_times(
             if not any(float(r["start"]) <= current <= float(r["end"]) for r in regions):
                 sample_times.add(round(current, 3))
             current += step
+
+    dense_start = _config_get(ocr_config, "dense_start_gap_scan", {})
+    if isinstance(dense_start, dict) and bool(dense_start.get("enabled", True)):
+        dense_end = min(duration, float(dense_start.get("duration_sec", 8.0) or 8.0))
+        dense_step = max(0.05, int(dense_start.get("step_ms", 100) or 100) / 1000.0)
+        added = _add_dense_uncovered_samples(
+            sample_times,
+            scan_start=0.0,
+            scan_end=dense_end,
+            step=dense_step,
+            covered_regions=regions,
+        )
+        if added and bool(dense_start.get("include_boundaries", True)):
+            sample_times.add(0.0)
+            sample_times.add(round(max(0.0, dense_end - dense_step), 3))
 
     return sorted(t for t in sample_times if 0.0 <= t < duration)
 

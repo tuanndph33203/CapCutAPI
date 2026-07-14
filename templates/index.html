@@ -945,12 +945,17 @@
                         <input type="hidden" id="detail-config-folder">
 
                         <div class="form-group">
-                            <label for="detail-video-path">Đường dẫn Video đầu vào (tuyệt đối)</label>
-                            <div style="display: flex; gap: 10px;">
-                                <textarea id="detail-video-path" rows="4"
-                                    placeholder="C:\Users\PC\Videos\input1.mp4&#10;C:\Users\PC\Videos\input2.mp4"></textarea>
-                                <button class="btn btn-secondary" id="btn-browse-detail-video" type="button"
-                                    style="width: auto; padding: 0 15px;">📂</button>
+                            <label>Danh sách Video đầu vào (tuyệt đối)</label>
+                            <textarea id="detail-video-path" style="display: none;"></textarea>
+                            <div class="video-list-wrapper" style="border: 1px solid var(--border-color); border-radius: 8px; background: rgba(255,255,255,0.01); padding: 10px;">
+                                <div id="detail-video-list-container" style="max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; padding-right: 4px;">
+                                    <!-- Rendered dynamically -->
+                                </div>
+                                <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center; border-top: 1px solid var(--border-color); padding-top: 8px;">
+                                    <span style="font-size: 0.8rem; color: var(--text-muted); margin-right: auto;" id="detail-video-count-info">0 video</span>
+                                    <button class="btn btn-secondary" id="btn-add-detail-video-manual" type="button" style="width: auto; padding: 4px 10px; font-size: 0.75rem;">+ Thêm thủ công</button>
+                                    <button class="btn btn-secondary" id="btn-browse-detail-video" type="button" style="width: auto; padding: 4px 10px; font-size: 0.75rem; display: flex; align-items: center; gap: 4px;">📂 Chọn file</button>
+                                </div>
                             </div>
                         </div>
 
@@ -1901,6 +1906,83 @@
                     });
             });
 
+            // Visual Scrollable Video List Implementation
+            const detailVideoListContainer = document.getElementById('detail-video-list-container');
+            const detailVideoCountInfo = document.getElementById('detail-video-count-info');
+            const btnAddDetailVideoManual = document.getElementById('btn-add-detail-video-manual');
+
+            function updateVideoListUI() {
+                if (!detailVideoListContainer) return;
+                const paths = detailVideoPathInput.value.split(/\r?\n/).map(v => v.trim()).filter(Boolean);
+                detailVideoListContainer.innerHTML = '';
+                detailVideoCountInfo.innerText = `${paths.length} video`;
+
+                if (paths.length === 0) {
+                    detailVideoListContainer.innerHTML = `
+                        <div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 15px 0;">
+                            Chưa có video nào. Bấm 'Chọn file' hoặc 'Thêm thủ công'.
+                        </div>
+                    `;
+                    return;
+                }
+
+                paths.forEach((path, index) => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.style.display = 'flex';
+                    itemDiv.style.alignItems = 'center';
+                    itemDiv.style.gap = '8px';
+                    itemDiv.style.background = 'rgba(255,255,255,0.03)';
+                    itemDiv.style.padding = '6px 10px';
+                    itemDiv.style.borderRadius = '4px';
+                    itemDiv.style.border = '1px solid var(--border-color)';
+
+                    itemDiv.innerHTML = `
+                        <span style="font-size: 0.8rem; font-weight: 600; color: var(--accent-cyan); width: 24px; text-align: left;">${index + 1}.</span>
+                        <div style="flex: 1; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; color: var(--text-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;" title="${path}">
+                            ${path}
+                        </div>
+                        <button class="btn btn-secondary btn-edit-path" type="button" style="width: auto; padding: 2px 8px; font-size: 0.7rem; height: 24px; border-color: rgba(255,255,255,0.15);" data-index="${index}">Sửa</button>
+                        <button class="btn btn-danger btn-delete-path" type="button" style="width: auto; padding: 2px 8px; font-size: 0.7rem; height: 24px; background: var(--error-color); border: none; margin-left: 4px;" data-index="${index}">Xóa</button>
+                    `;
+
+                    // Edit handler
+                    itemDiv.querySelector('.btn-edit-path').addEventListener('click', () => {
+                        const newPath = prompt('Sửa đường dẫn video:', path);
+                        if (newPath !== null) {
+                            const trimmed = newPath.trim();
+                            if (trimmed) {
+                                paths[index] = trimmed;
+                                detailVideoPathInput.value = paths.join('\n');
+                                updateVideoListUI();
+                            }
+                        }
+                    });
+
+                    // Delete handler
+                    itemDiv.querySelector('.btn-delete-path').addEventListener('click', () => {
+                        if (confirm(`Bạn muốn xóa video thứ ${index + 1} khỏi danh sách?`)) {
+                            paths.splice(index, 1);
+                            detailVideoPathInput.value = paths.join('\n');
+                            updateVideoListUI();
+                        }
+                    });
+
+                    detailVideoListContainer.appendChild(itemDiv);
+                });
+            }
+
+            if (btnAddDetailVideoManual) {
+                btnAddDetailVideoManual.addEventListener('click', () => {
+                    const path = prompt('Nhập đường dẫn tuyệt đối của file video:');
+                    if (path && path.trim()) {
+                        const current = detailVideoPathInput.value.split(/\r?\n/).map(v => v.trim()).filter(Boolean);
+                        current.push(path.trim());
+                        detailVideoPathInput.value = current.join('\n');
+                        updateVideoListUI();
+                    }
+                });
+            }
+
             btnBrowseDetailVideo.addEventListener('click', () => {
                 log('Đang mở hộp thoại chọn file video...');
                 fetch('/api/select_files', { method: 'POST' })
@@ -1912,6 +1994,7 @@
                                 if (!current.includes(file)) current.push(file);
                             });
                             detailVideoPathInput.value = current.join('\n');
+                            updateVideoListUI();
                             log(`Đã thay đổi video: ${data.files[0]}`, 'success');
                         }
                     });
@@ -2013,6 +2096,7 @@
                         detailVideoPathInput.value = Array.isArray(config.video_paths)
                             ? config.video_paths.join('\n')
                             : (config.video_path || '');
+                        updateVideoListUI();
                         document.getElementById('detail-speed').value = config.speed;
                         document.getElementById('detail-volume').value = config.volume_db;
                         document.getElementById('detail-tts-speed').value = config.tts_speed;
@@ -2130,7 +2214,7 @@
                 fetch('/api/queue/add', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ folder: folder })
+                    body: JSON.stringify({ folder: folder, replace_queue: !!autoStart })
                 })
                     .then(res => res.json())
                     .then(data => {

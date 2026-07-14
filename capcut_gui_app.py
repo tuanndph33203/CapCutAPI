@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env python3
+#!/usr/bin/env python3
 import os
 # Tắt cơ chế spin-wait của ONNXRuntime trên CPU để tránh FULL CPU (100%) khi chờ GPU DirectML xử lý
 os.environ["ONNXRUNTIME_CPU_THREAD_ALLOW_SPINNING"] = "0"
@@ -936,6 +936,12 @@ def run_local_ocr_captions_for_draft(
             "enabled": config_bool(item_config.get("ocr_only_scan_enabled"), False),
             "step_ms": int(item_config.get("ocr_only_scan_step_ms", 1000) or 1000),
         },
+        "dense_start_gap_scan": {
+            "enabled": config_bool(item_config.get("ocr_dense_start_gap_scan_enabled"), True),
+            "duration_sec": float(item_config.get("ocr_dense_start_gap_scan_sec", 8.0) or 8.0),
+            "step_ms": int(item_config.get("ocr_dense_start_gap_scan_step_ms", 100) or 100),
+            "include_boundaries": config_bool(item_config.get("ocr_dense_start_gap_scan_include_boundaries"), True),
+        },
     }
     if isinstance(item_config.get("local_ocr"), dict):
         ocr_config = {**default_ocr_config, **item_config.get("local_ocr")}
@@ -943,6 +949,11 @@ def run_local_ocr_captions_for_draft(
             ocr_config["ocr_only_scan"] = {
                 **default_ocr_config["ocr_only_scan"],
                 **(item_config.get("local_ocr") or {}).get("ocr_only_scan"),
+            }
+        if isinstance(default_ocr_config.get("dense_start_gap_scan"), dict) and isinstance((item_config.get("local_ocr") or {}).get("dense_start_gap_scan"), dict):
+            ocr_config["dense_start_gap_scan"] = {
+                **default_ocr_config["dense_start_gap_scan"],
+                **(item_config.get("local_ocr") or {}).get("dense_start_gap_scan"),
             }
     else:
         ocr_config = default_ocr_config
@@ -1584,7 +1595,7 @@ def build_ai_translation_config(item_config=None, purpose="translation"):
         item_config.get("ai_fallback_model")
         or item_config.get("aiFallbackModel")
         or profile.get("fallback_model")
-        or ("gemini-1.5-flash" if provider == "gemini" else "gemma-4-31b-it")
+        or "gemini-2.0-flash-lite"
     )
 
     if not item_config.get(profile_key) and not item_config.get("contextAiProfileId" if purpose == "context" else "translationAiProfileId"):
@@ -1837,7 +1848,7 @@ def call_ai_json_object(config, system_prompt, user_payload, line_count=20):
     if is_interactions:
         user_payload_str = json.dumps(user_payload, ensure_ascii=False) if isinstance(user_payload, dict) else str(user_payload)
         payload = {
-            "model": config.get("model") or "gemma-4-31b-it",
+            "model": config.get("model") or LAST_RESORT_FALLBACK_MODEL,
             "input": [
                 {
                     "type": "text",
@@ -1917,7 +1928,7 @@ def as_list(value):
         return value
     return [value]
 
-def call_ai_translation_once(lines, config, previous_context=None, next_context=None, ultra_short=False):
+def call_ai_translation_once(lines, config, previous_context=None, next_context=None, ultra_short=False, max_attempts=None):
     import requests
 
     system_prompt = build_ai_translation_prompt(config, ultra_short=ultra_short)
@@ -1968,7 +1979,8 @@ def call_ai_translation_once(lines, config, previous_context=None, next_context=
 
     response = None
     last_error = None
-    max_attempts = 8
+    if max_attempts is None:
+        max_attempts = 8
     for attempt in range(1, max_attempts + 1):
         try:
             response = requests.post(url, headers=headers, json=payload, timeout=90)
@@ -2033,6 +2045,68 @@ def call_ai_translation_once(lines, config, previous_context=None, next_context=
     validate_ai_translation_result(lines, translations, config["source_language"])
     return translations
 
+LAST_RESORT_FALLBACK_MODEL = "gemini-3.1-flash-lite"
+
+def call_ai_translation_with_fallback(lines, config, previous_context=None, next_context=None, ultra_short=False):
+    try:
+        return call_ai_translation_once(
+            lines,
+            config,
+            previous_context,
+            next_context,
+            ultra_short=ultra_short,
+            max_attempts=1
+        )
+    except Exception as primary_error:
+        fallback_model = (config.get("fallback_model") or LAST_RESORT_FALLBACK_MODEL).strip()
+        primary_model = (config.get("model") or "").strip()
+
+        # --- Tầng 1: fallback_model được cấu hình ---
+        fallback_error = primary_error
+        if fallback_model != primary_model:
+            fallback_config = config_with_model(config, fallback_model)
+            logger.warning(
+                f"Model chính {primary_model} dịch thất bại, chuyển sang fallback "
+                f"{fallback_model}: {str(primary_error)}"
+            )
+            try:
+                return call_ai_translation_once(
+                    lines,
+                    fallback_config,
+                    previous_context,
+                    next_context,
+                    ultra_short=ultra_short,
+                    max_attempts=3
+                )
+            except Exception as err:
+                fallback_error = err
+                logger.warning(
+                    f"Fallback {fallback_model} cũng thất bại: {str(err)}"
+                )
+        else:
+            logger.warning(
+                f"Model chính {primary_model} dịch thất bại (fallback == primary, bỏ qua): {str(primary_error)}"
+            )
+
+        # --- Tầng 2: last-resort fallback (gemini-3.1-flash-lite) ---
+        # Chỉ bỏ qua nếu tầng 1 fallback ĐÃ là last-resort (tránh gọi 2 lần).
+        # Không skip theo primary — khi gemma-4-31b-it fail, luôn thử gemini-3.1-flash-lite.
+        if LAST_RESORT_FALLBACK_MODEL == fallback_model:
+            raise fallback_error
+        logger.warning(
+            f"Cả primary ({primary_model}) và fallback ({fallback_model}) đều thất bại, "
+            f"thử last-resort {LAST_RESORT_FALLBACK_MODEL}..."
+        )
+        last_resort_config = config_with_model(config, LAST_RESORT_FALLBACK_MODEL)
+        return call_ai_translation_once(
+            lines,
+            last_resort_config,
+            previous_context,
+            next_context,
+            ultra_short=ultra_short,
+            max_attempts=3
+        )
+
 def config_with_model(config, model):
     updated = dict(config)
     updated["model"] = model
@@ -2042,35 +2116,13 @@ def config_with_model(config, model):
     )
     return updated
 
-def call_ai_translation_with_fallback(lines, config, previous_context=None, next_context=None, ultra_short=False):
-    try:
-        return call_ai_translation_once(lines, config, previous_context, next_context, ultra_short=ultra_short)
-    except Exception as primary_error:
-        fallback_model = (config.get("fallback_model") or "").strip()
-        if not fallback_model or fallback_model == config.get("model"):
-            raise
-        fallback_config = config_with_model(config, fallback_model)
-        logger.warning(
-            f"Model chính {config.get('model')} dịch thất bại, chuyển sang fallback "
-            f"{fallback_model}: {str(primary_error)}"
-        )
-        return call_ai_translation_once(
-            lines,
-            fallback_config,
-            previous_context,
-            next_context,
-            ultra_short=ultra_short,
-        )
-
 def translate_ai_batch_recursive(lines, config, previous_context=None, next_context=None, item_config=None):
     if not lines:
         return []
 
     for ultra_short in (False, True):
         try:
-            if len(lines) <= 10:
-                return call_ai_translation_with_fallback(lines, config, previous_context, next_context, ultra_short=ultra_short)
-            return call_ai_translation_once(lines, config, previous_context, next_context, ultra_short=ultra_short)
+            return call_ai_translation_with_fallback(lines, config, previous_context, next_context, ultra_short=ultra_short)
         except Exception as e:
             logger.warning(f"Dịch AI batch {len(lines)} dòng thất bại (ultra_short={ultra_short}): {str(e)}")
 
@@ -2652,7 +2704,10 @@ def probe_video_metadata(video_path):
     }
 
 def detect_hardsub_blur_config(video_path, sample_count=20, blur_radius=24):
-    """Detect yellow burned-in subtitles from random frames in the lower third. Retries up to 3 times."""
+    """Detect burned-in subtitles bang horizontal gradient density — khong phu thuoc mau sac.
+    Hoat dong voi moi loai hardsub: chu vang, trang, trang vien den tren nen do, v.v.
+    Chi scan bottom 25% de tranh nham UI/logo/background phia tren.
+    """
     source = Path(video_path)
     meta = probe_video_metadata(source)
     width = int(meta["width"])
@@ -2661,15 +2716,13 @@ def detect_hardsub_blur_config(video_path, sample_count=20, blur_radius=24):
     if width <= 0 or height <= 0 or duration <= 0:
         return {"enabled": False}
 
-    # Subtitle hardsub luôn nằm ở đáy video (dưới 25% chiều cao cuối)
-    # Dùng bottom 25% thay vì bottom 20% để có vùng tìm rộng hơn
-    lower_y = height * 3 // 4
+    # Chỉ scan bottom 25% — subtitle hardsub luôn nằm phía dưới cùng
+    lower_y = int(height * 0.75)
     lower_height = height - lower_y
     stat = source.stat()
-    
+
     max_attempts = 3
     for attempt in range(1, max_attempts + 1):
-        # Sử dụng seed khác nhau cho mỗi lần thử bằng cách cộng thêm index
         seed_str = f"{source.resolve()}:{stat.st_size}:{stat.st_mtime_ns}:{attempt}"
         rng = random.Random(seed_str)
         start = max(0.2, duration * 0.05)
@@ -2688,150 +2741,138 @@ def detect_hardsub_blur_config(video_path, sample_count=20, blur_radius=24):
                 continue
 
             try:
-                rgb = np.asarray(Image.open(io.BytesIO(completed.stdout)).convert("RGB"))
+                gray = np.asarray(Image.open(io.BytesIO(completed.stdout)).convert("L"), dtype=np.int16)
             except Exception:
                 continue
 
-            red = rgb[:, :, 0].astype(np.int16)
-            green = rgb[:, :, 1].astype(np.int16)
-            blue = rgb[:, :, 2].astype(np.int16)
-            # Nới lỏng ngưỡng màu: phát hiện cả chữ vàng, vàng nhạt, trắng, trắng ngà
-            yellow_mask = (red >= 160) & (green >= 120) & (blue <= 180) & ((red - blue) >= 30)
-            white_mask = (red >= 210) & (green >= 210) & (blue >= 210)
-            mask = yellow_mask | white_mask
-            mask[:, :width // 12] = False
-            mask[:, width * 11 // 12:] = False
+            # --- Horizontal gradient density ---
+            # Text tạo nhiều cạnh dọc (ký tự) → gradient ngang cao hơn background.
+            # Không phụ thuộc màu sắc: hoạt động với chữ vàng, trắng, viền đen, v.v.
+            grad_h = np.abs(np.diff(gray, axis=1))   # shape: (lower_height, width-1)
+            row_density = grad_h.mean(axis=1)          # mean gradient mỗi hàng
 
-            # Mở rộng vùng tìm kiếm: 10% → 95% của lower_height
-            search_top = int(lower_height * 0.10)
-            search_bottom = int(lower_height * 0.92)
-            mask[:search_top, :] = False
-            mask[search_bottom:, :] = False
+            peak_row = int(row_density.argmax())
+            peak_val = float(row_density[peak_row])
 
-            row_counts = mask.sum(axis=1)
-            peak_row = int(row_counts.argmax())
-            peak_count = int(row_counts[peak_row])
-            min_peak = max(8, int(width * 0.004))
-            if peak_count < min_peak:
-                print(f"  [frame@{timestamp:.1f}s] skip: peak_count={peak_count} < min={min_peak}")
+            # Background sạch thường ~2-3; subtitle ~10-15.
+            # Yêu cầu peak phải gấp ít nhất 2.5× background xung quanh.
+            bg_rows = np.concatenate([
+                row_density[:max(0, peak_row - 30)],
+                row_density[min(lower_height, peak_row + 30):],
+            ])
+            bg_mean = float(bg_rows.mean()) if bg_rows.size > 0 else 2.5
+            if peak_val < bg_mean * 2.5 or peak_val < 5.0:
+                print(f"  [frame@{timestamp:.1f}s] skip: peak={peak_val:.1f}, bg={bg_mean:.1f}, ratio={peak_val / max(bg_mean, 0.1):.1f}")
                 continue
 
-            row_threshold = max(3, int(peak_count * 0.10))
-            window_top = max(search_top, peak_row - max(50, height // 12))
-            window_bottom = min(search_bottom - 1, peak_row + max(50, height // 12))
-            active_rows = np.where(row_counts[window_top:window_bottom + 1] >= row_threshold)[0]
-            top = window_top + int(active_rows.min()) if active_rows.size else peak_row
-            bottom = window_top + int(active_rows.max()) if active_rows.size else peak_row
+            # Mở rộng: lấy tất cả hàng gần peak có density >= ngưỡng
+            threshold = max(bg_mean * 1.8, peak_val * 0.40)
+            window = max(40, height // 10)
+            row_top = max(0, peak_row - window)
+            row_bot = min(lower_height - 1, peak_row + window)
+            active = np.where(row_density[row_top:row_bot + 1] >= threshold)[0]
+            if active.size == 0:
+                active = np.array([peak_row - row_top])
+            top = row_top + int(active.min())
+            bottom = row_top + int(active.max())
             if bottom - top + 1 < 5:
-                top = max(0, peak_row - 18)
-                bottom = min(lower_height - 1, peak_row + 18)
+                top = max(0, peak_row - 15)
+                bottom = min(lower_height - 1, peak_row + 15)
 
-            ys, xs = np.where(mask[top:bottom + 1])
-            if xs.size < 15:
-                print(f"  [frame@{timestamp:.1f}s] skip: pixel_count={xs.size} < 15")
-                continue
-            xs = xs.astype(np.int32)
-            x1 = int(np.percentile(xs, 1))
-            x2 = int(np.percentile(xs, 99))
-            min_w_ratio = width * 0.05
-            max_w_ratio = width * 0.95
-            if x2 - x1 < min_w_ratio:
-                print(f"  [frame@{timestamp:.1f}s] skip: text_width={x2-x1:.0f} < min={min_w_ratio:.0f}")
-                continue
-            if x2 - x1 > max_w_ratio:
-                print(f"  [frame@{timestamp:.1f}s] skip: text_width={x2-x1:.0f} > max={max_w_ratio:.0f}")
+            # Lọc chiều cao tuyệt đối: subtitle tối đa ~14% chiều cao video
+            box_h = bottom - top
+            if box_h > height * 0.14:
+                print(f"  [frame@{timestamp:.1f}s] skip: box_h={box_h} > max={height * 0.14:.0f} (qua cao)")
                 continue
 
-            # Lọc bỏ detection có chiều cao quá lớn (game UI, background) — subtitle tối đa ~10% height
-            box_h = (lower_y + bottom) - (lower_y + top)
-            if box_h > height * 0.12:
-                print(f"  [frame@{timestamp:.1f}s] skip: box_h={box_h} > max={height*0.12:.0f} (quá cao, không phải subtitle)")
-                continue
+            # Ước tính x span từ cột có gradient cao trong vùng text
+            col_density = grad_h[top:bottom + 1].mean(axis=0)
+            col_threshold = max(col_density.mean() * 1.2, peak_val * 0.15)
+            active_cols = np.where(col_density >= col_threshold)[0]
+            if active_cols.size < 10:
+                x1, x2 = int(width * 0.05), int(width * 0.95)
+            else:
+                x1 = int(np.percentile(active_cols, 2))
+                x2 = int(np.percentile(active_cols, 98))
+                if x2 - x1 < width * 0.20:
+                    print(f"  [frame@{timestamp:.1f}s] skip: text_w={x2 - x1} < min={width * 0.20:.0f}")
+                    continue
 
-            # Lọc bỏ detection có center_y quá cao (phải ở dưới 75% height)
-            center_y_abs = lower_y + (top + bottom) / 2
-            if center_y_abs < height * 0.72:
-                print(f"  [frame@{timestamp:.1f}s] skip: center_y={center_y_abs:.0f} < {height*0.72:.0f} (quá cao so với video)")
-                continue
-
-            print(f"  [frame@{timestamp:.1f}s] OK: peak={peak_count}, xs=[{x1},{x2}], y=[{lower_y+top},{lower_y+bottom}], h={box_h}")
-            detections.append((x1, lower_y + top, x2, lower_y + bottom))
-
+            abs_top = lower_y + top
+            abs_bot = lower_y + bottom
+            print(f"  [frame@{timestamp:.1f}s] OK: peak={peak_val:.1f}x bg={bg_mean:.1f}, "
+                  f"xs=[{x1},{x2}], y=[{abs_top},{abs_bot}], h={box_h}")
+            detections.append((x1, abs_top, x2, abs_bot))
 
         minimum_hits = max(2, min(3, int(sample_count) // 5))
         if len(detections) < minimum_hits:
-            print(f"[Lần thử {attempt}/{max_attempts}] Không phát hiện đủ hardsub: {len(detections)}/{sample_count} frame (cần {minimum_hits}). Thử lại...")
+            print(f"[Lan thu {attempt}/{max_attempts}] Phat hien {len(detections)}/{sample_count} frames (can {minimum_hits}). Thu lai...")
             continue
 
-        # --- Cluster-based picking: chọn cluster được phát hiện nhiều nhất ở đáy video ---
-        # Nhóm các detection có center_y gần nhau (±5% height)
-        cluster_tol = height * 0.05
-        clusters = []  # list of (cluster_center_y, [boxes])
-        for box in sorted(detections, key=lambda b: (b[1] + b[3]) / 2):
-            cy = (box[1] + box[3]) / 2
-            placed = False
-            for cl in clusters:
-                if abs(cy - cl[0]) <= cluster_tol:
-                    cl[1].append(box)
-                    cl[0] = sum((b[1] + b[3]) / 2 for b in cl[1]) / len(cl[1])  # update centroid
-                    placed = True
-                    break
-            if not placed:
-                clusters.append([cy, [box]])
+        # Gộp kết quả: median để loại outlier
+        centers = np.asarray([(box[1] + box[3]) / 2 for box in detections], dtype=np.float32)
+        heights_arr = np.asarray([box[3] - box[1] for box in detections], dtype=np.float32)
+        widths_arr = np.asarray([box[2] - box[0] for box in detections], dtype=np.float32)
+        median_center = float(np.median(centers))
+        median_h = max(1.0, float(np.median(heights_arr)))
+        median_w = max(1.0, float(np.median(widths_arr)))
 
-        # Chọn cluster có ít nhất minimum_hits và nằm thấp nhất (y cao nhất)
-        valid_clusters = [(cl[0], cl[1]) for cl in clusters if len(cl[1]) >= minimum_hits]
-        if not valid_clusters:
-            print(f"[Lần thử {attempt}/{max_attempts}] Không có cluster nào đủ {minimum_hits} detection (tổng={len(detections)}). Thử lại...")
-            continue
+        center_tol = max(height * 0.05, median_h * 1.2)
+        filtered = [
+            box for box, cy, bh, bw in zip(detections, centers, heights_arr, widths_arr)
+            if abs(float(cy) - median_center) <= center_tol
+            and bh <= median_h * 1.5   # Siết: loại detection có h quá lớn so với median
+            and bw >= median_w * 0.30
+        ]
+        if len(filtered) < minimum_hits:
+            filtered = detections
 
-        # Chọn cluster thấp nhất (center_y lớn nhất) → subtitle ở đáy video
-        best_cluster_y, consistent = max(valid_clusters, key=lambda c: c[0])
-        print(f"  >> Chọn cluster tại center_y={best_cluster_y:.0f} với {len(consistent)} frames")
+        print(f"  >> Subtitle boxes: total={len(detections)}, used={len(filtered)}, "
+              f"median_center={median_center:.0f}, median_h={median_h:.0f}")
 
-        # Tìm thấy thành công!
-        # Lọc outlier: bỏ box có height > 1.5x median height của cluster
-        heights_arr = [box[3] - box[1] for box in consistent]
-        median_h = float(np.median(heights_arr))
-        filtered = [box for box in consistent if (box[3] - box[1]) <= median_h * 1.5]
-        if len(filtered) < 1:
-            filtered = consistent  # fallback nếu lọc quá nhiều
-
-        # Tinh y1/y2 dong tu pham vi thuc te cua chu (percentile 5~95 de tranh noise)
         tops = [box[1] for box in filtered]
         bottoms = [box[3] for box in filtered]
-        raw_y1 = int(np.percentile(tops, 5))
-        raw_y2 = int(np.percentile(bottoms, 95))
+        raw_y1 = int(np.percentile(tops, 10))    # Percentile 10 ít nhạy với outlier hơn 5
+        raw_y2 = int(np.percentile(bottoms, 90))
         text_height = max(1, raw_y2 - raw_y1)
-        padding_y = max(3, int(round(text_height * 0.10)))
-        y1 = max(lower_y, raw_y1 - padding_y)
-        y2 = min(height, raw_y2 + padding_y)
 
-        # OCR/blur cần lấy rộng 90% video để không cắt mất chữ dài hoặc chữ lệch tâm.
-        x1 = int(width * 0.05)
-        x2 = int(width * 0.95)
+        # Gradient detect đã bắt trọn cả outline/shadow → padding rất nhỏ để tránh dày cộp
+        padding_top    = max(int(round(text_height * 0.15)), int(round(height * 0.008)))
+        padding_bottom = max(int(round(text_height * 0.12)), int(round(height * 0.006)))
+        y1 = max(lower_y, raw_y1 - padding_top)
+        y2 = min(height,  raw_y2 + padding_bottom)
 
-        # Dam bao chieu cao toi thieu
-        min_band_height = max(24, height // 60)
+        # X: 90% chiều ngang
+        bx1 = int(width * 0.05)
+        bx2 = int(width * 0.95)
+
+        # Đảm bảo chiều cao tối thiểu vừa đủ cho 1 dòng chữ
+        min_band_height = max(35, int(round(height * 0.055)))
         if y2 - y1 < min_band_height:
             center_y = int(np.median([(box[1] + box[3]) / 2 for box in filtered]))
-            half_h = max(12, min_band_height // 2)
-            y1 = max(lower_y, center_y - half_h)
-            y2 = min(height, center_y + half_h)
+            top_h = int(round(min_band_height * 0.55))
+            y1 = max(lower_y, center_y - top_h)
+            y2 = min(height, center_y + (min_band_height - top_h))
 
-        print(
-            f"  >> x=[{x1},{x2}] (90% width), y=[{y1},{y2}] (+10% text-height vertical padding), "
-            f"dim={x2-x1}x{y2-y1} (tu {len(filtered)} frames sau outlier filter)"
-        )
+        # Đảm bảo chiều cao tối đa không quá dày
+        max_band_height = int(round(height * 0.15))
+        if y2 - y1 > max_band_height:
+            center_y = int(np.median([(box[1] + box[3]) / 2 for box in filtered]))
+            top_h = int(round(max_band_height * 0.55))
+            y1 = max(lower_y, center_y - top_h)
+            y2 = min(height, center_y + (max_band_height - top_h))
+
+        print(f"  >> x=[{bx1},{bx2}] (90% width), y=[{y1},{y2}], "
+              f"dim={bx2 - bx1}x{y2 - y1} (tu {len(filtered)} frames)")
 
         result = {
             "enabled": True,
-            "x": x1,
+            "x": bx1,
             "y": y1,
-            "w": x2 - x1,
+            "w": bx2 - bx1,
             "h": y2 - y1,
             "radius": int(blur_radius),
-            "detected_frames": len(consistent),
+            "detected_frames": len(filtered),
             "sampled_frames": int(sample_count),
             "attempts_used": attempt,
         }
@@ -2839,7 +2880,7 @@ def detect_hardsub_blur_config(video_path, sample_count=20, blur_radius=24):
         return result
 
 
-    print(f"Đã thử tìm kiếm 3 lần (tổng cộng {max_attempts * sample_count} frame) nhưng không phát hiện thấy hardsub.")
+    print(f"Da thu tim kiem 3 lan ({max_attempts * sample_count} frame) nhung khong phat hien hardsub.")
     return {"enabled": False, "sampled_frames": int(sample_count) * max_attempts}
 
 _FFMPEG_H264_NVENC_AVAILABLE = None
@@ -3128,8 +3169,32 @@ def ensure_video_track_in_draft(draft_path, video_path, speed=1.0, volume=1.0, b
         speeds.append(speed_material.copy())
 
         tracks = data.setdefault("tracks", [])
+        video_materials_by_id = {
+            item.get("id"): item
+            for item in videos
+            if isinstance(item, dict) and item.get("id")
+        }
+
+        def _is_overlay_video_track(track):
+            if track.get("type") != "video":
+                return False
+            for segment in track.get("segments", []):
+                material = video_materials_by_id.get(segment.get("material_id")) or {}
+                material_type = str(material.get("type") or "").lower()
+                path = str(material.get("path") or material.get("material_name") or "").lower()
+                if (
+                    material_type in {"gif", "photo", "image"}
+                    or path.endswith((".gif", ".png", ".jpg", ".jpeg", ".webp"))
+                ):
+                    return True
+            return False
+
+        overlay_video_tracks = [track for track in tracks if _is_overlay_video_track(track)]
         non_video_tracks = [track for track in tracks if track.get("type") != "video"]
-        existing_video = next((track for track in tracks if track.get("type") == "video"), None)
+        existing_video = next(
+            (track for track in tracks if track.get("type") == "video" and not _is_overlay_video_track(track)),
+            None,
+        )
         merged_track = dict(existing_video or video_track)
         merged_track.update({
             "attribute": int(merged_track.get("attribute", 0) or 0),
@@ -3140,7 +3205,7 @@ def ensure_video_track_in_draft(draft_path, video_path, speed=1.0, volume=1.0, b
             "segments": [video_segment.copy()],
             "type": "video",
         })
-        data["tracks"] = [merged_track] + non_video_tracks
+        data["tracks"] = [merged_track] + overlay_video_tracks + non_video_tracks
         data["duration"] = max(int(data.get("duration") or 0), target_duration)
         content_path.write_text(json.dumps(data, ensure_ascii=False, indent=4), encoding="utf-8")
         patched += 1
@@ -3459,13 +3524,43 @@ class QueueRunner:
             except Exception as e:
                 logger.warning(f"Không thể lưu queue cache: {str(e)}")
 
+    def _item_owns_buffer(self, item):
+        """Only active/resumable jobs own one of the two reusable CapCut buffers."""
+        if not item:
+            return False
+        status = item.get("status")
+        if status in ("preprocessing", "ready_for_capcut", "gui_processing", "paused"):
+            return True
+        if status == "failed":
+            try:
+                return int(item.get("resume_from_step", 1) or 1) >= 5
+            except Exception:
+                return False
+        return False
+
+    def _release_stale_pending_buffers_locked(self):
+        changed = False
+        for item in self.queue:
+            if item.get("status") == "pending" and item.get("draft_id"):
+                logger.info(
+                    f"Release stale buffer {item.get('draft_id')} from pending item "
+                    f"'{item.get('video') or item.get('draft_id')}'."
+                )
+                item["draft_id"] = None
+                item["project_folder"] = None
+                changed = True
+        return changed
+
     def _get_buffer_owners(self):
         owners = {"00000000000": None, "111111111111111111": None}
         with self.queue_lock:
+            changed = self._release_stale_pending_buffers_locked()
             for item in self.queue:
                 buf = item.get("draft_id")
-                if buf in owners and item.get("status") != "success":
+                if buf in owners and self._item_owns_buffer(item):
                     owners[buf] = item
+            if changed:
+                self.save_cache()
         return owners
 
     def repair_runtime_state(self):
@@ -3866,10 +3961,11 @@ class QueueRunner:
             else:
                 while self.is_processing and not self.pause_requested:
                     with self.queue_lock:
+                        self._release_stale_pending_buffers_locked()
                         owners = {"00000000000": None, "111111111111111111": None}
                         for item in self.queue:
                             buf = item.get("draft_id")
-                            if buf in owners and item.get("status") != "success" and item != pending_item:
+                            if buf in owners and self._item_owns_buffer(item) and item != pending_item:
                                 owners[buf] = item
                         
                         free_buffers = [buf for buf, owner in owners.items() if owner is None]
@@ -3964,17 +4060,29 @@ class QueueRunner:
                 break
 
             with self.queue_lock:
-                offline_preprocess_item = next(
-                    (
-                        item for item in self.queue
-                        if item.get("status") == "preprocessing"
-                        and (
-                            should_use_local_ocr(apply_global_settings_to_config(item.get("config") or self.config or {}))
-                            or should_use_local_whisper(apply_global_settings_to_config(item.get("config") or self.config or {}))
-                        )
-                    ),
-                    None,
+                ready_exists = any(
+                    item.get("status") == "ready_for_capcut"
+                    or (
+                        item.get("status") == "paused"
+                        and int(item.get("resume_from_step", 1) or 1) >= 5
+                    )
+                    for item in self.queue
                 )
+
+            with self.queue_lock:
+                offline_preprocess_item = None
+                if not ready_exists:
+                    offline_preprocess_item = next(
+                        (
+                            item for item in self.queue
+                            if item.get("status") == "preprocessing"
+                            and (
+                                should_use_local_ocr(apply_global_settings_to_config(item.get("config") or self.config or {}))
+                                or should_use_local_whisper(apply_global_settings_to_config(item.get("config") or self.config or {}))
+                            )
+                        ),
+                        None,
+                    )
             if offline_preprocess_item is not None:
                 logger.info(
                     "Worker 2 chờ vì Worker 1 đang tạo phụ đề offline "
@@ -4245,6 +4353,16 @@ class QueueRunner:
                 blur_config=blur_config,
                 wait_if_exporting=lambda: self._wait_if_exporting(),
             )
+            try:
+                from capcut_pipeline import load_brand_overlay_snapshot, restore_brand_overlay_snapshot
+                restored_brand_files = restore_brand_overlay_snapshot(
+                    Path(draft_full_path),
+                    load_brand_overlay_snapshot(Path(draft_full_path)),
+                )
+                if restored_brand_files:
+                    logger.info(f"Đã khôi phục brand/logo overlay trên {restored_brand_files} file draft.")
+            except Exception as brand_error:
+                logger.warning(f"Không thể khôi phục brand/logo overlay: {brand_error}")
             logger.info(f"Whisper/OCR dung video goc de lay audio/timestamp/text: {subtitle_source_video}")
 
         project_opened_this_run = False
@@ -4941,6 +5059,7 @@ def add_to_queue():
         folder = data.get("folder")
         if not folder:
             return jsonify({"error": "Folder is required"}), 400
+        replace_queue = bool(data.get("replace_queue") or data.get("replace"))
 
         create_project_backup(folder)
 
@@ -4963,10 +5082,16 @@ def add_to_queue():
         if not video_paths:
             video_paths = [None]
 
+        new_items = []
         for index, video_path in enumerate(video_paths, start=1):
             item_config = dict(config)
+            item_config.pop("video_paths", None)
+            item_config.pop("videoPaths", None)
+            item_config.pop("video_path_overrides", None)
+            item_config.pop("videoPathOverrides", None)
             if video_path:
                 item_config["video_path"] = video_path
+                item_config["video_paths"] = [video_path]
 
             item = {
                 "type": "project",
@@ -4985,7 +5110,11 @@ def add_to_queue():
             if len(video_paths) > 1:
                 item["message"] = f"Đang chờ ({index}/{len(video_paths)})..."
 
-            runner.queue.append(item)
+            new_items.append(item)
+        if replace_queue:
+            runner.clear()
+        with runner.queue_lock:
+            runner.queue.extend(new_items)
         runner.save_cache()
         logger.info(f"Đã thêm {len(video_paths)} job vào hàng chờ cho dự án {folder}.")
         return jsonify(runner.get_state())
@@ -5159,5 +5288,5 @@ if __name__ == "__main__":
     # Ensure port 5000 is used
     logger.info("Khởi động server CapCut Automation Studio tại http://127.0.0.1:5000")
     debug_enabled = str(os.environ.get("CAPCUT_DEBUG", "")).lower() in {"1", "true", "yes", "on"}
-    app.run(host="127.0.0.1", port=5000, debug=debug_enabled, use_reloader=False)
+    app.run(host="0.0.0.0", port=5000, debug=debug_enabled, use_reloader=False)
 

@@ -18,3 +18,7 @@ tmp/
 .env
 settings/global_pipeline_settings.json
 queue_cache.json
+capcut_gui_app.log
+scratch/
+00000000000/
+111111111111111111/
