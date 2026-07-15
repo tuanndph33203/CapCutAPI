@@ -1,4 +1,4 @@
-﻿import os
+import os
 # Tắt cơ chế spin-wait của ONNXRuntime trên CPU để tránh FULL CPU (100%) khi chờ GPU DirectML xử lý
 os.environ["ONNXRUNTIME_CPU_THREAD_ALLOW_SPINNING"] = "0"
 # Hạn chế số luồng của FFMPEG giải mã trong OpenCV để tránh FULL CPU khi giải mã video
@@ -25,8 +25,31 @@ def _normalize_text(text: str) -> str:
     return "".join(c for c in text if c.isalnum())
 
 def _string_similarity(a: str, b: str) -> float:
-    """Tính tỉ lệ tương đồng giữa hai chuỗi."""
-    return SequenceMatcher(None, _normalize_text(a), _normalize_text(b)).ratio()
+    """Tính tỉ lệ tương đồng giữa hai chuỗi, hỗ trợ đảo thứ tự từ và chuỗi con."""
+    norm_a = _normalize_text(a)
+    norm_b = _normalize_text(b)
+    if not norm_a or not norm_b:
+        return 0.0
+    
+    # 1. SequenceMatcher ratio (tốt cho chuỗi đúng thứ tự)
+    ratio = SequenceMatcher(None, norm_a, norm_b).ratio()
+    
+    # 2. Character set overlap (Jaccard & containment - tốt cho đảo vị trí hoặc bị cắt/thiếu chữ)
+    set_a = set(norm_a)
+    set_b = set(norm_b)
+    intersection = set_a.intersection(set_b)
+    if not intersection:
+        return ratio
+        
+    jaccard = len(intersection) / len(set_a.union(set_b))
+    containment = len(intersection) / min(len(set_a), len(set_b))
+    
+    # Nếu một chuỗi ngắn (dưới 6 ký tự) và hầu như nằm trọn trong chuỗi dài
+    if min(len(norm_a), len(norm_b)) <= 6 and containment >= 0.75:
+        return max(ratio, containment)
+        
+    # Trả về giá trị lớn nhất trong các cách đo
+    return max(ratio, jaccard, containment * 0.8)
 
 def _config_get(config: dict | None, key: str, default):
     if not isinstance(config, dict):
@@ -376,11 +399,14 @@ def extract_hardsub_from_video(
                         if bool(_config_get(ocr_config, "drop_noise_text", True)) and _is_probable_ocr_noise(text, ocr_config):
                             continue
                         ys = [point[1] for point in box]
+                        xs = [point[0] for point in box]
                         mean_y = sum(ys) / len(ys)
-                        valid_lines.append((mean_y, text))
-                valid_lines.sort(key=lambda x: x[0])
+                        mean_x = sum(xs) / len(xs)
+                        valid_lines.append((mean_y, mean_x, text))
+                # Sắp xếp theo dòng trước (làm tròn đến 20px để nhóm các chữ cùng hàng), sau đó theo cột từ trái sang phải
+                valid_lines.sort(key=lambda x: (round(x[0] / 20) * 20, x[1]))
                 if valid_lines:
-                    frame_text = " ".join(line[1] for line in valid_lines)
+                    frame_text = " ".join(line[2] for line in valid_lines)
             return frame_text
 
         def process_ocr_batch():

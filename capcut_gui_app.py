@@ -1176,6 +1176,7 @@ def apply_default_text_style_to_content(content_json, translated, font_size=None
         "id": "",
         "path": resolve_font_path(font_name),
     }
+    style["align"] = 1  # Force center alignment inside CapCut text editor style
 
     fill_color = list(font_color if font_color is not None else DEFAULT_SUBTITLE_COLOR_RGB)
     style["fill"] = {
@@ -1218,6 +1219,7 @@ def sync_text_material_fields(text_mat, content_json, translated, font_size=None
     text_mat["border_mode"] = 0
     text_mat["has_shadow"] = False
     text_mat["background_color"] = "#000000"
+    text_mat["alignment"] = 1  # Force center alignment in CapCut material layer
     text_mat["background_style"] = 0
 
     base_content_str = text_mat.get("base_content")
@@ -2353,6 +2355,37 @@ def patch_subtitles_file(content_path, font_size=5.0, font_color=DEFAULT_SUBTITL
     max_display_us = int(float((item_config or {}).get("ocr_max_segment_duration_ms", 6000) or 6000) * 1000)
     min_gap_us = int(float((item_config or {}).get("subtitle_min_gap_ms", 20) or 20) * 1000)
     duration_adjusted = 0
+
+    # Calculate vertical position centered inside the blur box if blur is enabled
+    capcut_y = None
+    if item_config and config_bool(item_config.get("hardsub_blur_enabled", True), True):
+        try:
+            blur_y = 910
+            blur_h = 135
+            crop_rect = item_config.get("local_ocr", {}).get("crop_rect", {})
+            if isinstance(crop_rect, dict) and crop_rect.get("h", 0) > 0:
+                blur_y = crop_rect.get("y", 910)
+                blur_h = crop_rect.get("h", 135)
+            else:
+                blur_y = item_config.get("hardsub_blur_y", 910)
+                blur_h = item_config.get("hardsub_blur_h", 135)
+            
+            video_path = item_config.get("video_path")
+            video_height = 1080
+            if video_path and os.path.exists(video_path):
+                try:
+                    meta = probe_video_metadata(video_path)
+                    video_height = int(meta.get("height", 1080))
+                except Exception:
+                    pass
+            
+            y_center = blur_y + blur_h / 2.0
+            capcut_y = 1.0 - (y_center / (video_height / 2.0))
+            capcut_y = max(-1.0, min(1.0, capcut_y))
+            logger.info(f"[Subtitle Position] Cân chỉnh dọc tự động theo vùng blur: capcut_y={capcut_y:.4f} (blur_y={blur_y}, blur_h={blur_h}, video_height={video_height})")
+        except Exception as e:
+            logger.warning(f"Không thể tự động tính toán vị trí dọc phụ đề theo vùng blur: {e}")
+
     for track in data.get("tracks", []) or []:
         if track.get("type") != "text":
             continue
@@ -2365,6 +2398,13 @@ def patch_subtitles_file(content_path, font_size=5.0, font_color=DEFAULT_SUBTITL
             translated_text = text_by_material_id.get(material_id)
             if not translated_text:
                 continue
+            
+            # Place text segment centered vertically inside the blur box area
+            if capcut_y is not None:
+                if "clip" in segment and isinstance(segment["clip"], dict):
+                    if "transform" in segment["clip"] and isinstance(segment["clip"]["transform"], dict):
+                        segment["clip"]["transform"]["y"] = capcut_y
+
             target_timerange = segment.get("target_timerange") or {}
             start_us = int(target_timerange.get("start", 0) or 0)
             old_duration = int(target_timerange.get("duration", 0) or 0)
@@ -3522,9 +3562,8 @@ class QueueRunner:
                     "config": self.config,
                     "saved_at": int(time.time()),
                 }
-                tmp_path = QUEUE_CACHE_PATH.with_suffix(".json.tmp")
-                tmp_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-                tmp_path.replace(QUEUE_CACHE_PATH)
+                # Write directly to prevent WinError 5 Access Denied rename lock conflicts on Windows
+                QUEUE_CACHE_PATH.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
             except Exception as e:
                 logger.warning(f"Không thể lưu queue cache: {str(e)}")
 
@@ -3825,40 +3864,41 @@ class QueueRunner:
         return True
 
     def _restore_original_folders(self):
-        restored = set()
-        for item in self.queue:
-            orig = item.get("original_project_folder")
-            if orig and orig not in restored:
-                backup_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, f"{orig}_backup")
-                orig_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, orig)
-                if os.path.exists(backup_path):
-                    logger.info(f"Đang hoàn trả dự án gốc {orig} từ backup...")
-                    # Thử lại 3 lần phòng trường hợp file đang bị khóa bởi tiến trình khác
-                    for attempt in range(1, 4):
-                        try:
-                            # Đợi 1 chút cho các tay cầm file được giải phóng
-                            time.sleep(1.0)
-                            
-                            def on_rm_error(func, path, exc_info):
-                                import stat
-                                try:
-                                    os.chmod(path, stat.S_IWRITE)
-                                    func(path)
-                                except Exception:
-                                    pass
+        with self.queue_lock:
+            restored = set()
+            for item in self.queue:
+                orig = item.get("original_project_folder")
+                if orig and orig not in restored:
+                    backup_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, f"{orig}_backup")
+                    orig_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, orig)
+                    if os.path.exists(backup_path):
+                        logger.info(f"Đang hoàn trả dự án gốc {orig} từ backup...")
+                        # Thử lại 3 lần phòng trường hợp file đang bị khóa bởi tiến trình khác
+                        for attempt in range(1, 4):
+                            try:
+                                # Đợi 1 chút cho các tay cầm file được giải phóng
+                                time.sleep(1.0)
+                                
+                                def on_rm_error(func, path, exc_info):
+                                    import stat
+                                    try:
+                                        os.chmod(path, stat.S_IWRITE)
+                                        func(path)
+                                    except Exception:
+                                        pass
 
-                            if os.path.exists(orig_path):
-                                shutil.rmtree(orig_path, onerror=on_rm_error)
-                            shutil.copytree(backup_path, orig_path)
-                            shutil.rmtree(backup_path, onerror=on_rm_error)
-                            restored.add(orig)
-                            logger.info(f"Hoàn trả dự án gốc {orig} thành công ở lần thử {attempt}.")
-                            break
-                        except Exception as e:
-                            if attempt == 3:
-                                logger.error(f"Lỗi khi hoàn trả dự án gốc {orig} sau 3 lần thử: {e}")
-                            else:
-                                logger.warning(f"Lần thử {attempt} hoàn trả {orig} thất bại: {e}. Đang thử lại sau 1s...")
+                                if os.path.exists(orig_path):
+                                    shutil.rmtree(orig_path, onerror=on_rm_error)
+                                shutil.copytree(backup_path, orig_path)
+                                shutil.rmtree(backup_path, onerror=on_rm_error)
+                                restored.add(orig)
+                                logger.info(f"Hoàn trả dự án gốc {orig} thành công ở lần thử {attempt}.")
+                                break
+                            except Exception as e:
+                                if attempt == 3:
+                                    logger.error(f"Lỗi khi hoàn trả dự án gốc {orig} sau 3 lần thử: {e}")
+                                else:
+                                    logger.warning(f"Lần thử {attempt} hoàn trả {orig} thất bại: {e}. Đang thử lại sau 1s...")
 
     def _prepare_draft_files(self, item):
         original_folder = item.get("original_project_folder")
