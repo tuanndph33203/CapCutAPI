@@ -1068,6 +1068,8 @@ def run_local_whisper_captions_for_draft(
         width=int(item_config.get("canvas_width", item_config.get("width", 1920))),
         height=int(item_config.get("canvas_height", item_config.get("height", 1080))),
         subtitle_offset_ms=int(item_config.get("whisper_subtitle_offset_ms", 0) or 0),
+        model_size=item_config.get("whisper_model") or os.environ.get("WHISPER_MODEL", "large-v3"),
+        transcribe_options=item_config,
         progress_callback=progress,
     )
     logger.info(
@@ -4940,13 +4942,37 @@ def list_projects():
                     dir_size = get_dir_size(entry.path)
                     size_str = format_size(dir_size)
 
+                    canvas_ratio = None
+                    if has_config:
+                        try:
+                            with open(config_path, "r", encoding="utf-8") as f:
+                                cfg = json.load(f)
+                                cw = int(cfg.get("canvas_width") or 0)
+                                ch = int(cfg.get("canvas_height") or 0)
+                                if cw > 0 and ch > 0:
+                                    if cw == 1920 and ch == 1080:
+                                        canvas_ratio = "16:9"
+                                    elif cw == 1080 and ch == 1920:
+                                        canvas_ratio = "9:16"
+                                    elif cw == ch:
+                                        canvas_ratio = "1:1"
+                                    elif cw == 1440 and ch == 1080:
+                                        canvas_ratio = "4:3"
+                                    elif cw > ch:
+                                        canvas_ratio = "16:9"
+                                    else:
+                                        canvas_ratio = "9:16"
+                        except Exception:
+                            pass
+
                     projects.append({
                         "name": name,
                         "folder": entry.name,
                         "updated_at": updated_at,
                         "duration": duration_str,
                         "size": size_str,
-                        "has_config": has_config
+                        "has_config": has_config,
+                        "canvas_ratio": canvas_ratio
                     })
 
             projects.sort(key=lambda x: x["updated_at"], reverse=True)

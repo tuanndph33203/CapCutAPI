@@ -116,7 +116,7 @@ def transcribe_video_to_segments(
             "Chưa cài faster-whisper. Chạy: python -m pip install faster-whisper==1.1.0"
         ) from exc
 
-    model_size = model_size or os.environ.get("WHISPER_MODEL", "large-v3-turbo")
+    model_size = model_size or os.environ.get("WHISPER_MODEL", "large-v3")
     device = device or os.environ.get("WHISPER_DEVICE", "cuda")
     added_dll_dirs = _prepend_nvidia_dll_dirs_to_path()
     if added_dll_dirs and progress_callback:
@@ -165,6 +165,29 @@ def transcribe_video_to_segments(
         },
     }
     if isinstance(transcribe_options, dict):
+        def to_bool(val, default=True):
+            if val is None: return default
+            if isinstance(val, bool): return val
+            s = str(val).strip().lower()
+            return s in ("true", "1", "yes", "on")
+
+        # Map whisper_* configurations from queue settings if provided
+        if "whisper_beam_size" in transcribe_options:
+            kwargs["beam_size"] = int(transcribe_options["whisper_beam_size"])
+        if "whisper_vad_filter" in transcribe_options:
+            kwargs["vad_filter"] = to_bool(transcribe_options["whisper_vad_filter"], True)
+        if "whisper_temperature" in transcribe_options:
+            kwargs["temperature"] = transcribe_options["whisper_temperature"]
+            
+        # Map VAD parameters if provided
+        vad_params = kwargs.setdefault("vad_parameters", {})
+        if "whisper_vad_threshold" in transcribe_options:
+            vad_params["threshold"] = float(transcribe_options["whisper_vad_threshold"])
+        if "whisper_vad_min_silence_ms" in transcribe_options:
+            vad_params["min_silence_duration_ms"] = int(transcribe_options["whisper_vad_min_silence_ms"])
+        if "whisper_vad_speech_pad_ms" in transcribe_options:
+            vad_params["speech_pad_ms"] = int(transcribe_options["whisper_vad_speech_pad_ms"])
+
         option_aliases = {
             "logprob_threshold": "log_prob_threshold",
         }
@@ -651,6 +674,10 @@ def patch_draft_with_local_whisper(
     subtitle_offset_ms: int = 0,
     progress_callback: Callable[[str], None] | None = None,
     translate_func: Callable[[list[str]], list[str]] | None = None,
+    model_size: str | None = None,
+    device: str | None = None,
+    compute_type: str | None = None,
+    transcribe_options: dict | None = None,
 ) -> dict:
     draft_path = Path(draft_path)
     repo_root = Path(repo_root)
@@ -660,6 +687,10 @@ def patch_draft_with_local_whisper(
         video_path,
         language=language,
         speed=speed,
+        model_size=model_size,
+        device=device,
+        compute_type=compute_type,
+        transcribe_options=transcribe_options,
         progress_callback=progress_callback,
     )
     if not segments:

@@ -1040,6 +1040,44 @@
                                 <input type="number" id="detail-subtitle-offset" step="50" value="0"
                                     title="Sub hiện sớm hơn lời? → nhập số dương (vd: 200). Sub hiện trễ? → nhập số âm (vd: -100)">
                             </div>
+                            <div class="form-group">
+                                <label for="detail-whisper-model">Model Whisper GPU</label>
+                                <select id="detail-whisper-model">
+                                    <option value="large-v3">large-v3 (Chất lượng cao nhất - Khuyên dùng)</option>
+                                    <option value="large-v3-turbo">large-v3-turbo (Tốc độ nhanh)</option>
+                                    <option value="medium">medium (Cân bằng)</option>
+                                    <option value="small">small (Nhẹ)</option>
+                                    <option value="base">base (Siêu nhẹ)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="detail-whisper-vad-filter">Bộ lọc khoảng im lặng (VAD Filter)</label>
+                                <label style="display:flex;align-items:center;gap:8px;height:38px;">
+                                    <input type="checkbox" id="detail-whisper-vad-filter" checked>
+                                    <span>Lọc bỏ tạp âm/hallucination của Whisper</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="detail-canvas-ratio">📐 Tỷ lệ Canvas (Aspect Ratio)</label>
+                                <select id="detail-canvas-ratio" style="background: linear-gradient(135deg, rgba(0,242,254,0.08), rgba(155,81,224,0.08)); border-color: rgba(0,242,254,0.3);">
+                                    <option value="16:9">🖥️ 16:9 — Ngang (1920×1080)</option>
+                                    <option value="9:16">📱 9:16 — Dọc (1080×1920)</option>
+                                    <option value="1:1">⬛ 1:1 — Vuông (1080×1080)</option>
+                                    <option value="4:3">📺 4:3 — Cổ điển (1440×1080)</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="display:flex; align-items:flex-end; padding-bottom: 2px;">
+                                <div id="detail-canvas-preview" style="font-size:0.78rem; color: var(--text-muted); padding: 9px 10px; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(255,255,255,0.02); width:100%; text-align:center; line-height:1.5;">
+                                    <span style="font-weight:700; color: var(--accent-cyan);">1920 × 1080</span><br>
+                                    <span style="font-size:0.72rem;">canvas_width × canvas_height</span>
+                                </div>
+                            </div>
                         </div>
 
                         <h4
@@ -1416,6 +1454,33 @@
                         .catch(() => log('Khong gui duoc trang thai tu tat may len server.', 'error'));
                 });
             }
+            // Canvas ratio helpers
+            const CANVAS_RATIO_MAP = {
+                '16:9':  { canvas_width: 1920, canvas_height: 1080 },
+                '9:16':  { canvas_width: 1080, canvas_height: 1920 },
+                '1:1':   { canvas_width: 1080, canvas_height: 1080 },
+                '4:3':   { canvas_width: 1440, canvas_height: 1080 },
+            };
+            function canvasRatioDimensions(ratio) {
+                return CANVAS_RATIO_MAP[ratio] || CANVAS_RATIO_MAP['16:9'];
+            }
+            function detectCanvasRatio(w, h) {
+                for (const [key, val] of Object.entries(CANVAS_RATIO_MAP)) {
+                    if (val.canvas_width === w && val.canvas_height === h) return key;
+                }
+                // Fuzzy match by aspect ratio
+                const ar = w / Math.max(h, 1);
+                if (ar > 1.6) return '16:9';
+                if (ar < 0.65) return '9:16';
+                if (Math.abs(ar - 1) < 0.05) return '1:1';
+                return '16:9';
+            }
+            function updateCanvasPreview(w, h) {
+                const preview = document.getElementById('detail-canvas-preview');
+                if (!preview) return;
+                preview.innerHTML = `<span style="font-weight:700; color: var(--accent-cyan);">${w} × ${h}</span><br><span style="font-size:0.72rem;">canvas_width × canvas_height</span>`;
+            }
+
             let cachedGlobalSettings = null;
             let settingsProfilesDraft = [];
             let aiProfileEditingIndex = -1;
@@ -1485,6 +1550,15 @@
                     updateDetailAiSummary('detail-context-ai-profile', 'detail-context-ai-summary', profiles);
                 });
             });
+
+            // Canvas ratio live preview update
+            const detailCanvasRatioSelect = document.getElementById('detail-canvas-ratio');
+            if (detailCanvasRatioSelect) {
+                detailCanvasRatioSelect.addEventListener('change', () => {
+                    const dims = canvasRatioDimensions(detailCanvasRatioSelect.value);
+                    updateCanvasPreview(dims.canvas_width, dims.canvas_height);
+                });
+            }
 
             // Logging function
             function log(message, type = 'info') {
@@ -2077,8 +2151,19 @@
                             const badge = p.has_config ? `<div class="project-has-config-badge">Configured</div>` : '';
                             const firstChar = p.name ? p.name.charAt(0).toUpperCase() : 'P';
 
+                            // Canvas ratio badge
+                            const RATIO_ICONS = { '16:9': '🖥️', '9:16': '📱', '1:1': '⬛', '4:3': '📺' };
+                            const RATIO_COLORS = {
+                                '16:9': 'rgba(0,242,254,0.85)',
+                                '9:16': 'rgba(155,81,224,0.85)',
+                                '1:1':  'rgba(242,153,74,0.85)',
+                                '4:3':  'rgba(39,174,96,0.85)'
+                            };
+                            const ratioBadge = p.canvas_ratio ? `<div style="position:absolute; top:8px; right:8px; background:${RATIO_COLORS[p.canvas_ratio] || 'rgba(0,242,254,0.85)'}; border-radius:5px; padding:2px 7px; font-size:0.65rem; font-weight:800; color:#0b0a10; z-index:3; pointer-events:none; letter-spacing:0.3px;">${RATIO_ICONS[p.canvas_ratio] || ''} ${p.canvas_ratio}</div>` : '';
+
                             card.innerHTML = `
                         ${badge}
+                        ${ratioBadge}
                         <div class="project-cover-container">
                             <img class="project-cover" src="/api/projects/${encodeURIComponent(p.folder)}/cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
                             <div class="project-placeholder-cover">${firstChar}</div>
@@ -2149,6 +2234,8 @@
                         document.getElementById('detail-font-color').value = config.font_color;
                         document.getElementById('detail-font-name').value = config.font_name;
                         document.getElementById('detail-subtitle-offset').value = config.whisper_subtitle_offset_ms || 0;
+                        document.getElementById('detail-whisper-model').value = config.whisper_model || 'large-v3';
+                        document.getElementById('detail-whisper-vad-filter').checked = config.whisper_vad_filter !== false;
                         document.getElementById('detail-translation-method').value = config.translation_method || 'google';
                         renderDetailAiProfileSelects(
                             config.available_ai_profiles || [],
@@ -2165,6 +2252,13 @@
                         document.getElementById('detail-hardsub-blur').checked = config.hardsub_blur_enabled !== false;
                         document.getElementById('detail-use-local-ocr').checked = config.use_local_ocr === true;
                         document.getElementById('detail-use-local-whisper').checked = config.use_local_whisper === true;
+
+                        // Canvas ratio
+                        const cw = parseInt(config.canvas_width) || 1920;
+                        const ch = parseInt(config.canvas_height) || 1080;
+                        const detectedRatio = detectCanvasRatio(cw, ch);
+                        document.getElementById('detail-canvas-ratio').value = detectedRatio;
+                        updateCanvasPreview(cw, ch);
 
                         // Toggle view
                         projectsGridContainer.style.display = 'none';
@@ -2198,7 +2292,10 @@
                     hardsub_blur_enabled: document.getElementById('detail-hardsub-blur').checked,
                     use_local_ocr: document.getElementById('detail-use-local-ocr').checked,
                     use_local_whisper: document.getElementById('detail-use-local-whisper').checked,
-                    whisper_subtitle_offset_ms: parseInt(document.getElementById('detail-subtitle-offset').value) || 0
+                    whisper_subtitle_offset_ms: parseInt(document.getElementById('detail-subtitle-offset').value) || 0,
+                    whisper_model: document.getElementById('detail-whisper-model').value,
+                    whisper_vad_filter: document.getElementById('detail-whisper-vad-filter').checked,
+                    ...canvasRatioDimensions(document.getElementById('detail-canvas-ratio').value)
                 };
             }
 
