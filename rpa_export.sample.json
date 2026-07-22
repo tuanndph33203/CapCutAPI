@@ -4,7 +4,10 @@
             "template": "rpa_templates/export_button.png",
             "threshold": 0.76,
             "action": "click_template",
-            "timeout": 12,
+            "timeout": 0.5,
+            "attempts": 30,
+            "retry_delay": 0,
+            "warn_after": 10,
             "search_region": [
                 0.6667,
                 0.0,
@@ -13,19 +16,23 @@
             ]
         },
         {
-            "template": "rpa_templates/export_confirm_button.png",
-            "threshold": 0.58,
-            "action": "click_template",
-            "timeout": 18
+            "action": "sleep",
+            "seconds": 1.5
         },
         {
-            "action": "wait",
-            "template": "rpa_templates/exporting.png",
-            "interval": 3,
-            "require_seen": true,
-            "threshold": 0.82,
-            "mode": "gone",
-            "timeout": 1200
+            "template": "rpa_templates/export_confirm_button.png",
+            "threshold": 0.68,
+            "action": "click_template",
+            "timeout": 0.5,
+            "attempts": 30,
+            "retry_delay": 0,
+            "warn_after": 10,
+            "search_region": [
+                0.55,
+                0.70,
+                0.66,
+                0.82
+            ]
         }
     ]
 }

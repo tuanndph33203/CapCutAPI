@@ -18,3 +18,30 @@ tmp/
 .env
 settings/global_pipeline_settings.json
 queue_cache.json
+capcut_gui_app.log
+scratch/
+00000000000/
+111111111111111111/
+output_audio/
+
+# nghitts: binary/model files (too large for git)
+nghitts/
+nghitts/**/*.onnx
+nghitts/**/*.wasm
+nghitts/**/*.wav
+nghitts/**/*.mp3
+nghitts/**/*.bin
+nghitts/public/onnx-runtime/
+nghitts/public/vad-model/
+nghitts/public/demo/*.wav
+nghitts/ngoc_huyen_*.wav
+nghitts/output_*.wav
+nghitts/test_*.wav
+
+# nghitts: build artifacts and dependencies
+nghitts/node_modules/
+nghitts/dist/
+nghitts/.vite/
+nghitts/train/build/
+nghitts/train/dist/
+nghitts/train/*.egg-info/

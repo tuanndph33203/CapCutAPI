@@ -4,8 +4,16 @@
             "template": "rpa_templates/generate_speech_button.png",
             "threshold": 0.70,
             "action": "click_template",
-            "timeout": 30,
-            "search_region": [0.6667, 0.0, 1.0, 0.45]
+            "timeout": 0.5,
+            "attempts": 30,
+            "retry_delay": 0,
+            "warn_after": 10,
+            "search_region": [
+                0.6667,
+                0.0,
+                1.0,
+                0.65
+            ]
         },
         {
             "action": "sleep",

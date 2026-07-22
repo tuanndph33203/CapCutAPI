@@ -43,11 +43,17 @@
       "action": "click_template",
       "template": "rpa_templates/generate_speech_button.png",
       "threshold": 0.82,
-      "timeout": 20
+      "timeout": 20,
+      "search_region": [
+        0.6667,
+        0.0,
+        1.0,
+        0.65
+      ]
     },
     {
       "action": "wait",
-        "timeout": 10000
+      "timeout": 10000
     },
     {
       "action": "click_template",

@@ -227,6 +227,173 @@ def restore_effect_timeline_snapshot(draft_path: Path, snapshot: dict | None, *,
 
     return patched
 
+def brand_overlay_snapshot_path(draft_path: Path) -> Path:
+    return Path.cwd() / "brand_overlays" / f"{draft_path.name}.json"
+
+
+def _is_brand_overlay_material(material: dict) -> bool:
+    material_type = str(material.get("type") or "").lower()
+    path = str(material.get("path") or material.get("material_name") or "").lower()
+    return (
+        material_type in {"gif", "photo", "image"}
+        or path.endswith((".gif", ".png", ".jpg", ".jpeg", ".webp"))
+    )
+
+
+def capture_brand_overlay_snapshot(draft_path: Path) -> dict | None:
+    for content_path in iter_draft_json_files(draft_path):
+        try:
+            data = json.loads(content_path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+
+        materials = data.get("materials") or {}
+        videos = materials.get("videos") or []
+        video_by_id = {item.get("id"): item for item in videos if item.get("id")}
+        overlay_ids = {
+            material_id
+            for material_id, material in video_by_id.items()
+            if _is_brand_overlay_material(material)
+        }
+        if not overlay_ids:
+            continue
+
+        overlay_tracks = []
+        referenced_ids_by_key: dict[str, set[str]] = {}
+        for track in data.get("tracks") or []:
+            if track.get("type") != "video":
+                continue
+            segments = [
+                segment
+                for segment in track.get("segments") or []
+                if segment.get("material_id") in overlay_ids
+            ]
+            if not segments:
+                continue
+            track_copy = copy.deepcopy(track)
+            track_copy["segments"] = copy.deepcopy(segments)
+            overlay_tracks.append(track_copy)
+            for segment in segments:
+                for ref_id in segment.get("extra_material_refs") or []:
+                    for key, values in materials.items():
+                        if not isinstance(values, list):
+                            continue
+                        if any(item.get("id") == ref_id for item in values if isinstance(item, dict)):
+                            referenced_ids_by_key.setdefault(key, set()).add(ref_id)
+
+        if not overlay_tracks:
+            continue
+
+        snapshot_materials = {"videos": [copy.deepcopy(video_by_id[item_id]) for item_id in overlay_ids]}
+        for key, ids in referenced_ids_by_key.items():
+            values = materials.get(key) or []
+            snapshot_materials[key] = [
+                copy.deepcopy(item)
+                for item in values
+                if isinstance(item, dict) and item.get("id") in ids
+            ]
+
+        return {
+            "version": 1,
+            "source": str(content_path),
+            "materials": snapshot_materials,
+            "tracks": overlay_tracks,
+        }
+    return None
+
+
+def load_brand_overlay_snapshot(draft_path: Path) -> dict | None:
+    path = brand_overlay_snapshot_path(draft_path)
+    if not path.exists():
+        return None
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+
+
+def save_brand_overlay_snapshot(draft_path: Path, snapshot: dict | None) -> int:
+    if not snapshot:
+        return 0
+    path = brand_overlay_snapshot_path(draft_path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(snapshot, ensure_ascii=False, indent=4), encoding="utf-8")
+    return 1
+
+
+def restore_brand_overlay_snapshot(draft_path: Path, snapshot: dict | None) -> int:
+    if not snapshot:
+        return 0
+
+    snapshot_materials = snapshot.get("materials") or {}
+    snapshot_tracks = snapshot.get("tracks") or []
+    overlay_material_ids = {
+        material.get("id")
+        for material in snapshot_materials.get("videos") or []
+        if isinstance(material, dict) and material.get("id")
+    }
+    if not overlay_material_ids or not snapshot_tracks:
+        return 0
+
+    patched = 0
+    for content_path in iter_draft_json_files(draft_path):
+        try:
+            data = json.loads(content_path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+
+        duration = get_video_timeline_duration(data)
+        if duration <= 0:
+            duration = int(data.get("duration") or 0)
+        if duration <= 0:
+            continue
+
+        materials = data.setdefault("materials", {})
+        for key, values in snapshot_materials.items():
+            if not isinstance(values, list):
+                continue
+            target_values = materials.setdefault(key, [])
+            existing_ids = {item.get("id") for item in target_values if isinstance(item, dict)}
+            for item in values:
+                item_id = item.get("id") if isinstance(item, dict) else None
+                if item_id and item_id not in existing_ids:
+                    target_values.append(copy.deepcopy(item))
+                    existing_ids.add(item_id)
+
+        tracks = data.setdefault("tracks", [])
+        existing_overlay_ids = {
+            segment.get("material_id")
+            for track in tracks
+            if track.get("type") == "video"
+            for segment in track.get("segments") or []
+            if segment.get("material_id") in overlay_material_ids
+        }
+        missing_ids = overlay_material_ids - existing_overlay_ids
+        if not missing_ids:
+            continue
+
+        for track in snapshot_tracks:
+            restored_track = copy.deepcopy(track)
+            restored_segments = []
+            for segment in restored_track.get("segments") or []:
+                if segment.get("material_id") not in missing_ids:
+                    continue
+                target = segment.setdefault("target_timerange", {})
+                target["start"] = int(target.get("start") or 0)
+                target["duration"] = duration
+                source = segment.setdefault("source_timerange", {})
+                source["start"] = int(source.get("start") or 0)
+                source["duration"] = duration
+                restored_segments.append(segment)
+            if restored_segments:
+                restored_track["segments"] = restored_segments
+                tracks.append(restored_track)
+
+        content_path.write_text(json.dumps(data, ensure_ascii=False, indent=4), encoding="utf-8")
+        patched += 1
+
+    return patched
+
 
 def probe_duration(path: Path) -> float:
     completed = subprocess.run(
@@ -289,7 +456,16 @@ def run_pipeline(
         raise FileNotFoundError(f"Video not found: {video}")
 
     existing_capcut_draft = capcut_drafts / draft_id if draft_id else None
-    effect_snapshot = capture_effect_timeline_snapshot(existing_capcut_draft) if existing_capcut_draft else None
+    # Blur hardsub is handled by FFmpeg before the video is inserted into CapCut.
+    # Do not recreate CapCut Blur effect tracks here; they can cover the whole screen.
+    effect_snapshot = None
+    brand_snapshot = None
+    if existing_capcut_draft and existing_capcut_draft.exists():
+        brand_snapshot = capture_brand_overlay_snapshot(existing_capcut_draft)
+        if brand_snapshot:
+            save_brand_overlay_snapshot(existing_capcut_draft, brand_snapshot)
+    if not brand_snapshot and existing_capcut_draft:
+        brand_snapshot = load_brand_overlay_snapshot(existing_capcut_draft)
 
     source_duration = probe_duration(video)
     clip_duration = min(clip_seconds or source_duration, source_duration)
@@ -336,15 +512,25 @@ def run_pipeline(
 
     repo_draft = Path.cwd() / draft_id
     capcut_draft = capcut_drafts / draft_id
-    restored_effect_files = restore_effect_timeline_snapshot(
-        repo_draft,
-        effect_snapshot,
-        ensure_default_blur=preserve_blur_effect,
-    )
+    restored_effect_files = 0
     if copy_to_capcut:
-        if capcut_draft.exists():
-            shutil.rmtree(capcut_draft)
-        shutil.copytree(repo_draft, capcut_draft)
+        import time
+        max_attempts = 10
+        for attempt in range(1, max_attempts + 1):
+            try:
+                if capcut_draft.exists():
+                    shutil.rmtree(capcut_draft)
+                shutil.copytree(repo_draft, capcut_draft)
+                break
+            except (PermissionError, OSError) as e:
+                if attempt == max_attempts:
+                    raise e
+                print(f"[{attempt}/{max_attempts}] Không thể copy thư mục nháp sang CapCut vì file bị khóa. "
+                      f"Đang force kill CapCut.exe và thử lại sau 1.5s... Chi tiết: {e}")
+                subprocess.run(["taskkill", "/F", "/IM", "CapCut.exe"], capture_output=True)
+                time.sleep(1.5)
+        restore_brand_overlay_snapshot(capcut_draft, brand_snapshot)
+        save_brand_overlay_snapshot(capcut_draft, brand_snapshot)
 
     draft_info = repo_draft / "draft_info.json"
     draft_text = draft_info.read_text(encoding="utf-8") if draft_info.exists() else ""
@@ -361,6 +547,7 @@ def run_pipeline(
         "has_speed": f'"speed": {speed}' in draft_text,
         "has_subtitle_track": '"name": "subtitle_vi"' in draft_text,
         "restored_effect_files": restored_effect_files,
+        "restored_brand_files": 1 if brand_snapshot else 0,
         "save_result": save_result,
     }
 

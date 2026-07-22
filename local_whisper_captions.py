@@ -1,15 +1,28 @@
 import json
 import os
 import subprocess
-import tempfile
 import site
 import copy
+import tempfile
 from pathlib import Path
 from typing import Callable, Iterable
 
 import pyJianYingDraft as draft
 
 _WHISPER_MODEL_CACHE = {}
+
+
+def _build_atempo_filter(speed: float) -> str:
+    factors = []
+    remaining = float(speed)
+    while remaining < 0.5:
+        factors.append(0.5)
+        remaining /= 0.5
+    while remaining > 2.0:
+        factors.append(2.0)
+        remaining /= 2.0
+    factors.append(remaining)
+    return ",".join(f"atempo={factor:.8g}" for factor in factors)
 
 
 def _format_ts(seconds: float) -> str:
@@ -85,20 +98,6 @@ def _path_has_cuda_runtime() -> bool:
     return {"cublas", "cudnn"}.issubset(found)
 
 
-def _build_atempo_filter(speed: float) -> str:
-    filters = []
-    tempo = float(speed or 1.0)
-    while tempo > 2.0:
-        filters.append("atempo=2.0")
-        tempo /= 2.0
-    while tempo < 0.5:
-        filters.append("atempo=0.5")
-        tempo /= 0.5
-    if abs(tempo - 1.0) > 0.001:
-        filters.append(f"atempo={tempo}")
-    return ",".join(filters)
-
-
 def transcribe_video_to_segments(
     video_path: str | os.PathLike,
     *,
@@ -107,6 +106,7 @@ def transcribe_video_to_segments(
     model_size: str | None = None,
     device: str | None = None,
     compute_type: str | None = None,
+    transcribe_options: dict | None = None,
     progress_callback: Callable[[str], None] | None = None,
 ) -> tuple[list[dict], dict]:
     try:
@@ -116,7 +116,7 @@ def transcribe_video_to_segments(
             "Chưa cài faster-whisper. Chạy: python -m pip install faster-whisper==1.1.0"
         ) from exc
 
-    model_size = model_size or os.environ.get("WHISPER_MODEL", "large-v3-turbo")
+    model_size = model_size or os.environ.get("WHISPER_MODEL", "large-v3")
     device = device or os.environ.get("WHISPER_DEVICE", "cuda")
     added_dll_dirs = _prepend_nvidia_dll_dirs_to_path()
     if added_dll_dirs and progress_callback:
@@ -154,46 +154,99 @@ def transcribe_video_to_segments(
         "beam_size": 5,
         "condition_on_previous_text": True,
         "temperature": [0.0, 0.2, 0.4],
-        "hallucination_silence_threshold": 1.0,
+        # KHÔNG dùng hallucination_silence_threshold: nó lọc bỏ cả câu thoại có pause dài
         "vad_parameters": {
-            "min_silence_duration_ms": 500,
-            "speech_pad_ms": 200,
+            # Nhận biết giọng nói ngay cả khi có nhạc nền → threshold thấp hơn (mặc định 0.5)
+            "threshold": float(os.environ.get("WHISPER_VAD_THRESHOLD", "0.25")),
+            # Cho phép khoảng im lặng 250ms → ít bỏ sót câu hơn (cũ: 500ms)
+            "min_silence_duration_ms": int(os.environ.get("WHISPER_VAD_MIN_SILENCE_MS", "250")),
+            # Padding quanh đoạn phát hiện giọng nói → cũ 200ms, tăng lên 400ms
+            "speech_pad_ms": int(os.environ.get("WHISPER_VAD_SPEECH_PAD_MS", "400")),
         },
     }
+    if isinstance(transcribe_options, dict):
+        def to_bool(val, default=True):
+            if val is None: return default
+            if isinstance(val, bool): return val
+            s = str(val).strip().lower()
+            return s in ("true", "1", "yes", "on")
+
+        # Map whisper_* configurations from queue settings if provided
+        if "whisper_beam_size" in transcribe_options:
+            kwargs["beam_size"] = int(transcribe_options["whisper_beam_size"])
+        if "whisper_vad_filter" in transcribe_options:
+            kwargs["vad_filter"] = to_bool(transcribe_options["whisper_vad_filter"], True)
+        if "whisper_temperature" in transcribe_options:
+            kwargs["temperature"] = transcribe_options["whisper_temperature"]
+            
+        # Map VAD parameters if provided
+        vad_params = kwargs.setdefault("vad_parameters", {})
+        if "whisper_vad_threshold" in transcribe_options:
+            vad_params["threshold"] = float(transcribe_options["whisper_vad_threshold"])
+        if "whisper_vad_min_silence_ms" in transcribe_options:
+            vad_params["min_silence_duration_ms"] = int(transcribe_options["whisper_vad_min_silence_ms"])
+        if "whisper_vad_speech_pad_ms" in transcribe_options:
+            vad_params["speech_pad_ms"] = int(transcribe_options["whisper_vad_speech_pad_ms"])
+
+        option_aliases = {
+            "logprob_threshold": "log_prob_threshold",
+        }
+        allowed_options = {
+            "language",
+            "task",
+            "vad_filter",
+            "vad_parameters",
+            "word_timestamps",
+            "beam_size",
+            "best_of",
+            "temperature",
+            "condition_on_previous_text",
+            "log_prob_threshold",
+            "no_speech_threshold",
+            "compression_ratio_threshold",
+        }
+        for key, value in transcribe_options.items():
+            target_key = option_aliases.get(key, key)
+            if target_key in allowed_options:
+                kwargs[target_key] = value
 
     transcribe_path = str(video_path)
     temp_audio_path = None
     try:
-        speed = float(speed or 1.0)
+        requested_speed = float(speed or 1.0)
     except Exception:
-        speed = 1.0
-    if abs(speed - 1.0) > 0.001:
-        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
-        temp_audio_path = temp_file.name
-        temp_file.close()
+        requested_speed = 1.0
+    if abs(requested_speed - 1.0) > 0.001:
+        with tempfile.NamedTemporaryFile(prefix="capcut_whisper_speed_", suffix=".wav", delete=False) as temp_file:
+            temp_audio_path = temp_file.name
+        command = [
+            "ffmpeg",
+            "-y",
+            "-v",
+            "error",
+            "-i",
+            str(video_path),
+            "-vn",
+            "-filter:a",
+            _build_atempo_filter(requested_speed),
+            "-ar",
+            "16000",
+            "-ac",
+            "1",
+            temp_audio_path,
+        ]
         if progress_callback:
-            progress_callback(f"Đang trích audio đã làm chậm speed={speed} trước khi Whisper...")
-        atempo_filter = _build_atempo_filter(speed)
-        subprocess.run(
-            [
-                "ffmpeg",
-                "-y",
-                "-i",
-                str(video_path),
-                "-vn",
-                "-filter:a",
-                atempo_filter,
-                "-ac",
-                "1",
-                "-ar",
-                "16000",
-                temp_audio_path,
-            ],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE,
-            text=True,
-            check=True,
-        )
+            progress_callback(
+                f"Tách audio và chỉnh speed={requested_speed:g} trước Whisper: {temp_audio_path}"
+            )
+        completed = subprocess.run(command, text=True, capture_output=True)
+        if completed.returncode != 0:
+            try:
+                os.unlink(temp_audio_path)
+            except OSError:
+                pass
+            temp_audio_path = None
+            raise RuntimeError(f"ffmpeg render audio cho Whisper thất bại: {completed.stderr[-1200:]}")
         transcribe_path = temp_audio_path
 
     if progress_callback:
@@ -244,9 +297,12 @@ def transcribe_video_to_segments(
             "repeat_tail": 0,
         }
         recent_texts = []
-        strict_filter = os.environ.get("CAPCUT_WHISPER_STRICT_FILTER", "true").strip().lower() in {
-            "1", "true", "yes", "on"
-        }
+        if isinstance(transcribe_options, dict) and "strict_filter" in transcribe_options:
+            strict_filter = bool(transcribe_options.get("strict_filter"))
+        else:
+            strict_filter = os.environ.get("CAPCUT_WHISPER_STRICT_FILTER", "true").strip().lower() in {
+                "1", "true", "yes", "on"
+            }
         for segment in raw_segment_objects:
             text = (segment.text or "").strip()
             start = float(segment.start or 0.0)
@@ -261,9 +317,14 @@ def transcribe_video_to_segments(
                 word_text = str(getattr(word, "word", "") or "").strip()
                 if not word_text:
                     continue
+                w_start = float(getattr(word, "start", 0.0) or 0.0)
+                w_end = float(getattr(word, "end", 0.0) or 0.0)
+                # Giới hạn thời lượng từ đơn tối đa 1.0s (tránh lỗi Whisper kéo dài từ cuối qua nhạc nền/im lặng)
+                if w_end - w_start > 1.0:
+                    w_end = w_start + 0.5
                 words.append({
-                    "start": float(getattr(word, "start", 0.0) or 0.0),
-                    "end": float(getattr(word, "end", 0.0) or 0.0),
+                    "start": w_start,
+                    "end": w_end,
                     "word": word_text,
                     "probability": float(getattr(word, "probability", 0.0) or 0.0),
                 })
@@ -292,11 +353,15 @@ def transcribe_video_to_segments(
                 continue
 
             suspicious_reasons = []
-            if avg_logprob is not None and float(avg_logprob) < -1.25:
+            # Nới ngưỡng avg_logprob: game audio có nhạc nền làm logprob thấp hơn bình thường
+            logprob_thresh = float(kwargs.get("log_prob_threshold", os.environ.get("WHISPER_LOGPROB_THRESHOLD", "-1.5")))
+            if avg_logprob is not None and float(avg_logprob) < logprob_thresh:
                 suspicious_reasons.append("low_logprob")
             if temperature >= 0.8:
                 suspicious_reasons.append("high_temperature")
-            if no_speech_prob is not None and float(no_speech_prob) > 0.75:
+            # Nới ngưỡng no_speech_prob: game audio hay bị nhận nhầm là không có giọng nói
+            no_speech_thresh = float(kwargs.get("no_speech_threshold", os.environ.get("WHISPER_NO_SPEECH_THRESHOLD", "0.88")))
+            if no_speech_prob is not None and float(no_speech_prob) > no_speech_thresh:
                 suspicious_reasons.append("high_no_speech")
             if compression_ratio is not None and float(compression_ratio) > 2.8:
                 suspicious_reasons.append("high_compression")
@@ -355,6 +420,7 @@ def _import_srt_to_content(
     width: int,
     height: int,
     track_name: str = "subtitle",
+    subtitle_offset_ms: int = 0,
 ) -> int:
     script = draft.Script_file.load_template(str(content_path))
     before = len((script.content.get("materials") or {}).get("texts") or [])
@@ -362,7 +428,7 @@ def _import_srt_to_content(
     script.import_srt(
         srt_text,
         track_name=track_name,
-        time_offset=0,
+        time_offset=float(subtitle_offset_ms) / 1000.0,
         text_style=draft.Text_style(
             size=font_size,
             color=_hex_to_rgb(font_color),
@@ -605,7 +671,13 @@ def patch_draft_with_local_whisper(
     font_color: str = "#FFFFFF",
     width: int = 1920,
     height: int = 1080,
+    subtitle_offset_ms: int = 0,
     progress_callback: Callable[[str], None] | None = None,
+    translate_func: Callable[[list[str]], list[str]] | None = None,
+    model_size: str | None = None,
+    device: str | None = None,
+    compute_type: str | None = None,
+    transcribe_options: dict | None = None,
 ) -> dict:
     draft_path = Path(draft_path)
     repo_root = Path(repo_root)
@@ -615,114 +687,126 @@ def patch_draft_with_local_whisper(
         video_path,
         language=language,
         speed=speed,
+        model_size=model_size,
+        device=device,
+        compute_type=compute_type,
+        transcribe_options=transcribe_options,
         progress_callback=progress_callback,
     )
     if not segments:
         raise RuntimeError("Whisper không tạo ra dòng phụ đề nào.")
 
-    raw_segments = segments
-    merged_segments = raw_segments
+    # Dịch toàn bộ ngữ cảnh tiếng Trung trước khi chia dòng
+    if translate_func:
+        if progress_callback:
+            progress_callback("Đang dịch AI toàn bộ phụ đề tiếng Trung trước để giữ nguyên ngữ cảnh...")
+        zh_texts = [seg["text"] for seg in segments]
+        try:
+            vi_texts = translate_func(zh_texts)
+            for seg, vi in zip(segments, vi_texts):
+                seg["text_vi"] = vi
+        except Exception as e:
+            if progress_callback:
+                progress_callback(f"Lỗi dịch AI trong lúc chuẩn bị ngắt câu: {e}. Dùng tiếng Trung gốc.")
+            for seg in segments:
+                seg["text_vi"] = seg["text"]
+    else:
+        for seg in segments:
+            seg["text_vi"] = seg["text"]
 
-
-    duration = max((float(segment.get("end", 0) or 0) for segment in raw_segments), default=0.0)
-    all_raw_segments = raw_whisper_output.get("all_raw_segments") or []
-
-    unfiltered_whisper_dump = {
-        "draft_id": draft_id,
-        "video_path": str(video_path),
-        "language": language,
-        "speed": speed,
-        "duration": duration,
-        "segment_count": len(all_raw_segments),
-        "raw_segment_count": len(raw_whisper_output.get("segments_repr") or []),
-        "filtered_counts": raw_whisper_output.get("filtered_counts") or {},
-        "segments": all_raw_segments,
-    }
-
-    raw_whisper_dump = {
-        "draft_id": draft_id,
-        "video_path": str(video_path),
-        "language": language,
-        "speed": speed,
-        "duration": duration,
-        "segment_count": len(raw_segments),
-        "raw_segment_count": len(raw_whisper_output.get("segments_repr") or []),
-        "filtered_counts": raw_whisper_output.get("filtered_counts") or {},
-        "segments": raw_segments,
-    }
-
-    merged_whisper_dump = {
-        "draft_id": draft_id,
-        "video_path": str(video_path),
-        "language": language,
-        "speed": speed,
-        "duration": duration,
-        "segment_count": len(merged_segments),
-        "raw_segment_count": len(raw_whisper_output.get("segments_repr") or []),
-        "filtered_counts": raw_whisper_output.get("filtered_counts") or {},
-        "segments": merged_segments,
-    }
-
-    dump_unfiltered_json = draft_path / "whisper_unfiltered_segments.json"
-    dump_raw_json = draft_path / "whisper_raw_segments.json"
-    dump_merged_json = draft_path / "whisper_merged_segments.json"
-    dump_txt = draft_path / "whisper_segments_for_ai.txt"
-    dump_raw_txt = draft_path / "whisper_raw_segments_numbered.txt"
-    dump_raw = draft_path / "whisper_raw_object_repr.txt"
+    # Tiến hành chia nhỏ phụ đề dựa trên bản dịch tiếng Việt
+    max_duration = float(os.environ.get("WHISPER_MAX_SEGMENT_DURATION", "3.0"))
+    max_words = int(os.environ.get("WHISPER_MAX_SEGMENT_WORDS", "10"))
     
-    dump_unfiltered_json.write_text(json.dumps(unfiltered_whisper_dump, ensure_ascii=False, indent=2), encoding="utf-8")
-    dump_raw_json.write_text(json.dumps(raw_whisper_dump, ensure_ascii=False, indent=2), encoding="utf-8")
-    dump_merged_json.write_text(json.dumps(merged_whisper_dump, ensure_ascii=False, indent=2), encoding="utf-8")
-    dump_txt.write_text(segments_to_numbered_text(merged_segments), encoding="utf-8")
-    dump_raw_txt.write_text(segments_to_numbered_text(raw_segments), encoding="utf-8")
-    dump_raw.write_text(
-        "INFO\n"
-        f"{raw_whisper_output.get('info_repr', '')}\n\n"
-        "SEGMENTS\n"
-        + "\n".join(raw_whisper_output.get("segments_repr") or [])
-        + "\n",
-        encoding="utf-8",
-    )
+    split_segments = []
+    for seg in segments:
+        text_vi = seg.get("text_vi", "").strip()
+        text_zh = seg.get("text", "").strip()
+        words = seg.get("words", [])
+        vi_words = text_vi.split()
+        # Tự động co ngắn mốc thời gian của segment dựa trên từ thực tế đầu/cuối của Whisper
+        # Điều này giúp loại bỏ khoảng im lặng dài / nhạc nền gây trôi hoặc kéo dài phụ đề
+        if words:
+            # Phát hiện khoảng trống (gap) lớn giữa các từ để cắt bỏ phần trôi
+            # Tăng từ 3.0s lên 6.0s: game dialogue thường có pause dài giữa câu
+            word_gap_cutoff = float(os.environ.get("WHISPER_WORD_GAP_CUTOFF_S", "6.0"))
+            cutoff_index = len(words)
+            for idx in range(1, len(words)):
+                gap = words[idx]["start"] - words[idx-1]["end"]
+                if gap > word_gap_cutoff:
+                    cutoff_index = idx
+                    break
+            
+            valid_words = words[:cutoff_index]
+            if valid_words:
+                actual_start = float(valid_words[0].get("start", seg["start"]))
+                actual_end = float(valid_words[-1].get("end", seg["end"]))
+                if seg["start"] <= actual_start < actual_end <= seg["end"]:
+                    seg["start"] = actual_start
+                    seg["end"] = actual_end
+                elif actual_start < actual_end:
+                    # Đảm bảo co thời gian an toàn nếu mốc trôi nhẹ ra ngoài khoảng segment gốc
+                    seg["start"] = max(seg["start"], actual_start)
+                    seg["end"] = min(seg["end"], actual_end)
 
-    logs_dir = repo_root / "logs" / "whisper"
-    logs_dir.mkdir(parents=True, exist_ok=True)
-    safe_video_name = "".join(ch if ch.isalnum() or ch in {"-", "_"} else "_" for ch in Path(video_path).stem)[:80]
-    log_base = logs_dir / f"{draft_id}_{safe_video_name}"
-    
-    log_base.with_suffix(".unfiltered.json").write_text(
-        json.dumps(unfiltered_whisper_dump, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-    log_base.with_suffix(".raw.json").write_text(
-        json.dumps(raw_whisper_dump, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-    log_base.with_suffix(".merged.json").write_text(
-        json.dumps(merged_whisper_dump, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
-    log_base.with_suffix(".segments.txt").write_text(segments_to_numbered_text(merged_segments), encoding="utf-8")
-    log_base.with_suffix(".raw_object.txt").write_text(
-        "INFO\n"
-        f"{raw_whisper_output.get('info_repr', '')}\n\n"
-        "SEGMENTS\n"
-        + "\n".join(raw_whisper_output.get("segments_repr") or [])
-        + "\n",
-        encoding="utf-8",
-    )
-    if progress_callback:
-        progress_callback(f"Đã lưu output Whisper để test ghép câu: {log_base.with_suffix('.unfiltered.json')}")
-
-    srt_text_raw = segments_to_srt(raw_segments)
+        if (seg["end"] - seg["start"] > max_duration or len(vi_words) > max_words) and words and vi_words:
+            chunks_vi = []
+            current_chunk = []
+            for w in vi_words:
+                current_chunk.append(w)
+                if len(current_chunk) >= max_words:
+                    chunks_vi.append(" ".join(current_chunk))
+                    current_chunk = []
+            if current_chunk:
+                chunks_vi.append(" ".join(current_chunk))
+                
+            num_chunks = len(chunks_vi)
+            if num_chunks > 1:
+                total_zh_words = len(words)
+                zh_words_per_chunk = max(1, total_zh_words // num_chunks)
+                start_time = seg["start"]
+                for idx, chunk_vi in enumerate(chunks_vi):
+                    start_zh_idx = idx * zh_words_per_chunk
+                    end_zh_idx = min(total_zh_words - 1, (idx + 1) * zh_words_per_chunk - 1)
+                    
+                    if idx == 0:
+                        chunk_start = seg["start"]
+                    else:
+                        chunk_start = float(words[start_zh_idx].get("start", start_time))
+                        
+                    if idx == num_chunks - 1:
+                        chunk_end = seg["end"]
+                    else:
+                        chunk_end = float(words[end_zh_idx].get("end", seg["end"]))
+                        
+                    if chunk_end <= chunk_start:
+                        chunk_end = chunk_start + 0.5
+                        
+                    split_segments.append({
+                        "id": len(split_segments) + 1,
+                        "start": chunk_start,
+                        "end": chunk_end,
+                        "text": chunk_vi,
+                    })
+                    start_time = chunk_end
+            else:
+                split_segments.append({
+                    "id": len(split_segments) + 1,
+                    "start": seg["start"],
+                    "end": seg["end"],
+                    "text": text_vi,
+                })
+        else:
+            split_segments.append({
+                "id": len(split_segments) + 1,
+                "start": seg["start"],
+                "end": seg["end"],
+                "text": text_vi or text_zh,
+            })
+            
+    merged_segments = split_segments
     srt_text_merged = segments_to_srt(merged_segments)
-    
-    srt_path_raw = draft_path / "whisper_zh_raw.srt"
-    srt_path_merged = draft_path / "whisper_zh_merged.srt"
     srt_path = draft_path / "whisper_zh.srt"
-
-    srt_path_raw.write_text(srt_text_raw, encoding="utf-8")
-    srt_path_merged.write_text(srt_text_merged, encoding="utf-8")
-    srt_path.write_text(srt_text_merged, encoding="utf-8")
 
     added = _import_srt_to_content(
         content_path,
@@ -732,14 +816,13 @@ def patch_draft_with_local_whisper(
         font_color=font_color,
         width=width,
         height=height,
+        subtitle_offset_ms=subtitle_offset_ms,
     )
 
     repo_draft_path = repo_root / draft_id
     repo_content_path = repo_draft_path / content_path.name
     if repo_content_path.exists():
         repo_content_path.write_text(content_path.read_text(encoding="utf-8"), encoding="utf-8")
-        (repo_draft_path / "whisper_zh_raw.srt").write_text(srt_text_raw, encoding="utf-8")
-        (repo_draft_path / "whisper_zh_merged.srt").write_text(srt_text_merged, encoding="utf-8")
         (repo_draft_path / "whisper_zh.srt").write_text(srt_text_merged, encoding="utf-8")
 
     return {

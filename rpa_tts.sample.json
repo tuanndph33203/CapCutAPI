@@ -5,13 +5,18 @@
             "click_x_ratio": 0.5,
             "click_y_from_bottom": 150,
             "pause_after_click": 0.5,
-            "pause_after_hotkey": 1
+            "pause_after_hotkey": 1,
+            "verify_template": "rpa_templates/tts_button.png",
+            "verify_threshold": 0.68
         },
         {
             "template": "rpa_templates/tts_button.png",
             "threshold": 0.68,
             "action": "click_template",
-            "timeout": 30,
+            "timeout": 0.5,
+            "attempts": 30,
+            "retry_delay": 0,
+            "warn_after": 10,
             "search_region": [
                 0.6667,
                 0.0,
@@ -23,7 +28,10 @@
             "template": "rpa_templates/voice_star_button.png",
             "threshold": 0.68,
             "action": "click_template",
-            "timeout": 30,
+            "timeout": 0.5,
+            "attempts": 30,
+            "retry_delay": 0,
+            "warn_after": 10,
             "search_region": [
                 0.6667,
                 0.0,
@@ -52,12 +60,15 @@
             "template": "rpa_templates/generate_speech_button.png",
             "threshold": 0.68,
             "action": "click_template",
-            "timeout": 30,
+            "timeout": 0.5,
+            "attempts": 30,
+            "retry_delay": 0,
+            "warn_after": 10,
             "search_region": [
                 0.6667,
                 0.0,
                 1.0,
-                0.45
+                0.65
             ]
         },
         {

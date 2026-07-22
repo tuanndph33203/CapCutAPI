@@ -945,12 +945,18 @@
                         <input type="hidden" id="detail-config-folder">
 
                         <div class="form-group">
-                            <label for="detail-video-path">Đường dẫn Video đầu vào (tuyệt đối)</label>
-                            <div style="display: flex; gap: 10px;">
-                                <textarea id="detail-video-path" rows="4"
-                                    placeholder="C:\Users\PC\Videos\input1.mp4&#10;C:\Users\PC\Videos\input2.mp4"></textarea>
-                                <button class="btn btn-secondary" id="btn-browse-detail-video" type="button"
-                                    style="width: auto; padding: 0 15px;">📂</button>
+                            <label>Danh sách Video đầu vào (tuyệt đối)</label>
+                            <textarea id="detail-video-path" style="display: none;"></textarea>
+                            <div class="video-list-wrapper" style="border: 1px solid var(--border-color); border-radius: 8px; background: rgba(255,255,255,0.01); padding: 10px;">
+                                <div id="detail-video-list-container" style="max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; padding-right: 4px;">
+                                    <!-- Rendered dynamically -->
+                                </div>
+                                <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center; border-top: 1px solid var(--border-color); padding-top: 8px;">
+                                    <span style="font-size: 0.8rem; color: var(--text-muted); margin-right: auto;" id="detail-video-count-info">0 video</span>
+                                    <button class="btn btn-secondary" id="btn-add-detail-video-manual" type="button" style="width: auto; padding: 4px 10px; font-size: 0.75rem;">+ Thêm thủ công</button>
+                                    <button class="btn btn-secondary" id="btn-browse-detail-video" type="button" style="width: auto; padding: 4px 10px; font-size: 0.75rem; display: flex; align-items: center; gap: 4px;">📂 Chọn file</button>
+                                    <button class="btn btn-danger" id="btn-clear-detail-videos" type="button" style="width: auto; padding: 4px 10px; font-size: 0.75rem; background: var(--error-color); border: none; display: flex; align-items: center; gap: 4px;">🗑️ Xóa hết</button>
+                                </div>
                             </div>
                         </div>
 
@@ -967,11 +973,34 @@
 
                         <div class="form-row">
                             <div class="form-group">
-                                <label for="detail-tts-speed">Tốc độ Đọc (Step 7)</label>
                                 <label for="detail-mirror-video">Mirror video mặc định</label>
                                 <label style="display:flex;align-items:center;gap:8px;height:38px;">
                                     <input type="checkbox" id="detail-mirror-video" checked>
                                     <span>Lật ngang video khi patch</span>
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label for="detail-hardsub-blur">Làm mờ chữ (Blur)</label>
+                                <label style="display:flex;align-items:center;gap:8px;height:38px;">
+                                    <input type="checkbox" id="detail-hardsub-blur" checked>
+                                    <span>Bật làm mờ chữ (Nặng/Slow)</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="detail-use-local-ocr">Nhận diện phụ đề bằng OCR</label>
+                                <label style="display:flex;align-items:center;gap:8px;height:38px;">
+                                    <input type="checkbox" id="detail-use-local-ocr">
+                                    <span>Sử dụng PaddleOCR quét chữ thay vì Whisper</span>
+                                </label>
+                            </div>
+                            <div class="form-group">
+                                <label for="detail-use-local-whisper">Sử dụng local Whisper</label>
+                                <label style="display:flex;align-items:center;gap:8px;height:38px;">
+                                    <input type="checkbox" id="detail-use-local-whisper" checked>
+                                    <span>Dùng Whisper nhận dạng tiếng (Mặc định)</span>
                                 </label>
                             </div>
                         </div>
@@ -1002,6 +1031,52 @@
                                 <label for="detail-font-name">Font chữ</label>
                                 <input type="text" id="detail-font-name"
                                     value="C:/Users/nguye/AppData/Local/CapCut/Apps/8.9.1.3802/Resources/Font/SystemFont/en.ttf">
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="detail-subtitle-offset">Lệch sub (ms) <span style="font-size:0.8em;color:var(--text-muted)">+delay / -sớm</span></label>
+                                <input type="number" id="detail-subtitle-offset" step="50" value="0"
+                                    title="Sub hiện sớm hơn lời? → nhập số dương (vd: 200). Sub hiện trễ? → nhập số âm (vd: -100)">
+                            </div>
+                            <div class="form-group">
+                                <label for="detail-whisper-model">Model Whisper GPU</label>
+                                <select id="detail-whisper-model">
+                                    <option value="large-v3">large-v3 (Chất lượng cao nhất - Khuyên dùng)</option>
+                                    <option value="large-v3-turbo">large-v3-turbo (Tốc độ nhanh)</option>
+                                    <option value="medium">medium (Cân bằng)</option>
+                                    <option value="small">small (Nhẹ)</option>
+                                    <option value="base">base (Siêu nhẹ)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="detail-whisper-vad-filter">Bộ lọc khoảng im lặng (VAD Filter)</label>
+                                <label style="display:flex;align-items:center;gap:8px;height:38px;">
+                                    <input type="checkbox" id="detail-whisper-vad-filter" checked>
+                                    <span>Lọc bỏ tạp âm/hallucination của Whisper</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="detail-canvas-ratio">📐 Tỷ lệ Canvas (Aspect Ratio)</label>
+                                <select id="detail-canvas-ratio" style="background: linear-gradient(135deg, rgba(0,242,254,0.08), rgba(155,81,224,0.08)); border-color: rgba(0,242,254,0.3);">
+                                    <option value="16:9">🖥️ 16:9 — Ngang (1920×1080)</option>
+                                    <option value="9:16">📱 9:16 — Dọc (1080×1920)</option>
+                                    <option value="1:1">⬛ 1:1 — Vuông (1080×1080)</option>
+                                    <option value="4:3">📺 4:3 — Cổ điển (1440×1080)</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="display:flex; align-items:flex-end; padding-bottom: 2px;">
+                                <div id="detail-canvas-preview" style="font-size:0.78rem; color: var(--text-muted); padding: 9px 10px; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(255,255,255,0.02); width:100%; text-align:center; line-height:1.5;">
+                                    <span style="font-weight:700; color: var(--accent-cyan);">1920 × 1080</span><br>
+                                    <span style="font-size:0.72rem;">canvas_width × canvas_height</span>
+                                </div>
                             </div>
                         </div>
 
@@ -1085,6 +1160,19 @@
                             style="width:auto; padding:8px 12px;">Tiếp tục</button>
                         <button class="btn btn-secondary" id="btn-clear" style="width:auto; padding:8px 12px;">Xóa hàng
                             chờ</button>
+                    </div>
+                </div>
+                <!-- Queue Diagnostics Panel -->
+                <div id="diagnostics-panel" style="margin-bottom: 12px; font-size: 0.82rem; padding: 10px; border-radius: 6px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 6px;">
+                    <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                        <div>⚙️ <strong>Workers:</strong> 
+                            <span id="worker-preprocess-status" style="margin-right: 15px; font-weight: 500;">Preprocess: <span style="color: var(--text-muted);">INACTIVE</span></span>
+                            <span id="worker-gui-status" style="font-weight: 500;">GUI: <span style="color: var(--text-muted);">INACTIVE</span></span>
+                        </div>
+                        <div>📁 <strong>Buffers:</strong> 
+                            <span id="buffer-a-status" style="margin-right: 15px; font-weight: 500;">A (00000000000): <span style="color: #6fcf97;">FREE</span></span>
+                            <span id="buffer-b-status" style="font-weight: 500;">B (111111111111111111): <span style="color: #6fcf97;">FREE</span></span>
+                        </div>
                     </div>
                 </div>
                 <div id="queue-status-tabs" style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
@@ -1323,6 +1411,7 @@
 
             const formDetailConfig = document.getElementById('form-detail-config');
             const btnBrowseDetailVideo = document.getElementById('btn-browse-detail-video');
+            const btnClearDetailVideos = document.getElementById('btn-clear-detail-videos');
             const btnDetailRun = document.getElementById('btn-detail-run');
             const detailVideoPathInput = document.getElementById('detail-video-path');
 
@@ -1365,6 +1454,33 @@
                         .catch(() => log('Khong gui duoc trang thai tu tat may len server.', 'error'));
                 });
             }
+            // Canvas ratio helpers
+            const CANVAS_RATIO_MAP = {
+                '16:9':  { canvas_width: 1920, canvas_height: 1080 },
+                '9:16':  { canvas_width: 1080, canvas_height: 1920 },
+                '1:1':   { canvas_width: 1080, canvas_height: 1080 },
+                '4:3':   { canvas_width: 1440, canvas_height: 1080 },
+            };
+            function canvasRatioDimensions(ratio) {
+                return CANVAS_RATIO_MAP[ratio] || CANVAS_RATIO_MAP['16:9'];
+            }
+            function detectCanvasRatio(w, h) {
+                for (const [key, val] of Object.entries(CANVAS_RATIO_MAP)) {
+                    if (val.canvas_width === w && val.canvas_height === h) return key;
+                }
+                // Fuzzy match by aspect ratio
+                const ar = w / Math.max(h, 1);
+                if (ar > 1.6) return '16:9';
+                if (ar < 0.65) return '9:16';
+                if (Math.abs(ar - 1) < 0.05) return '1:1';
+                return '16:9';
+            }
+            function updateCanvasPreview(w, h) {
+                const preview = document.getElementById('detail-canvas-preview');
+                if (!preview) return;
+                preview.innerHTML = `<span style="font-weight:700; color: var(--accent-cyan);">${w} × ${h}</span><br><span style="font-size:0.72rem;">canvas_width × canvas_height</span>`;
+            }
+
             let cachedGlobalSettings = null;
             let settingsProfilesDraft = [];
             let aiProfileEditingIndex = -1;
@@ -1434,6 +1550,15 @@
                     updateDetailAiSummary('detail-context-ai-profile', 'detail-context-ai-summary', profiles);
                 });
             });
+
+            // Canvas ratio live preview update
+            const detailCanvasRatioSelect = document.getElementById('detail-canvas-ratio');
+            if (detailCanvasRatioSelect) {
+                detailCanvasRatioSelect.addEventListener('change', () => {
+                    const dims = canvasRatioDimensions(detailCanvasRatioSelect.value);
+                    updateCanvasPreview(dims.canvas_width, dims.canvas_height);
+                });
+            }
 
             // Logging function
             function log(message, type = 'info') {
@@ -1553,14 +1678,21 @@
                                 <label for="ai-profile-provider">Provider</label>
                                 <select id="ai-profile-provider">
                                     <option value="openai">OpenAI Compatible</option>
+                                    <option value="chat">Chat (OpenAI Format)</option>
+                                    <option value="chatgpt">ChatGPT</option>
                                     <option value="gemini">Gemini</option>
                                     <option value="anthropic">Anthropic</option>
+                                    <option value="custom">Khác (Tự nhập)...</option>
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label for="ai-profile-model">Model</label>
                                 <input type="text" id="ai-profile-model" placeholder="google/gemma-4-31b-it">
                             </div>
+                        </div>
+                        <div class="form-group" id="ai-profile-provider-custom-container" style="display: none; margin-bottom: 12px;">
+                            <label for="ai-profile-provider-custom">Tên Provider tùy chỉnh</label>
+                            <input type="text" id="ai-profile-provider-custom" placeholder="Ví dụ: deepseek">
                         </div>
                         <div class="form-group">
                             <label for="ai-profile-api-key">API key</label>
@@ -1655,7 +1787,24 @@
                 document.getElementById('ai-profile-modal-title').textContent = aiProfileEditingIndex >= 0 ? 'Sửa AI Profile' : 'Thêm AI Profile';
                 document.getElementById('ai-profile-label').value = profile?.label || '';
                 document.getElementById('ai-profile-id').value = profile?.id || '';
-                document.getElementById('ai-profile-provider').value = profile?.provider || 'openai';
+                
+                const selectProvider = document.getElementById('ai-profile-provider');
+                const customProviderContainer = document.getElementById('ai-profile-provider-custom-container');
+                const customProviderInput = document.getElementById('ai-profile-provider-custom');
+                
+                const standardProviders = ['openai', 'chat', 'chatgpt', 'gemini', 'anthropic'];
+                const currentProvider = profile?.provider || 'openai';
+                
+                if (standardProviders.includes(currentProvider)) {
+                    selectProvider.value = currentProvider;
+                    customProviderContainer.style.display = 'none';
+                    customProviderInput.value = '';
+                } else {
+                    selectProvider.value = 'custom';
+                    customProviderContainer.style.display = 'block';
+                    customProviderInput.value = currentProvider;
+                }
+                
                 document.getElementById('ai-profile-model').value = profile?.model || '';
                 document.getElementById('ai-profile-api-key').value = profile?.api_key || '';
                 document.getElementById('ai-profile-base-url').value = profile?.base_url || '';
@@ -1685,10 +1834,14 @@
                     return;
                 }
 
+                const selectProvider = document.getElementById('ai-profile-provider').value;
+                const customProvider = document.getElementById('ai-profile-provider-custom').value.trim();
+                const finalProvider = selectProvider === 'custom' ? (customProvider || 'custom-provider') : selectProvider;
+
                 const profile = {
                     id: manualId || slugifyProfileId(label) || `custom-ai-${settingsProfilesDraft.length + 1}`,
                     label: label || manualId || `AI ${settingsProfilesDraft.length + 1}`,
-                    provider: document.getElementById('ai-profile-provider').value,
+                    provider: finalProvider,
                     model: document.getElementById('ai-profile-model').value.trim(),
                     api_key: document.getElementById('ai-profile-api-key').value.trim(),
                     base_url: document.getElementById('ai-profile-base-url').value.trim()
@@ -1857,6 +2010,83 @@
                     });
             });
 
+            // Visual Scrollable Video List Implementation
+            const detailVideoListContainer = document.getElementById('detail-video-list-container');
+            const detailVideoCountInfo = document.getElementById('detail-video-count-info');
+            const btnAddDetailVideoManual = document.getElementById('btn-add-detail-video-manual');
+
+            function updateVideoListUI() {
+                if (!detailVideoListContainer) return;
+                const paths = detailVideoPathInput.value.split(/\r?\n/).map(v => v.trim()).filter(Boolean);
+                detailVideoListContainer.innerHTML = '';
+                detailVideoCountInfo.innerText = `${paths.length} video`;
+
+                if (paths.length === 0) {
+                    detailVideoListContainer.innerHTML = `
+                        <div style="text-align: center; color: var(--text-muted); font-size: 0.8rem; padding: 15px 0;">
+                            Chưa có video nào. Bấm 'Chọn file' hoặc 'Thêm thủ công'.
+                        </div>
+                    `;
+                    return;
+                }
+
+                paths.forEach((path, index) => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.style.display = 'flex';
+                    itemDiv.style.alignItems = 'center';
+                    itemDiv.style.gap = '8px';
+                    itemDiv.style.background = 'rgba(255,255,255,0.03)';
+                    itemDiv.style.padding = '6px 10px';
+                    itemDiv.style.borderRadius = '4px';
+                    itemDiv.style.border = '1px solid var(--border-color)';
+
+                    itemDiv.innerHTML = `
+                        <span style="font-size: 0.8rem; font-weight: 600; color: var(--accent-cyan); width: 24px; text-align: left;">${index + 1}.</span>
+                        <div style="flex: 1; font-size: 0.8rem; font-family: 'JetBrains Mono', monospace; color: var(--text-color); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left;" title="${path}">
+                            ${path}
+                        </div>
+                        <button class="btn btn-secondary btn-edit-path" type="button" style="width: auto; padding: 2px 8px; font-size: 0.7rem; height: 24px; border-color: rgba(255,255,255,0.15);" data-index="${index}">Sửa</button>
+                        <button class="btn btn-danger btn-delete-path" type="button" style="width: auto; padding: 2px 8px; font-size: 0.7rem; height: 24px; background: var(--error-color); border: none; margin-left: 4px;" data-index="${index}">Xóa</button>
+                    `;
+
+                    // Edit handler
+                    itemDiv.querySelector('.btn-edit-path').addEventListener('click', () => {
+                        const newPath = prompt('Sửa đường dẫn video:', path);
+                        if (newPath !== null) {
+                            const trimmed = newPath.trim();
+                            if (trimmed) {
+                                paths[index] = trimmed;
+                                detailVideoPathInput.value = paths.join('\n');
+                                updateVideoListUI();
+                            }
+                        }
+                    });
+
+                    // Delete handler
+                    itemDiv.querySelector('.btn-delete-path').addEventListener('click', () => {
+                        if (confirm(`Bạn muốn xóa video thứ ${index + 1} khỏi danh sách?`)) {
+                            paths.splice(index, 1);
+                            detailVideoPathInput.value = paths.join('\n');
+                            updateVideoListUI();
+                        }
+                    });
+
+                    detailVideoListContainer.appendChild(itemDiv);
+                });
+            }
+
+            if (btnAddDetailVideoManual) {
+                btnAddDetailVideoManual.addEventListener('click', () => {
+                    const path = prompt('Nhập đường dẫn tuyệt đối của file video:');
+                    if (path && path.trim()) {
+                        const current = detailVideoPathInput.value.split(/\r?\n/).map(v => v.trim()).filter(Boolean);
+                        current.push(path.trim());
+                        detailVideoPathInput.value = current.join('\n');
+                        updateVideoListUI();
+                    }
+                });
+            }
+
             btnBrowseDetailVideo.addEventListener('click', () => {
                 log('Đang mở hộp thoại chọn file video...');
                 fetch('/api/select_files', { method: 'POST' })
@@ -1868,10 +2098,26 @@
                                 if (!current.includes(file)) current.push(file);
                             });
                             detailVideoPathInput.value = current.join('\n');
+                            updateVideoListUI();
                             log(`Đã thay đổi video: ${data.files[0]}`, 'success');
                         }
                     });
             });
+
+            if (btnClearDetailVideos) {
+                btnClearDetailVideos.addEventListener('click', () => {
+                    const paths = detailVideoPathInput.value.split(/\r?\n/).map(v => v.trim()).filter(Boolean);
+                    if (paths.length === 0) {
+                        alert('Danh sách video đã trống.');
+                        return;
+                    }
+                    if (confirm(`Bạn chắc chắn muốn xóa toàn bộ ${paths.length} video khỏi danh sách?`)) {
+                        detailVideoPathInput.value = '';
+                        updateVideoListUI();
+                        log('Đã xóa toàn bộ video khỏi danh sách.', 'warning');
+                    }
+                });
+            }
 
             // Back to projects grid
             btnBackToProjects.addEventListener('click', () => {
@@ -1905,8 +2151,19 @@
                             const badge = p.has_config ? `<div class="project-has-config-badge">Configured</div>` : '';
                             const firstChar = p.name ? p.name.charAt(0).toUpperCase() : 'P';
 
+                            // Canvas ratio badge
+                            const RATIO_ICONS = { '16:9': '🖥️', '9:16': '📱', '1:1': '⬛', '4:3': '📺' };
+                            const RATIO_COLORS = {
+                                '16:9': 'rgba(0,242,254,0.85)',
+                                '9:16': 'rgba(155,81,224,0.85)',
+                                '1:1':  'rgba(242,153,74,0.85)',
+                                '4:3':  'rgba(39,174,96,0.85)'
+                            };
+                            const ratioBadge = p.canvas_ratio ? `<div style="position:absolute; top:8px; right:8px; background:${RATIO_COLORS[p.canvas_ratio] || 'rgba(0,242,254,0.85)'}; border-radius:5px; padding:2px 7px; font-size:0.65rem; font-weight:800; color:#0b0a10; z-index:3; pointer-events:none; letter-spacing:0.3px;">${RATIO_ICONS[p.canvas_ratio] || ''} ${p.canvas_ratio}</div>` : '';
+
                             card.innerHTML = `
                         ${badge}
+                        ${ratioBadge}
                         <div class="project-cover-container">
                             <img class="project-cover" src="/api/projects/${encodeURIComponent(p.folder)}/cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
                             <div class="project-placeholder-cover">${firstChar}</div>
@@ -1969,12 +2226,16 @@
                         detailVideoPathInput.value = Array.isArray(config.video_paths)
                             ? config.video_paths.join('\n')
                             : (config.video_path || '');
+                        updateVideoListUI();
                         document.getElementById('detail-speed').value = config.speed;
                         document.getElementById('detail-volume').value = config.volume_db;
                         document.getElementById('detail-tts-speed').value = config.tts_speed;
                         document.getElementById('detail-font-size').value = config.font_size;
                         document.getElementById('detail-font-color').value = config.font_color;
                         document.getElementById('detail-font-name').value = config.font_name;
+                        document.getElementById('detail-subtitle-offset').value = config.whisper_subtitle_offset_ms || 0;
+                        document.getElementById('detail-whisper-model').value = config.whisper_model || 'large-v3';
+                        document.getElementById('detail-whisper-vad-filter').checked = config.whisper_vad_filter !== false;
                         document.getElementById('detail-translation-method').value = config.translation_method || 'google';
                         renderDetailAiProfileSelects(
                             config.available_ai_profiles || [],
@@ -1988,6 +2249,16 @@
                         document.getElementById('detail-target-language').value = config.target_language || 'Vietnamese';
                         document.getElementById('detail-ai-tone').value = config.ai_tone || 'natural and fluent';
                         document.getElementById('detail-ai-temperature').value = config.ai_temperature ?? 0.0;
+                        document.getElementById('detail-hardsub-blur').checked = config.hardsub_blur_enabled !== false;
+                        document.getElementById('detail-use-local-ocr').checked = config.use_local_ocr === true;
+                        document.getElementById('detail-use-local-whisper').checked = config.use_local_whisper === true;
+
+                        // Canvas ratio
+                        const cw = parseInt(config.canvas_width) || 1920;
+                        const ch = parseInt(config.canvas_height) || 1080;
+                        const detectedRatio = detectCanvasRatio(cw, ch);
+                        document.getElementById('detail-canvas-ratio').value = detectedRatio;
+                        updateCanvasPreview(cw, ch);
 
                         // Toggle view
                         projectsGridContainer.style.display = 'none';
@@ -2017,9 +2288,17 @@
                     target_language: document.getElementById('detail-target-language').value,
                     ai_tone: document.getElementById('detail-ai-tone').value,
                     video_context: document.getElementById('detail-video-context').value,
-                    ai_temperature: parseFloat(document.getElementById('detail-ai-temperature').value)
+                    ai_temperature: parseFloat(document.getElementById('detail-ai-temperature').value),
+                    hardsub_blur_enabled: document.getElementById('detail-hardsub-blur').checked,
+                    use_local_ocr: document.getElementById('detail-use-local-ocr').checked,
+                    use_local_whisper: document.getElementById('detail-use-local-whisper').checked,
+                    whisper_subtitle_offset_ms: parseInt(document.getElementById('detail-subtitle-offset').value) || 0,
+                    whisper_model: document.getElementById('detail-whisper-model').value,
+                    whisper_vad_filter: document.getElementById('detail-whisper-vad-filter').checked,
+                    ...canvasRatioDimensions(document.getElementById('detail-canvas-ratio').value)
                 };
             }
+
 
             // Save project configuration form from details screen
             formDetailConfig.addEventListener('submit', (e) => {
@@ -2077,7 +2356,7 @@
                 fetch('/api/queue/add', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ folder: folder })
+                    body: JSON.stringify({ folder: folder, replace_queue: !!autoStart })
                 })
                     .then(res => res.json())
                     .then(data => {
@@ -2288,6 +2567,40 @@
                         systemStatusDot.className = 'status-dot active';
                         systemStatusText.innerText = 'Máy chủ Hoạt động';
                         isProcessing = data.is_processing;
+                        
+                        // Update diagnostics UI
+                        const workers = data.workers || { preprocess: 'inactive', gui: 'inactive' };
+                        const preprocessStatusEl = document.getElementById('worker-preprocess-status');
+                        const guiStatusEl = document.getElementById('worker-gui-status');
+                        if (preprocessStatusEl) {
+                            preprocessStatusEl.innerHTML = `Preprocess: <span style="color: ${workers.preprocess === 'active' ? '#6fcf97' : 'var(--text-muted)'};">${workers.preprocess.toUpperCase()}</span>`;
+                        }
+                        if (guiStatusEl) {
+                            guiStatusEl.innerHTML = `GUI: <span style="color: ${workers.gui === 'active' ? '#6fcf97' : 'var(--text-muted)'};">${workers.gui.toUpperCase()}</span>`;
+                        }
+
+                        const buffers = data.buffer_status || {};
+                        const bufA = buffers["00000000000"] || { occupied: false, owner_video: '', owner_status: 'free' };
+                        const bufB = buffers["111111111111111111"] || { occupied: false, owner_video: '', owner_status: 'free' };
+                        
+                        const bufAEl = document.getElementById('buffer-a-status');
+                        const bufBEl = document.getElementById('buffer-b-status');
+                        
+                        if (bufAEl) {
+                            if (bufA.occupied) {
+                                bufAEl.innerHTML = `A (00000000000): <span style="color: #f2994a; font-weight: 500;">${bufA.owner_video} (${bufA.owner_status})</span>`;
+                            } else {
+                                bufAEl.innerHTML = `A (00000000000): <span style="color: #6fcf97;">FREE</span>`;
+                            }
+                        }
+                        if (bufBEl) {
+                            if (bufB.occupied) {
+                                bufBEl.innerHTML = `B (111111111111111111): <span style="color: #f2994a; font-weight: 500;">${bufB.owner_video} (${bufB.owner_status})</span>`;
+                            } else {
+                                bufBEl.innerHTML = `B (111111111111111111): <span style="color: #6fcf97;">FREE</span>`;
+                            }
+                        }
+
                         const isPaused = !!data.is_paused;
                         if (typeof data.auto_shutdown !== 'undefined' && data.auto_shutdown !== autoShutdownEnabled) {
                             autoShutdownEnabled = !!data.auto_shutdown;

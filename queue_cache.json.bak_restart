@@ -1,0 +1,366 @@
+{
+  "queue": [
+    {
+      "type": "project",
+      "video": "C:\\Users\\nguye\\Videos\\Phim7\\毒神夜无梦第180集.mp4",
+      "draft_id": "00000000000",
+      "project_folder": "00000000000",
+      "config": {
+        "openreel_api_key": "",
+        "openreel_reference_keys": "",
+        "available_ai_profiles": [
+          {
+            "id": "gemma-default",
+            "label": "GEMMA",
+            "provider": "gemini",
+            "api_key": "env:GEMMA_API_KEY",
+            "model": "gemini-3.1-flash-lite",
+            "base_url": "https://generativelanguage.googleapis.com/v1beta/interactions"
+          }
+        ],
+        "default_translation_ai_profile_id": "gemma-default",
+        "default_context_ai_profile_id": "gemma-default",
+        "translation_ai_profile_id": "gemma-default",
+        "context_ai_profile_id": "gemma-default",
+        "video_path": "C:/Users/nguye/Videos/Phim7/毒神夜无梦第180集.mp4",
+        "video_paths": [
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第180集.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第181集.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第182集主页置顶视频可提前观看.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第183集.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第184集主页置顶视频可以提前观看.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第185集主页置顶视频可以提前观看.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第186集主页置顶视频可以提前观看.mp4"
+        ],
+        "speed": 0.77,
+        "volume_db": -20.5,
+        "tts_speed": 1.17,
+        "font_size": 5,
+        "font_color": "#f0ff00",
+        "font_name": "C:/Users/nguye/AppData/Local/CapCut/Apps/8.9.1.3802/Resources/Font/SystemFont/en.ttf",
+        "translation_method": "ai",
+        "source_language": "Chinese",
+        "target_language": "Vietnamese",
+        "ai_tone": "natural and fluent",
+        "video_context": "Short fantasy game online videos, MMORPG gameplay review, PvP server war",
+        "ai_temperature": 0.1,
+        "ai_base_url": ""
+      },
+      "status": "failed",
+      "progress": 45,
+      "resume_from_step": 3,
+      "message": "Lỗi: 'charmap' codec can't decode byte 0x9e in position 2362: character maps to <undefined>"
+    },
+    {
+      "type": "project",
+      "video": "C:\\Users\\nguye\\Videos\\Phim7\\毒神夜无梦第181集.mp4",
+      "draft_id": "00000000000",
+      "project_folder": "00000000000",
+      "config": {
+        "openreel_api_key": "",
+        "openreel_reference_keys": "",
+        "available_ai_profiles": [
+          {
+            "id": "gemma-default",
+            "label": "GEMMA",
+            "provider": "gemini",
+            "api_key": "env:GEMMA_API_KEY",
+            "model": "gemini-3.1-flash-lite",
+            "base_url": "https://generativelanguage.googleapis.com/v1beta/interactions"
+          }
+        ],
+        "default_translation_ai_profile_id": "gemma-default",
+        "default_context_ai_profile_id": "gemma-default",
+        "translation_ai_profile_id": "gemma-default",
+        "context_ai_profile_id": "gemma-default",
+        "video_path": "C:/Users/nguye/Videos/Phim7/毒神夜无梦第181集.mp4",
+        "video_paths": [
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第180集.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第181集.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第182集主页置顶视频可提前观看.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第183集.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第184集主页置顶视频可以提前观看.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第185集主页置顶视频可以提前观看.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第186集主页置顶视频可以提前观看.mp4"
+        ],
+        "speed": 0.77,
+        "volume_db": -20.5,
+        "tts_speed": 1.17,
+        "font_size": 5,
+        "font_color": "#f0ff00",
+        "font_name": "C:/Users/nguye/AppData/Local/CapCut/Apps/8.9.1.3802/Resources/Font/SystemFont/en.ttf",
+        "translation_method": "ai",
+        "source_language": "Chinese",
+        "target_language": "Vietnamese",
+        "ai_tone": "natural and fluent",
+        "video_context": "Short fantasy game online videos, MMORPG gameplay review, PvP server war",
+        "ai_temperature": 0.1,
+        "ai_base_url": ""
+      },
+      "status": "failed",
+      "progress": 45,
+      "resume_from_step": 3,
+      "message": "Lỗi: 'charmap' codec can't decode byte 0x9e in position 2362: character maps to <undefined>"
+    },
+    {
+      "type": "project",
+      "video": "C:\\Users\\nguye\\Videos\\Phim7\\毒神夜无梦第182集主页置顶视频可提前观看.mp4",
+      "draft_id": "00000000000",
+      "project_folder": "00000000000",
+      "config": {
+        "openreel_api_key": "",
+        "openreel_reference_keys": "",
+        "available_ai_profiles": [
+          {
+            "id": "gemma-default",
+            "label": "GEMMA",
+            "provider": "gemini",
+            "api_key": "env:GEMMA_API_KEY",
+            "model": "gemini-3.1-flash-lite",
+            "base_url": "https://generativelanguage.googleapis.com/v1beta/interactions"
+          }
+        ],
+        "default_translation_ai_profile_id": "gemma-default",
+        "default_context_ai_profile_id": "gemma-default",
+        "translation_ai_profile_id": "gemma-default",
+        "context_ai_profile_id": "gemma-default",
+        "video_path": "C:/Users/nguye/Videos/Phim7/毒神夜无梦第182集主页置顶视频可提前观看.mp4",
+        "video_paths": [
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第180集.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第181集.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第182集主页置顶视频可提前观看.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第183集.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第184集主页置顶视频可以提前观看.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第185集主页置顶视频可以提前观看.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第186集主页置顶视频可以提前观看.mp4"
+        ],
+        "speed": 0.77,
+        "volume_db": -20.5,
+        "tts_speed": 1.17,
+        "font_size": 5,
+        "font_color": "#f0ff00",
+        "font_name": "C:/Users/nguye/AppData/Local/CapCut/Apps/8.9.1.3802/Resources/Font/SystemFont/en.ttf",
+        "translation_method": "ai",
+        "source_language": "Chinese",
+        "target_language": "Vietnamese",
+        "ai_tone": "natural and fluent",
+        "video_context": "Short fantasy game online videos, MMORPG gameplay review, PvP server war",
+        "ai_temperature": 0.1,
+        "ai_base_url": ""
+      },
+      "status": "failed",
+      "progress": 45,
+      "resume_from_step": 3,
+      "message": "Lỗi: 'charmap' codec can't decode byte 0x9e in position 2362: character maps to <undefined>"
+    },
+    {
+      "type": "project",
+      "video": "C:\\Users\\nguye\\Videos\\Phim7\\毒神夜无梦第183集.mp4",
+      "draft_id": "00000000000",
+      "project_folder": "00000000000",
+      "config": {
+        "openreel_api_key": "",
+        "openreel_reference_keys": "",
+        "available_ai_profiles": [
+          {
+            "id": "gemma-default",
+            "label": "GEMMA",
+            "provider": "gemini",
+            "api_key": "env:GEMMA_API_KEY",
+            "model": "gemini-3.1-flash-lite",
+            "base_url": "https://generativelanguage.googleapis.com/v1beta/interactions"
+          }
+        ],
+        "default_translation_ai_profile_id": "gemma-default",
+        "default_context_ai_profile_id": "gemma-default",
+        "translation_ai_profile_id": "gemma-default",
+        "context_ai_profile_id": "gemma-default",
+        "video_path": "C:/Users/nguye/Videos/Phim7/毒神夜无梦第183集.mp4",
+        "video_paths": [
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第180集.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第181集.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第182集主页置顶视频可提前观看.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第183集.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第184集主页置顶视频可以提前观看.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第185集主页置顶视频可以提前观看.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第186集主页置顶视频可以提前观看.mp4"
+        ],
+        "speed": 0.77,
+        "volume_db": -20.5,
+        "tts_speed": 1.17,
+        "font_size": 5,
+        "font_color": "#f0ff00",
+        "font_name": "C:/Users/nguye/AppData/Local/CapCut/Apps/8.9.1.3802/Resources/Font/SystemFont/en.ttf",
+        "translation_method": "ai",
+        "source_language": "Chinese",
+        "target_language": "Vietnamese",
+        "ai_tone": "natural and fluent",
+        "video_context": "Short fantasy game online videos, MMORPG gameplay review, PvP server war",
+        "ai_temperature": 0.1,
+        "ai_base_url": ""
+      },
+      "status": "failed",
+      "progress": 45,
+      "resume_from_step": 3,
+      "message": "Lỗi: 'charmap' codec can't decode byte 0x9e in position 2362: character maps to <undefined>"
+    },
+    {
+      "type": "project",
+      "video": "C:\\Users\\nguye\\Videos\\Phim7\\毒神夜无梦第184集主页置顶视频可以提前观看.mp4",
+      "draft_id": "00000000000",
+      "project_folder": "00000000000",
+      "config": {
+        "openreel_api_key": "",
+        "openreel_reference_keys": "",
+        "available_ai_profiles": [
+          {
+            "id": "gemma-default",
+            "label": "GEMMA",
+            "provider": "gemini",
+            "api_key": "env:GEMMA_API_KEY",
+            "model": "gemini-3.1-flash-lite",
+            "base_url": "https://generativelanguage.googleapis.com/v1beta/interactions"
+          }
+        ],
+        "default_translation_ai_profile_id": "gemma-default",
+        "default_context_ai_profile_id": "gemma-default",
+        "translation_ai_profile_id": "gemma-default",
+        "context_ai_profile_id": "gemma-default",
+        "video_path": "C:/Users/nguye/Videos/Phim7/毒神夜无梦第184集主页置顶视频可以提前观看.mp4",
+        "video_paths": [
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第180集.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第181集.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第182集主页置顶视频可提前观看.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第183集.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第184集主页置顶视频可以提前观看.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第185集主页置顶视频可以提前观看.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第186集主页置顶视频可以提前观看.mp4"
+        ],
+        "speed": 0.77,
+        "volume_db": -20.5,
+        "tts_speed": 1.17,
+        "font_size": 5,
+        "font_color": "#f0ff00",
+        "font_name": "C:/Users/nguye/AppData/Local/CapCut/Apps/8.9.1.3802/Resources/Font/SystemFont/en.ttf",
+        "translation_method": "ai",
+        "source_language": "Chinese",
+        "target_language": "Vietnamese",
+        "ai_tone": "natural and fluent",
+        "video_context": "Short fantasy game online videos, MMORPG gameplay review, PvP server war",
+        "ai_temperature": 0.1,
+        "ai_base_url": ""
+      },
+      "status": "running",
+      "progress": 5,
+      "resume_from_step": 1,
+      "message": "Đang xử lý..."
+    },
+    {
+      "type": "project",
+      "video": "C:\\Users\\nguye\\Videos\\Phim7\\毒神夜无梦第185集主页置顶视频可以提前观看.mp4",
+      "draft_id": "00000000000",
+      "project_folder": "00000000000",
+      "config": {
+        "openreel_api_key": "",
+        "openreel_reference_keys": "",
+        "available_ai_profiles": [
+          {
+            "id": "gemma-default",
+            "label": "GEMMA",
+            "provider": "gemini",
+            "api_key": "env:GEMMA_API_KEY",
+            "model": "gemini-3.1-flash-lite",
+            "base_url": "https://generativelanguage.googleapis.com/v1beta/interactions"
+          }
+        ],
+        "default_translation_ai_profile_id": "gemma-default",
+        "default_context_ai_profile_id": "gemma-default",
+        "translation_ai_profile_id": "gemma-default",
+        "context_ai_profile_id": "gemma-default",
+        "video_path": "C:/Users/nguye/Videos/Phim7/毒神夜无梦第185集主页置顶视频可以提前观看.mp4",
+        "video_paths": [
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第180集.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第181集.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第182集主页置顶视频可提前观看.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第183集.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第184集主页置顶视频可以提前观看.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第185集主页置顶视频可以提前观看.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第186集主页置顶视频可以提前观看.mp4"
+        ],
+        "speed": 0.77,
+        "volume_db": -20.5,
+        "tts_speed": 1.17,
+        "font_size": 5,
+        "font_color": "#f0ff00",
+        "font_name": "C:/Users/nguye/AppData/Local/CapCut/Apps/8.9.1.3802/Resources/Font/SystemFont/en.ttf",
+        "translation_method": "ai",
+        "source_language": "Chinese",
+        "target_language": "Vietnamese",
+        "ai_tone": "natural and fluent",
+        "video_context": "Short fantasy game online videos, MMORPG gameplay review, PvP server war",
+        "ai_temperature": 0.1,
+        "ai_base_url": ""
+      },
+      "status": "pending",
+      "progress": 0,
+      "resume_from_step": 1,
+      "message": "Đang chờ..."
+    },
+    {
+      "type": "project",
+      "video": "C:\\Users\\nguye\\Videos\\Phim7\\毒神夜无梦第186集主页置顶视频可以提前观看.mp4",
+      "draft_id": "00000000000",
+      "project_folder": "00000000000",
+      "config": {
+        "openreel_api_key": "",
+        "openreel_reference_keys": "",
+        "available_ai_profiles": [
+          {
+            "id": "gemma-default",
+            "label": "GEMMA",
+            "provider": "gemini",
+            "api_key": "env:GEMMA_API_KEY",
+            "model": "gemini-3.1-flash-lite",
+            "base_url": "https://generativelanguage.googleapis.com/v1beta/interactions"
+          }
+        ],
+        "default_translation_ai_profile_id": "gemma-default",
+        "default_context_ai_profile_id": "gemma-default",
+        "translation_ai_profile_id": "gemma-default",
+        "context_ai_profile_id": "gemma-default",
+        "video_path": "C:/Users/nguye/Videos/Phim7/毒神夜无梦第186集主页置顶视频可以提前观看.mp4",
+        "video_paths": [
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第180集.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第181集.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第182集主页置顶视频可提前观看.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第183集.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第184集主页置顶视频可以提前观看.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第185集主页置顶视频可以提前观看.mp4",
+          "C:/Users/nguye/Videos/Phim7/毒神夜无梦第186集主页置顶视频可以提前观看.mp4"
+        ],
+        "speed": 0.77,
+        "volume_db": -20.5,
+        "tts_speed": 1.17,
+        "font_size": 5,
+        "font_color": "#f0ff00",
+        "font_name": "C:/Users/nguye/AppData/Local/CapCut/Apps/8.9.1.3802/Resources/Font/SystemFont/en.ttf",
+        "translation_method": "ai",
+        "source_language": "Chinese",
+        "target_language": "Vietnamese",
+        "ai_tone": "natural and fluent",
+        "video_context": "Short fantasy game online videos, MMORPG gameplay review, PvP server war",
+        "ai_temperature": 0.1,
+        "ai_base_url": ""
+      },
+      "status": "pending",
+      "progress": 0,
+      "resume_from_step": 1,
+      "message": "Đang chờ..."
+    }
+  ],
+  "config": {
+    "index": 0,
+    "auto_shutdown": false
+  },
+  "saved_at": 1783776180
+}
