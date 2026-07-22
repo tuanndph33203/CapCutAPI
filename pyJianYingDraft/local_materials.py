@@ -444,7 +444,7 @@ class Audio_material:
             "tone_second_category_name": "",
             "tone_speaker": "",
             "tone_type": "",
-            "type": "extract_music",
+            "type": "music",
             "video_id": "",
             "wave_points": []
         }

@@ -34,6 +34,7 @@ import pyautogui
 
 from pyJianYingDraft.capcut_controller import CapCutController, ExportResolution, ExportFramerate, capcut_process_ids, capcut_main_hwnd_and_rect
 from pyJianYingDraft.exceptions import AutomationError
+from offline_tts_patcher import patch_offline_tts_in_draft, clear_mini_draft_cache
 from settings import (
     TRANSLATION_ULTRA_SHORT_PROMPT_TEMPLATE,
     TRANSLATION_SYSTEM_PROMPT_TEMPLATE,
@@ -831,6 +832,8 @@ def draft_json_paths(draft_path):
         *root.glob("Timelines/*/draft_info.json"),
         *root.glob("Timelines/*/template.tmp"),
         *root.glob("Timelines/*/template-*.tmp"),
+        *root.glob("Timelines/*/attachment/patch/mini_draft.json"),
+        *root.glob("attachment/patch/mini_draft.json"),
     ]:
         if not path.exists() or not path.is_file():
             continue
@@ -896,6 +899,18 @@ def should_use_local_ocr(item_config):
         return config_bool(item_config.get("use_local_ocr"), False)
     return config_bool(os.environ.get("CAPCUT_USE_LOCAL_OCR"), True)
 
+def resolve_raw_original_video(vpath):
+    if not vpath:
+        return vpath
+    vpath_str = str(vpath)
+    for suffix in ["_vi.mp4", "_translated.mp4", "_out.mp4", "_export.mp4"]:
+        if vpath_str.lower().endswith(suffix):
+            raw_candidate = vpath_str[:-len(suffix)] + ".mp4"
+            if os.path.isfile(raw_candidate):
+                logger.info(f"Phát hiện video '{vpath_str}' là file xuất tiếng Việt. Tự động chuyển sang dùng video gốc tiếng Trung để quét phụ đề OCR/Whisper: '{raw_candidate}'")
+                return raw_candidate
+    return vpath_str
+
 def run_local_ocr_captions_for_draft(
     draft_full_path,
     draft_id,
@@ -907,6 +922,8 @@ def run_local_ocr_captions_for_draft(
     cancel_check=None,
 ):
     from local_ocr_captions import patch_draft_with_local_ocr
+
+    video_path = resolve_raw_original_video(video_path)
 
     configured_speed = float(item_config.get("speed", 1.0) or 1.0)
     language = (
@@ -943,25 +960,51 @@ def run_local_ocr_captions_for_draft(
             "include_boundaries": config_bool(item_config.get("ocr_dense_start_gap_scan_include_boundaries"), True),
         },
     }
-    if isinstance(item_config.get("local_ocr"), dict):
-        ocr_config = {**default_ocr_config, **item_config.get("local_ocr")}
-        if isinstance(default_ocr_config.get("ocr_only_scan"), dict) and isinstance((item_config.get("local_ocr") or {}).get("ocr_only_scan"), dict):
-            ocr_config["ocr_only_scan"] = {
-                **default_ocr_config["ocr_only_scan"],
-                **(item_config.get("local_ocr") or {}).get("ocr_only_scan"),
-            }
-        if isinstance(default_ocr_config.get("dense_start_gap_scan"), dict) and isinstance((item_config.get("local_ocr") or {}).get("dense_start_gap_scan"), dict):
-            ocr_config["dense_start_gap_scan"] = {
-                **default_ocr_config["dense_start_gap_scan"],
-                **(item_config.get("local_ocr") or {}).get("dense_start_gap_scan"),
-            }
-    else:
-        ocr_config = default_ocr_config
+    local_ocr_dict = item_config.get("local_ocr") if isinstance(item_config.get("local_ocr"), dict) else {}
+    local_ocr_dict = dict(local_ocr_dict)
+    
+    if item_config.get("ocr_crop_mode"):
+        local_ocr_dict["crop_mode"] = item_config.get("ocr_crop_mode")
+    elif "crop_mode" not in local_ocr_dict:
+        local_ocr_dict["crop_mode"] = "auto"
+    
+    crop_x = item_config.get("ocr_crop_x")
+    crop_y = item_config.get("ocr_crop_y")
+    crop_w = item_config.get("ocr_crop_w")
+    crop_h = item_config.get("ocr_crop_h")
+    if all(v is not None for v in (crop_x, crop_y, crop_w, crop_h)):
+        try:
+            cx, cy, cw, ch = int(crop_x), int(crop_y), int(crop_w), int(crop_h)
+            if cw > 0 and ch > 0:
+                local_ocr_dict["crop_rect"] = {
+                    "x": cx,
+                    "y": cy,
+                    "w": cw,
+                    "h": ch
+                }
+            else:
+                local_ocr_dict.pop("crop_rect", None)
+        except Exception:
+            pass
+    elif local_ocr_dict.get("crop_mode") != "custom":
+        local_ocr_dict.pop("crop_rect", None)
+
+    ocr_config = {**default_ocr_config, **local_ocr_dict}
+    if isinstance(default_ocr_config.get("ocr_only_scan"), dict) and isinstance(local_ocr_dict.get("ocr_only_scan"), dict):
+        ocr_config["ocr_only_scan"] = {
+            **default_ocr_config["ocr_only_scan"],
+            **local_ocr_dict.get("ocr_only_scan"),
+        }
+    if isinstance(default_ocr_config.get("dense_start_gap_scan"), dict) and isinstance(local_ocr_dict.get("dense_start_gap_scan"), dict):
+        ocr_config["dense_start_gap_scan"] = {
+            **default_ocr_config["dense_start_gap_scan"],
+            **local_ocr_dict.get("dense_start_gap_scan"),
+        }
 
     timestamp_source = (
         ocr_config.get("timestamp_source")
         or item_config.get("ocr_timestamp_source")
-        or "whisper"
+        or "scan"
     )
     def progress(message):
         if cancel_check:
@@ -1038,6 +1081,8 @@ def run_local_whisper_captions_for_draft(
     cancel_check=None,
 ):
     from local_whisper_captions import patch_draft_with_local_whisper
+
+    video_path = resolve_raw_original_video(video_path)
 
     configured_speed = float(item_config.get("speed", 1.0) or 1.0)
     language = (
@@ -2290,8 +2335,13 @@ def patch_subtitles_file(content_path, font_size=5.0, font_color=DEFAULT_SUBTITL
                 if translated:
                     translation_cache[raw_text] = translated
     except Exception as e:
-        logger.error(f"AI translation failed; stop pipeline without Google fallback: {str(e)}")
-        raise
+        logger.warning(f"AI translation unavailable ({e}); falling back to Google Translate for {len(missing_source_texts)} lines...")
+        for raw_text in missing_source_texts:
+            try:
+                translated = translate_google(raw_text, "zh-CN", "vi")
+                translation_cache[raw_text] = translated
+            except Exception as g_err:
+                logger.error(f"Google Translate failed for '{raw_text}': {g_err}")
 
     failed_translations = []
     translated_count = 0
@@ -2762,9 +2812,15 @@ def detect_hardsub_blur_config(video_path, sample_count=20, blur_radius=24):
     if width <= 0 or height <= 0 or duration <= 0:
         return {"enabled": False}
 
-    # Chỉ scan bottom 25% — subtitle hardsub luôn nằm phía dưới cùng
-    lower_y = int(height * 0.75)
-    lower_height = height - lower_y
+    # Tùy theo tỷ lệ màn hình (Dọc hay Ngang) để chọn vùng quét hardsub phù hợp
+    if height > width:
+        # Video Dọc (Shorts/TikTok/Douyin): Quét từ 5% đến 40% từ dưới lên (Y top-down = 60% -> 95%)
+        lower_y = int(height * 0.60)
+        lower_height = int(height * 0.35)
+    else:
+        # Video Ngang (16:9): Subtitle hardsub nằm ở dưới cùng (70% -> 98%)
+        lower_y = int(height * 0.70)
+        lower_height = int(height * 0.28)
     stat = source.stat()
 
     max_attempts = 3
@@ -4362,15 +4418,16 @@ class QueueRunner:
                     )
                 else:
                     logger.info(f"[Blur] Auto-detect thành công: {blur_config}")
-                    local_ocr_config = item_config.get("local_ocr") if isinstance(item_config.get("local_ocr"), dict) else {}
-                    local_ocr_config = dict(local_ocr_config)
-                    local_ocr_config["crop_rect"] = {
-                        "x": int(blur_config.get("x", 0)),
-                        "y": int(blur_config.get("y", 0)),
-                        "w": int(blur_config.get("w", 0)),
-                        "h": int(blur_config.get("h", 0)),
-                    }
-                    item_config["local_ocr"] = local_ocr_config
+                    if item_config.get("ocr_crop_mode") == "custom":
+                        local_ocr_config = item_config.get("local_ocr") if isinstance(item_config.get("local_ocr"), dict) else {}
+                        local_ocr_config = dict(local_ocr_config)
+                        local_ocr_config["crop_rect"] = {
+                            "x": int(blur_config.get("x", 0)),
+                            "y": int(blur_config.get("y", 0)),
+                            "w": int(blur_config.get("w", 0)),
+                            "h": int(blur_config.get("h", 0)),
+                        }
+                        item_config["local_ocr"] = local_ocr_config
             elif blur_enabled:
                 blur_config = {
                     "enabled": True,
@@ -4380,15 +4437,16 @@ class QueueRunner:
                     "h": int(item_config.get("hardsub_blur_h", 135)),
                     "radius": int(item_config.get("hardsub_blur_radius", 24)),
                 }
-                local_ocr_config = item_config.get("local_ocr") if isinstance(item_config.get("local_ocr"), dict) else {}
-                local_ocr_config = dict(local_ocr_config)
-                local_ocr_config["crop_rect"] = {
-                    "x": int(blur_config.get("x", 0)),
-                    "y": int(blur_config.get("y", 0)),
-                    "w": int(blur_config.get("w", 0)),
-                    "h": int(blur_config.get("h", 0)),
-                }
-                item_config["local_ocr"] = local_ocr_config
+                if item_config.get("ocr_crop_mode") == "custom":
+                    local_ocr_config = item_config.get("local_ocr") if isinstance(item_config.get("local_ocr"), dict) else {}
+                    local_ocr_config = dict(local_ocr_config)
+                    local_ocr_config["crop_rect"] = {
+                        "x": int(blur_config.get("x", 0)),
+                        "y": int(blur_config.get("y", 0)),
+                        "w": int(blur_config.get("w", 0)),
+                        "h": int(blur_config.get("h", 0)),
+                    }
+                    item_config["local_ocr"] = local_ocr_config
             else:
                 blur_config = {"enabled": False}
             ensure_video_track_in_draft(
@@ -4495,10 +4553,16 @@ class QueueRunner:
                 try:
                     self._wait_if_exporting()
                     if prefer_local_ocr:
+                        raw_source_video = (
+                            item_config.get("video_path")
+                            or (item.get("video") if item.get("video") and Path(str(item.get("video"))).is_file() else None)
+                            or subtitle_source_video
+                            or video_source_for_patch
+                        )
                         run_local_ocr_captions_for_draft(
                             draft_full_path,
                             draft_id,
-                            subtitle_source_video or video_source_for_patch,
+                            raw_source_video,
                             item_config,
                             font_name,
                             font_size,
@@ -4618,101 +4682,138 @@ class QueueRunner:
         
         if resume_from_step <= 5:
             self._check_cancel(item)
-            logger.info("Đợi 1 giây sau khi patch âm lượng trước khi mở lại CapCut...")
-            time.sleep(1)
             item["progress"] = 72
-            item["message"] = "Bước 5.5: Đang mở lại dự án sau khi patch bản dịch và âm lượng..."
+            item["message"] = "Bước 5.5: Chuẩn bị tạo giọng nói offline (NGHI-TTS)..."
             self.save_cache()
-            
-            controller = launch_capcut(cancel_check=lambda: self._check_cancel(item))
-            open_project_in_gui(controller, draft_id, cancel_check=lambda: self._check_cancel(item))
-            project_opened_this_run = True
             item["resume_from_step"] = 6
             self._checkpoint_pause(item, next_step=6, progress=72)
             
         if resume_from_step <= 6:
             self._check_cancel(item)
             item["progress"] = 75
-            item["message"] = "Bước 6: Đang tạo giọng nói (TTS) cho sub trên dự án đang mở..."
-            self.save_cache()
             
-            if not project_opened_this_run:
+            tts_engine = item_config.get("tts_engine", "local")
+            
+            if tts_engine == "local":
+                voice_name = item_config.get("nghitts_voice") or item_config.get("tts_voice") or "Ngọc Huyền (mới)"
+                item["message"] = f"Bước 6: Đóng CapCut để gán âm thanh TTS offline NGHI-TTS..."
+                self.save_cache()
+                
+                logger.info("Đóng cưỡng bức CapCut trước khi patch TTS offline...")
+                kill_capcut()
+                time.sleep(1.5)
+                project_opened_this_run = False
+                
+                item["message"] = f"Bước 6: Đang gán âm thanh (TTS) offline NGHI-TTS với giọng '{voice_name}'..."
+                self.save_cache()
+                logger.info(f"Chạy NGHI-TTS offline patch cho draft {draft_full_path} với giọng '{voice_name}'...")
+                patch_offline_tts_in_draft(draft_full_path, voice_name=voice_name, item_config=item_config)
+                local_workspace_draft = os.path.join(os.path.dirname(os.path.abspath(__file__)), str(draft_id))
+                if os.path.isdir(local_workspace_draft) and os.path.abspath(local_workspace_draft) != os.path.abspath(draft_full_path):
+                    patch_offline_tts_in_draft(local_workspace_draft, voice_name=voice_name, item_config=item_config)
+                
+                logger.info("Mở lại CapCut để nạp và cache âm thanh mới...")
+                item["message"] = "Bước 6: Mở CapCut để lưu cache âm thanh vừa patch..."
+                self.save_cache()
                 controller = launch_capcut(cancel_check=lambda: self._check_cancel(item))
                 open_project_in_gui(controller, draft_id, cancel_check=lambda: self._check_cancel(item))
-                project_opened_this_run = True
-            tts_audio_before = count_audio_assets_in_json(draft_full_path)
-            logger.info(f"Trước TTS: audio_segments={tts_audio_before['segments']}, audio_materials={tts_audio_before['materials']}.")
-
-            max_tts_attempts = int(item_config.get("tts_attempts", 3))
-            tts_ready = False
-            tts_audio_after = tts_audio_before
-
-            for attempt in range(1, max_tts_attempts + 1):
-                item["message"] = f"Bước 6: Đang tạo giọng nói TTS, lần {attempt}/{max_tts_attempts}..."
-                self.save_cache()
-                logger.info(f"Chạy TTS lần {attempt}/{max_tts_attempts}...")
-                if attempt == 1:
-                    run_image_workflow("rpa_tts.sample.json", "Text to speech", attempts=1, retry_delay=0)
-                else:
-                    run_image_workflow("rpa_tts_retry.sample.json", "Text to speech retry", attempts=1, retry_delay=0)
-                self._check_cancel(item)
-
-                tts_ready, tts_audio_after = wait_for_new_audio_assets(
-                    draft_full_path,
-                    tts_audio_before,
-                    interval=int(item_config.get("tts_audio_wait_interval", 5)),
-                    timeout=int(item_config.get("tts_audio_wait_timeout", 600)),
-                    cancel_check=lambda: self._check_cancel(item),
-                )
-
-                if tts_ready:
-                    logger.info("Đã xác nhận draft có audio TTS mới.")
-                    break
-
-                if attempt < max_tts_attempts:
-                    logger.warning("Chưa thấy audio TTS trong draft. Giữ nguyên dự án đang mở và bấm Generate speech lần nữa...")
-
-            if not tts_ready:
-                logger.warning("Chưa thấy audio khi project đang mở. Đóng CapCut một lần để flush draft rồi kiểm tra lại...")
+                time.sleep(3)
+                
+                logger.info("Đóng CapCut để chuẩn bị chỉnh tốc độ âm thanh và video...")
                 kill_capcut()
-                time.sleep(1)
-                tts_audio_after = count_audio_assets_in_json(draft_full_path)
-                logger.info(
-                    f"Sau khi flush draft: audio_segments={tts_audio_after['segments']}, "
-                    f"audio_materials={tts_audio_after['materials']}."
-                )
-                if tts_audio_after["total"] > tts_audio_before["total"]:
-                    logger.info("Đã xác nhận draft có audio TTS mới sau khi flush.")
-                    tts_ready = True
-                else:
-                    raise Exception(
-                        f"Không thấy audio TTS sau {max_tts_attempts} lần Generate speech "
-                        f"(trước={tts_audio_before}, sau={tts_audio_after})."
-                    )
+                time.sleep(1.5)
+                project_opened_this_run = False
             else:
-                logger.info("Đóng CapCut để flush draft sau khi xác nhận TTS...")
-                kill_capcut()
-                time.sleep(1)
+                item["message"] = f"Bước 6: Đang tạo giọng nói (TTS) cho sub trên dự án đang mở..."
+                self.save_cache()
+                
+                if not project_opened_this_run:
+                    controller = launch_capcut(cancel_check=lambda: self._check_cancel(item))
+                    open_project_in_gui(controller, draft_id, cancel_check=lambda: self._check_cancel(item))
+                    project_opened_this_run = True
+                tts_audio_before = count_audio_assets_in_json(draft_full_path)
+                logger.info(f"Trước TTS: audio_segments={tts_audio_before['segments']}, audio_materials={tts_audio_before['materials']}.")
+
+                max_tts_attempts = int(item_config.get("tts_attempts", 3))
+                tts_ready = False
+                tts_audio_after = tts_audio_before
+
+                for attempt in range(1, max_tts_attempts + 1):
+                    item["message"] = f"Bước 6: Đang tạo giọng nói TTS, lần {attempt}/{max_tts_attempts}..."
+                    self.save_cache()
+                    logger.info(f"Chạy TTS lần {attempt}/{max_tts_attempts}...")
+                    if attempt == 1:
+                        run_image_workflow("rpa_tts.sample.json", "Text to speech", attempts=1, retry_delay=0)
+                    else:
+                        run_image_workflow("rpa_tts_retry.sample.json", "Text to speech retry", attempts=1, retry_delay=0)
+                    self._check_cancel(item)
+
+                    tts_ready, tts_audio_after = wait_for_new_audio_assets(
+                        draft_full_path,
+                        tts_audio_before,
+                        interval=int(item_config.get("tts_audio_wait_interval", 5)),
+                        timeout=int(item_config.get("tts_audio_wait_timeout", 600)),
+                        cancel_check=lambda: self._check_cancel(item),
+                    )
+
+                    if tts_ready:
+                        logger.info("Đã xác nhận draft có audio TTS mới.")
+                        break
+
+                    if attempt < max_tts_attempts:
+                        logger.warning("Chưa thấy audio TTS trong draft. Giữ nguyên dự án đang mở và bấm Generate speech lần nữa...")
+
+                if not tts_ready:
+                    logger.warning("Chưa thấy audio khi project đang mở. Đóng CapCut một lần để flush draft rồi kiểm tra lại...")
+                    kill_capcut()
+                    time.sleep(1)
+                    tts_audio_after = count_audio_assets_in_json(draft_full_path)
+                    logger.info(
+                        f"Sau khi flush draft: audio_segments={tts_audio_after['segments']}, "
+                        f"audio_materials={tts_audio_after['materials']}."
+                    )
+                    if tts_audio_after["total"] > tts_audio_before["total"]:
+                        logger.info("Đã xác nhận draft có audio TTS mới sau khi flush.")
+                        tts_ready = True
+                    else:
+                        raise Exception(
+                            f"Không thấy audio TTS sau {max_tts_attempts} lần Generate speech "
+                            f"(trước={tts_audio_before}, sau={tts_audio_after})."
+                        )
+                else:
+                    logger.info("Đóng CapCut để flush draft sau khi xác nhận TTS...")
+                    kill_capcut()
+                    time.sleep(1)
+                    project_opened_this_run = False
 
             item["resume_from_step"] = 7
             self._checkpoint_pause(item, next_step=7, progress=82)
+
 
         if resume_from_step <= 7:
             self._check_cancel(item)
             item["progress"] = 85
             tts_speed = float(item_config.get("tts_speed", 1.17) or 1.17)
             video_speed = float(item_config.get("speed", 0.77) or 0.77)
-            item["message"] = f"Bước 7: Đang chỉnh tốc độ TTS ({tts_speed}x) và video ({video_speed}x)..."
+            item["message"] = f"Bước 7: Đóng CapCut để chỉnh tốc độ TTS ({tts_speed}x) và video ({video_speed}x)..."
             self.save_cache()
+            
+            kill_capcut()
+            time.sleep(1.5)
+            project_opened_this_run = False
             
             patch_audio_speed_in_json(draft_full_path, target_speed=tts_speed)
             patch_video_speed_in_json(draft_full_path, speed=video_speed)
+            clear_mini_draft_cache(draft_full_path)
             logger.info(
-                f"Đã patch speed sau khi đóng CapCut, trước export: "
+                f"Đã patch speed sau khi đóng CapCut: "
                 f"tts_speed={tts_speed}, video_speed={video_speed}."
             )
             item["resume_from_step"] = 8
             self._checkpoint_pause(item, next_step=8, progress=88)
+
+
+
 
         if resume_from_step <= 8:
             self._check_cancel(item)
@@ -4727,6 +4828,9 @@ class QueueRunner:
                 "Theo dõi file export trong các thư mục: "
                 + ", ".join(str(path) for path in export_scan_dirs)
             )
+            if not project_opened_this_run:
+                kill_capcut()
+                time.sleep(1)
             controller = launch_capcut(cancel_check=lambda: self._check_cancel(item))
             open_project_in_gui(controller, draft_id, cancel_check=lambda: self._check_cancel(item))
             
@@ -5031,7 +5135,12 @@ def project_config(folder):
             "translation_branch": "A",
             "auto_asr_context": True,
             "asr_suggested_fixes": [],
-            "video_path": ""
+            "video_path": "",
+            "ocr_crop_mode": "auto",
+            "ocr_crop_x": 0,
+            "ocr_crop_y": 0,
+            "ocr_crop_w": 0,
+            "ocr_crop_h": 0
         })
         if os.path.exists(config_path):
             try:

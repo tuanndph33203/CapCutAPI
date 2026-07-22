@@ -332,27 +332,64 @@ def extract_hardsub_from_video(
         ocr_config=ocr_config,
     )
 
+    crop_mode = str(_config_get(ocr_config, "crop_mode", "auto")).lower()
     crop_rect = _config_get(ocr_config, "crop_rect", None)
-    if isinstance(crop_rect, dict) and all(key in crop_rect for key in ("x", "y", "w", "h")):
+    
+    # Nếu chế độ là custom hoặc (chế độ là auto nhưng đã chỉ định crop_rect dạng custom với w, h > 0)
+    has_valid_custom_rect = isinstance(crop_rect, dict) and all(key in crop_rect for key in ("x", "y", "w", "h")) and int(crop_rect.get("w", 0)) > 0 and int(crop_rect.get("h", 0)) > 0
+    use_custom_rect = (crop_mode == "custom") or (crop_mode == "auto" and has_valid_custom_rect)
+    
+    if use_custom_rect and has_valid_custom_rect:
         pad_x = int(_config_get(ocr_config, "crop_pad_x", 8))
         pad_y = int(_config_get(ocr_config, "crop_pad_y", 8))
         crop_x_start = max(0, int(crop_rect.get("x", 0)) - pad_x)
         crop_y_start = max(0, int(crop_rect.get("y", 0)) - pad_y)
         crop_x_end = min(width, int(crop_rect.get("x", 0)) + int(crop_rect.get("w", width)) + pad_x)
         crop_y_end = min(height, int(crop_rect.get("y", 0)) + int(crop_rect.get("h", height)) + pad_y)
-    else:
+    elif crop_mode == "horizontal":
         crop_y_start = int(height * 0.75)
         crop_y_end = height
         crop_x_start = int(width * 0.05)
         crop_x_end = int(width * 0.95)
+    elif crop_mode == "vertical":
+        # Scan tu 5% den 40% tu duoi len (Y top-down = 60% -> 95%)
+        crop_y_start = int(height * 0.60)
+        crop_y_end = int(height * 0.95)
+        crop_x_start = int(width * 0.01)
+        crop_x_end = int(width * 0.99)
+    elif crop_mode == "full":
+        crop_y_start = 0
+        crop_y_end = height
+        crop_x_start = 0
+        crop_x_end = width
+    else: # auto
+        # Tu dong chon vung crop mac dinh dua tren ty le man hinh (Aspect Ratio)
+        if height > width:
+            crop_y_start = int(height * 0.60)
+            crop_y_end = int(height * 0.95)
+            crop_x_start = int(width * 0.01)
+            crop_x_end = int(width * 0.99)
+        else:
+            crop_y_start = int(height * 0.70)
+            crop_y_end = height
+            crop_x_start = int(width * 0.02)
+            crop_x_end = int(width * 0.98)
+            
     if crop_x_end <= crop_x_start or crop_y_end <= crop_y_start:
-        crop_y_start = int(height * 0.75)
-        crop_y_end = height
-        crop_x_start = int(width * 0.05)
-        crop_x_end = int(width * 0.95)
+        if height > width:
+            crop_y_start = int(height * 0.60)
+            crop_y_end = int(height * 0.95)
+            crop_x_start = int(width * 0.01)
+            crop_x_end = int(width * 0.99)
+        else:
+            crop_y_start = int(height * 0.70)
+            crop_y_end = height
+            crop_x_start = int(width * 0.02)
+            crop_x_end = int(width * 0.98)
     if progress_callback:
         progress_callback(
-            f"OCR crop region: x={crop_x_start}, y={crop_y_start}, "
+            f"OCR crop region (mode={crop_mode}, rect={crop_rect}): "
+            f"x={crop_x_start}, y={crop_y_start}, "
             f"w={crop_x_end - crop_x_start}, h={crop_y_end - crop_y_start}"
         )
     
@@ -563,13 +600,14 @@ def extract_hardsub_from_video(
                     current_segment["text"] = txt
                 current_last_det = det
             else:
-                boundary = refine_boundary(current_last_det or {"timestamp": current_segment["end"], "text": current_segment["text"]}, det)
-                current_segment["end"] = max(current_segment["start"] + 0.12, boundary)
-                # Lưu segment cũ và tạo cái mới
+                # End current segment at or before new detection timestamp t
+                current_segment["end"] = min(t, max(current_segment["start"] + 0.12, t))
                 segments.append(current_segment)
+                
+                # Start new segment at its exact detection timestamp t
                 current_segment = {
-                    "start": max(boundary, current_segment["end"]),
-                    "end": min(t + sample_rate_sec, t + max_segment_duration),
+                    "start": t,
+                    "end": t + sample_rate_sec,
                     "text": txt
                 }
                 current_last_det = det
@@ -630,39 +668,43 @@ def sanitize_segments_for_srt(
     max_duration: float | None = None,
     read_ms_per_char: int = 0,
 ) -> list[dict]:
+    """
+    Preserve exact frame start timestamps for each OCR segment while preventing overlapping.
+    Does NOT push start timestamps into the future based on previous segment durations.
+    """
+    raw_list = [s for s in segments if str(s.get("text") or "").strip()]
+    if not raw_list:
+        return []
+
+    raw_list.sort(key=lambda item: (float(item.get("start", 0) or 0), float(item.get("end", 0) or 0)))
     cleaned = []
-    last_end = 0.0
-    for index, segment in enumerate(
-        sorted(segments, key=lambda item: (float(item.get("start", 0) or 0), float(item.get("end", 0) or 0))),
-        start=1,
-    ):
-        text = str(segment.get("text") or "").strip()
-        if not text:
-            continue
-        start = max(0.0, float(segment.get("start", 0) or 0))
-        end = max(start, float(segment.get("end", start) or start))
-        dynamic_min_duration = float(min_duration)
-        if read_ms_per_char > 0:
-            compact_len = len(re.sub(r"\s+", "", text))
-            dynamic_min_duration = max(dynamic_min_duration, compact_len * float(read_ms_per_char) / 1000.0)
-        if end <= start + dynamic_min_duration:
-            end = start + dynamic_min_duration
-        if max_duration and end > start + max_duration:
+
+    for i in range(len(raw_list)):
+        seg = raw_list[i]
+        text = str(seg.get("text") or "").strip()
+        start = max(0.0, float(seg.get("start", 0) or 0))
+        end = float(seg.get("end", start) or start)
+
+        if end < start + min_duration:
+            end = start + min_duration
+
+        if max_duration and (end - start) > max_duration:
             end = start + max_duration
-        if start < last_end + min_gap:
-            start = last_end + min_gap
-        if end <= start + dynamic_min_duration:
-            end = start + dynamic_min_duration
-        if max_duration and end > start + max_duration:
-            end = start + max_duration
+
+        # Clamp end time to not overlap with next segment's exact start time
+        if i + 1 < len(raw_list):
+            next_start = max(0.0, float(raw_list[i + 1].get("start", 0) or 0))
+            if next_start > start and end > next_start - min_gap:
+                end = max(start + 0.05, next_start - min_gap)
+
         cleaned.append({
-            **segment,
+            **seg,
             "id": len(cleaned) + 1,
             "start": start,
             "end": end,
             "text": text,
         })
-        last_end = end
+
     return cleaned
 
 def patch_draft_with_local_ocr(

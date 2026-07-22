@@ -1,6 +1,25 @@
 {
     "steps": [
         {
+            "template": "rpa_templates/dismiss_keyboard_popup.png",
+            "threshold": 0.75,
+            "action": "click_template",
+            "timeout": 0.3,
+            "attempts": 5,
+            "retry_delay": 0,
+            "optional": true,
+            "search_region": [
+                0.7,
+                0.8,
+                1.0,
+                1.0
+            ]
+        },
+        {
+            "action": "sleep",
+            "seconds": 0.5
+        },
+        {
             "template": "rpa_templates/export_button.png",
             "threshold": 0.76,
             "action": "click_template",

@@ -425,6 +425,19 @@ def _import_srt_to_content(
     script = draft.Script_file.load_template(str(content_path))
     before = len((script.content.get("materials") or {}).get("texts") or [])
     font = _normalize_font_name(font)
+    
+    # Thoroughly remove existing text tracks and text materials to prevent SegmentOverlap when re-importing SRT
+    if isinstance(script.tracks, dict):
+        script.tracks = {k: v for k, v in script.tracks.items() if getattr(v, "track_type", None) != draft.Track_type.text}
+    elif isinstance(script.tracks, list):
+        script.tracks = [t for t in script.tracks if getattr(t, "track_type", None) != draft.Track_type.text]
+
+    script.imported_tracks = [t for t in script.imported_tracks if getattr(t, "track_type", None) != draft.Track_type.text and getattr(t, "type", None) != "text"]
+    if isinstance(script.content.get("tracks"), list):
+        script.content["tracks"] = [tr for tr in script.content["tracks"] if tr.get("type") != "text"]
+    if isinstance(script.content.get("materials"), dict) and "texts" in script.content["materials"]:
+        script.content["materials"]["texts"] = []
+
     script.import_srt(
         srt_text,
         track_name=track_name,
