@@ -39,8 +39,9 @@
         }
 
         .container {
-            max-width: 1320px;
+            max-width: 1400px;
             margin: 0 auto;
+            padding: 0 16px;
         }
 
         /* Header design */
@@ -118,6 +119,13 @@
             gap: 18px;
         }
 
+        /* Detail page two-column layout — responsive */
+        .detail-two-col {
+            display: grid;
+            grid-template-columns: 1fr 1.3fr;
+            gap: 40px;
+        }
+
         .panel {
             background: var(--card-bg);
             border-radius: 16px;
@@ -135,72 +143,120 @@
             display: none !important;
         }
 
+        body.detail-mode .container {
+            max-width: 1280px !important;
+            margin: 0 auto !important;
+            padding: 0 20px;
+        }
+
         body.detail-mode header {
-            margin-bottom: 14px;
+            margin-bottom: 16px;
             padding-bottom: 12px;
         }
 
-        body.detail-mode #project-details-container {
-            padding: 14px 16px;
-            margin-bottom: 0 !important;
+        .detail-top-banner {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: linear-gradient(135deg, rgba(20, 18, 33, 0.9), rgba(11, 10, 16, 0.9));
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 12px 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            gap: 16px;
         }
 
-        body.detail-mode #project-details-container>div:first-child {
-            margin-bottom: 12px !important;
-            padding-bottom: 10px !important;
+        .detail-top-banner .project-meta-pills {
+            display: flex;
+            align-items: center;
+            gap: 20px;
         }
 
-        body.detail-mode #project-details-container>div:nth-child(2) {
-            display: block !important;
+        .detail-top-banner .meta-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            background: rgba(255, 255, 255, 0.03);
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        body.detail-mode #project-details-container>div:nth-child(2)>div:first-child {
-            display: none !important;
+        .detail-top-banner .meta-pill strong {
+            color: var(--accent-cyan);
+            font-weight: 600;
         }
 
-        body.detail-mode #project-details-container h2 {
-            font-size: 1.05rem !important;
+        .detail-grid-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            align-items: start;
         }
 
-        body.detail-mode #project-details-container h3 {
-            display: none;
+        /* Fix select element text overflow */
+        select, input {
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            overflow: hidden;
         }
-
-        body.detail-mode #project-details-container h4 {
-            margin: 12px 0 7px !important;
-            font-size: 0.78rem !important;
-            padding-bottom: 4px !important;
-        }
-
-        body.detail-mode #project-details-container form {
-            max-width: 860px;
-        }
-
-        body.detail-mode #project-details-container .form-group {
-            margin-bottom: 8px;
-        }
-
-        body.detail-mode #project-details-container .form-row {
-            gap: 10px;
-        }
-
-        body.detail-mode #project-details-container label {
-            font-size: 0.72rem;
-            margin-bottom: 4px;
+        select option {
+            background: #141221;
+            color: var(--text-color);
         }
 
         body.detail-mode #project-details-container input,
         body.detail-mode #project-details-container select {
-            height: 32px;
-            padding: 6px 9px;
-            font-size: 0.78rem;
+            height: 34px;
+            padding: 6px 10px;
+            font-size: 0.8rem;
             border-radius: 6px;
         }
 
-        body.detail-mode #project-details-container .btn {
-            min-height: 32px;
-            padding: 6px 10px !important;
-            font-size: 0.78rem !important;
+        /* Detail Studio Tabs */
+        .detail-tabs-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+        .detail-tab-btn {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .detail-tab-btn:hover {
+            color: var(--text-color);
+            background: rgba(255, 255, 255, 0.08);
+        }
+        .detail-tab-btn.active {
+            background: linear-gradient(135deg, rgba(0,242,254,0.15), rgba(155,81,224,0.15));
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+        }
+        .tab-pane {
+            display: none;
+        }
+        .tab-pane.active {
+            display: block;
+            animation: fadeInTab 0.2s ease-in-out;
+        }
+        @keyframes fadeInTab {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .panel-title {
@@ -816,6 +872,234 @@
             line-height: 1.35;
         }
 
+        /* ============================================================
+           SECTION CARDS — detail form redesign
+           ============================================================ */
+        .form-section {
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 14px;
+            overflow: hidden;
+            transition: border-color 0.25s;
+        }
+
+        .form-section:hover {
+            border-color: rgba(0, 242, 254, 0.25);
+        }
+
+        .form-section-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 14px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .form-section-header .section-icon {
+            font-size: 1rem;
+        }
+
+        .form-section-body {
+            padding: 14px;
+        }
+
+        .form-section-body .form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        /* Section color themes */
+        .section-video .form-section-header {
+            background: rgba(0, 242, 254, 0.06);
+            color: #00f2fe;
+        }
+
+        .section-video {
+            border-color: rgba(0, 242, 254, 0.2);
+        }
+
+        .section-process .form-section-header {
+            background: rgba(155, 81, 224, 0.07);
+            color: #bb80f5;
+        }
+
+        .section-process {
+            border-color: rgba(155, 81, 224, 0.2);
+        }
+
+        .section-sub .form-section-header {
+            background: rgba(242, 153, 74, 0.07);
+            color: #f2994a;
+        }
+
+        .section-sub {
+            border-color: rgba(242, 153, 74, 0.2);
+        }
+
+        .section-translate .form-section-header {
+            background: rgba(39, 174, 96, 0.07);
+            color: #6fcf97;
+        }
+
+        .section-translate {
+            border-color: rgba(39, 174, 96, 0.2);
+        }
+
+        .section-canvas .form-section-header {
+            background: rgba(235, 87, 87, 0.07);
+            color: #eb8c8c;
+        }
+
+        .section-canvas {
+            border-color: rgba(235, 87, 87, 0.2);
+        }
+
+        /* Toggle Grid & Compact Tile Cards */
+        .toggle-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 10px;
+        }
+
+        .toggle-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 9px 12px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .toggle-card:hover {
+            border-color: var(--accent-cyan);
+            background: rgba(0, 242, 254, 0.03);
+        }
+
+        .toggle-label-text {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding-right: 8px;
+        }
+
+        .toggle-label-text strong {
+            font-size: 0.81rem;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .toggle-label-text span {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            line-height: 1.25;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 36px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            transition: background 0.25s;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .toggle-slider:before {
+            content: '';
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            left: 2px;
+            top: 2px;
+            background: #fff;
+            border-radius: 50%;
+            transition: transform 0.25s;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+        }
+
+        .toggle-switch input:checked+.toggle-slider {
+            background: var(--accent-cyan);
+            border-color: var(--accent-cyan);
+        }
+
+        .toggle-switch input:checked+.toggle-slider:before {
+            transform: translateX(16px);
+        }
+
+        /* Responsive Form Row Layouts */
+        .form-row-3 {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .form-row-4 {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        /* Label badge for step numbers */
+        .step-badge {
+            display: inline-block;
+            padding: 1px 6px;
+            border-radius: 4px;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            margin-left: 5px;
+            vertical-align: middle;
+            opacity: 0.8;
+        }
+
+        .step-badge-cyan {
+            background: rgba(0, 242, 254, 0.18);
+            color: #00f2fe;
+        }
+
+        .step-badge-purple {
+            background: rgba(155, 81, 224, 0.18);
+            color: #bb80f5;
+        }
+
+        .step-badge-orange {
+            background: rgba(242, 153, 74, 0.18);
+            color: #f2994a;
+        }
+
+        .step-badge-green {
+            background: rgba(39, 174, 96, 0.18);
+            color: #6fcf97;
+        }
+
+        /* Subtle label improvements */
+        .form-section-body label {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
         @media (max-width: 960px) {
             body {
                 padding: 12px;
@@ -831,18 +1115,51 @@
                 width: 100%;
                 justify-content: space-between;
                 flex-wrap: wrap;
+                gap: 6px;
             }
 
             .form-row,
-            .dashboard-grid,
+            .form-row-3,
+            .form-row-4,
+            .dashboard-grid {
+                grid-template-columns: 1fr !important;
+            }
+
             .queue-logs-section {
                 grid-template-columns: 1fr !important;
+                gap: 16px !important;
+            }
+
+            .detail-two-col {
+                grid-template-columns: 1fr !important;
+                gap: 20px !important;
             }
 
             .modal-content {
                 width: calc(100% - 16px);
                 padding: 16px;
                 max-height: calc(100vh - 16px);
+            }
+
+            .button-group-row {
+                grid-template-columns: 1fr !important;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .logo-section h1 {
+                font-size: 1.35rem;
+            }
+
+            .project-grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)) !important;
+                gap: 10px;
+            }
+
+            th,
+            td {
+                padding: 10px 8px;
+                font-size: 0.82rem;
             }
         }
     </style>
@@ -890,298 +1207,355 @@
         </div>
 
         <!-- Project Details Screen (Initially Hidden) -->
-        <div id="project-details-container" style="display: none; margin-bottom: 40px;" class="panel">
-            <!-- Back Button -->
-            <div
-                style="display: flex; align-items: center; gap: 15px; margin-bottom: 25px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px;">
-                <button class="btn btn-secondary" id="btn-back-to-projects"
-                    style="width: auto; padding: 8px 16px; font-size: 0.85rem;">
-                    ← Back to Projects
-                </button>
-                <h2 style="font-weight: 600; font-size: 1.4rem; color: var(--accent-cyan);" id="detail-project-title">
-                    Chi tiết dự án</h2>
+        <div id="project-details-container" style="display: none; margin-bottom: 30px;" class="panel">
+            <!-- Top Horizontal Banner: Navigation & Metadata -->
+            <div class="detail-top-banner">
+                <div style="display: flex; align-items: center; gap: 14px;">
+                    <button class="btn btn-secondary" id="btn-back-to-projects" style="width: auto; padding: 6px 14px; font-size: 0.82rem;">
+                        ← Back to Projects
+                    </button>
+                    <div style="width: 44px; height: 32px; border-radius: 6px; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-color); flex-shrink: 0;">
+                        <img id="detail-project-cover" style="width: 100%; height: 100%; object-fit: cover;" src="" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+                        <div id="detail-project-placeholder" class="project-placeholder-cover" style="height: 100%; font-size: 1rem; display: none;">P</div>
+                    </div>
+                    <h2 style="font-weight: 700; font-size: 1.2rem; color: var(--accent-cyan); white-space: nowrap;" id="detail-project-title">
+                        Chi tiết dự án
+                    </h2>
+                </div>
+                <div class="project-meta-pills" style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
+                    <div class="meta-pill" style="white-space: nowrap;">
+                        <span>Thư mục dự án:</span>
+                        <strong id="detail-project-folder" style="font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--accent-cyan);">-</strong>
+                    </div>
+                    <div class="meta-pill" style="white-space: nowrap;">
+                        <span>Dung lượng:</span>
+                        <strong id="detail-project-size">-</strong>
+                    </div>
+                    <div class="meta-pill" style="white-space: nowrap;">
+                        <span>Độ dài:</span>
+                        <strong id="detail-project-duration">-</strong>
+                    </div>
+                </div>
             </div>
 
-            <div style="display: grid; grid-template-columns: 1fr 1.3fr; gap: 40px;">
-                <!-- Left Side: Cover Preview & Metadata -->
-                <div>
-                    <div
-                        style="width: 100%; border-radius: 12px; overflow: hidden; border: 1px solid var(--border-color); background: #000; aspect-ratio: 16/9; display: flex; align-items: center; justify-content: center; position: relative;">
-                        <img id="detail-project-cover" style="width: 100%; height: 100%; object-fit: cover;" src=""
-                            onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
-                        <div id="detail-project-placeholder" class="project-placeholder-cover"
-                            style="height: 100%; display: none;">P</div>
+            <!-- Studio Tabs Navigation -->
+            <div class="detail-tabs-bar">
+                <button type="button" class="detail-tab-btn active" onclick="switchDetailTab('tab-video')">
+                    🎬 Video & Xử lý (Step 1–2)
+                </button>
+                <button type="button" class="detail-tab-btn" onclick="switchDetailTab('tab-sub')">
+                    📝 Phụ đề & Whisper (Step 3, 5–7)
+                </button>
+                <button type="button" class="detail-tab-btn" onclick="switchDetailTab('tab-translate')">
+                    🌐 Dịch thuật & AI (Step 4)
+                </button>
+                <button type="button" class="detail-tab-btn" onclick="switchDetailTab('tab-all')">
+                    ⚡ Tất cả cài đặt
+                </button>
+            </div>
+
+            <!-- Pipeline Configuration Form -->
+            <form id="form-detail-config">
+                <input type="hidden" id="detail-config-folder">
+
+                <!-- TAB 1: VIDEO & CANVAS -->
+                <div id="tab-video" class="tab-pane active">
+                    <div class="form-section section-video">
+                        <div class="form-section-header">
+                            <span class="section-icon">🎬</span> Video đầu vào & Tốc độ
+                            <span class="step-badge step-badge-cyan">STEP 1</span>
+                        </div>
+                        <div class="form-section-body">
+                            <div class="form-group">
+                                <label style="white-space: nowrap;">Danh sách file video (đường dẫn tuyệt đối)</label>
+                                <textarea id="detail-video-path" style="display: none;"></textarea>
+                                <div class="video-list-wrapper" style="border: 1px solid var(--border-color); border-radius: 8px; background: rgba(0,0,0,0.2); padding: 8px;">
+                                    <div id="detail-video-list-container" style="max-height: 140px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; margin-bottom: 8px; padding-right: 4px;">
+                                        <!-- Rendered dynamically -->
+                                    </div>
+                                    <div style="display: flex; gap: 6px; justify-content: flex-end; align-items: center; border-top: 1px solid var(--border-color); padding-top: 6px;">
+                                        <span style="font-size: 0.78rem; color: var(--text-muted); margin-right: auto;" id="detail-video-count-info">0 video</span>
+                                        <button class="btn btn-secondary" id="btn-add-detail-video-manual" type="button" style="width: auto; padding: 3px 8px; font-size: 0.75rem;">+ Thủ công</button>
+                                        <button class="btn btn-secondary" id="btn-browse-detail-video" type="button" style="width: auto; padding: 3px 8px; font-size: 0.75rem;">📂 Chọn file</button>
+                                        <button class="btn btn-danger" id="btn-clear-detail-videos" type="button" style="width: auto; padding: 3px 8px; font-size: 0.75rem;">🗑️ Xóa</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="detail-speed" style="white-space: nowrap;">Tốc độ Video</label>
+                                    <input type="number" id="detail-speed" step="0.01" value="0.77">
+                                </div>
+                                <div class="form-group">
+                                    <label for="detail-volume" style="white-space: nowrap;">Âm lượng (dB)</label>
+                                    <input type="number" id="detail-volume" step="0.1" value="-15.5">
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
-                    <div style="margin-top: 25px; display: flex; flex-direction: column; gap: 15px;">
-                        <div
-                            style="display: flex; flex-direction: column; gap: 4px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
-                            <span style="color: var(--text-muted); font-size: 0.85rem;">Thư mục dự án:</span>
-                            <span
-                                style="font-weight: 600; font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; color: var(--text-color); word-break: break-all;"
-                                id="detail-project-folder">-</span>
+                    <div class="form-section section-process">
+                        <div class="form-section-header">
+                            <span class="section-icon">⚙️</span> Xử lý Video (Lật, Blur, Vocal)
                         </div>
-                        <div
-                            style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
-                            <span style="color: var(--text-muted); font-size: 0.85rem;">Dung lượng thư mục:</span>
-                            <span style="font-weight: 600; color: var(--text-color);" id="detail-project-size">-</span>
+                        <div class="form-section-body">
+                            <div class="toggle-grid">
+                                <label class="toggle-card" for="detail-mirror-video">
+                                    <div class="toggle-label-text">
+                                        <strong>Mirror Video</strong>
+                                        <span>Lật ngang video</span>
+                                    </div>
+                                    <div class="toggle-switch">
+                                        <input type="checkbox" id="detail-mirror-video" checked>
+                                        <span class="toggle-slider"></span>
+                                    </div>
+                                </label>
+                                <label class="toggle-card" for="detail-hardsub-blur">
+                                    <div class="toggle-label-text">
+                                        <strong>Làm mờ Hardsub</strong>
+                                        <span>Xóa chữ bằng Blur</span>
+                                    </div>
+                                    <div class="toggle-switch">
+                                        <input type="checkbox" id="detail-hardsub-blur" checked>
+                                        <span class="toggle-slider"></span>
+                                    </div>
+                                </label>
+                                <label class="toggle-card" for="detail-filter-audio">
+                                    <div class="toggle-label-text">
+                                        <strong>Lọc âm gốc (Vocal)</strong>
+                                        <span>Demucs + DeepFilter</span>
+                                    </div>
+                                    <div class="toggle-switch">
+                                        <input type="checkbox" id="detail-filter-audio">
+                                        <span class="toggle-slider"></span>
+                                    </div>
+                                </label>
+                            </div>
                         </div>
-                        <div
-                            style="display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">
-                            <span style="color: var(--text-muted); font-size: 0.85rem;">Độ dài Video:</span>
-                            <span style="font-weight: 600; color: var(--text-color);"
-                                id="detail-project-duration">-</span>
+                    </div>
+
+                    <div class="form-section section-canvas">
+                        <div class="form-section-header">
+                            <span class="section-icon">📐</span> Canvas & Aspect Ratio
+                        </div>
+                        <div class="form-section-body">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="detail-canvas-ratio" style="white-space: nowrap;">Tỷ lệ khung hình</label>
+                                    <select id="detail-canvas-ratio" style="background: linear-gradient(135deg,rgba(235,87,87,0.08),rgba(155,81,224,0.08)); border-color: rgba(235,87,87,0.3);">
+                                        <option value="16:9">🖥️ 16:9 — Ngang (1920×1080)</option>
+                                        <option value="9:16">📱 9:16 — Dọc (1080×1920)</option>
+                                        <option value="1:1">⬛ 1:1 — Vuông (1080×1080)</option>
+                                        <option value="4:3">📺 4:3 — Cổ điển (1440×1080)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="display:flex; align-items:flex-end; padding-bottom: 2px;">
+                                    <div id="detail-canvas-preview" style="font-size:0.78rem; color: var(--text-muted); padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(255,255,255,0.02); width:100%; text-align:center; line-height:1.4;">
+                                        <span style="font-weight:700; color: #eb8c8c;">1920 × 1080</span><br>
+                                        <span style="font-size:0.7rem;">canvas_width × canvas_height</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Right Side: Pipeline Configuration Form -->
-                <div>
-                    <h3
-                        style="font-weight: 600; font-size: 1.15rem; color: #fff; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 8px;">
-                        Cấu hình Pipeline của Dự án
-                    </h3>
-                    <form id="form-detail-config">
-                        <input type="hidden" id="detail-config-folder">
-
-                        <div class="form-group">
-                            <label>Danh sách Video đầu vào (tuyệt đối)</label>
-                            <textarea id="detail-video-path" style="display: none;"></textarea>
-                            <div class="video-list-wrapper" style="border: 1px solid var(--border-color); border-radius: 8px; background: rgba(255,255,255,0.01); padding: 10px;">
-                                <div id="detail-video-list-container" style="max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; padding-right: 4px;">
-                                    <!-- Rendered dynamically -->
-                                </div>
-                                <div style="display: flex; gap: 8px; justify-content: flex-end; align-items: center; border-top: 1px solid var(--border-color); padding-top: 8px;">
-                                    <span style="font-size: 0.8rem; color: var(--text-muted); margin-right: auto;" id="detail-video-count-info">0 video</span>
-                                    <button class="btn btn-secondary" id="btn-add-detail-video-manual" type="button" style="width: auto; padding: 4px 10px; font-size: 0.75rem;">+ Thêm thủ công</button>
-                                    <button class="btn btn-secondary" id="btn-browse-detail-video" type="button" style="width: auto; padding: 4px 10px; font-size: 0.75rem; display: flex; align-items: center; gap: 4px;">📂 Chọn file</button>
-                                    <button class="btn btn-danger" id="btn-clear-detail-videos" type="button" style="width: auto; padding: 4px 10px; font-size: 0.75rem; background: var(--error-color); border: none; display: flex; align-items: center; gap: 4px;">🗑️ Xóa hết</button>
-                                </div>
-                            </div>
+                <!-- TAB 2: SUBTITLES & WHISPER -->
+                <div id="tab-sub" class="tab-pane">
+                    <div class="form-section section-sub">
+                        <div class="form-section-header">
+                            <span class="section-icon">📝</span> Phụ đề, Whisper GPU & TTS
+                            <span class="step-badge step-badge-orange">STEP 3, 5–7</span>
                         </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="detail-speed">Tốc độ Video (Step 1)</label>
-                                <input type="number" id="detail-speed" step="0.01" value="0.77">
-                            </div>
-                            <div class="form-group">
-                                <label for="detail-volume">Âm lượng (dB) (Step 1)</label>
-                                <input type="number" id="detail-volume" step="0.1" value="-15.5">
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="detail-mirror-video">Mirror video mặc định</label>
-                                <label style="display:flex;align-items:center;gap:8px;height:38px;">
-                                    <input type="checkbox" id="detail-mirror-video" checked>
-                                    <span>Lật ngang video khi patch</span>
+                        <div class="form-section-body">
+                            <div class="toggle-grid" style="margin-bottom: 14px;">
+                                <label class="toggle-card" for="detail-use-local-whisper">
+                                    <div class="toggle-label-text">
+                                        <strong>Whisper GPU</strong>
+                                        <span>Local GPU khuyên dùng</span>
+                                    </div>
+                                    <div class="toggle-switch">
+                                        <input type="checkbox" id="detail-use-local-whisper" checked>
+                                        <span class="toggle-slider"></span>
+                                    </div>
+                                </label>
+                                <label class="toggle-card" for="detail-use-local-ocr">
+                                    <div class="toggle-label-text">
+                                        <strong>PaddleOCR</strong>
+                                        <span>Quét chữ từ frame</span>
+                                    </div>
+                                    <div class="toggle-switch">
+                                        <input type="checkbox" id="detail-use-local-ocr">
+                                        <span class="toggle-slider"></span>
+                                    </div>
+                                </label>
+                                <label class="toggle-card" for="detail-whisper-vad-filter">
+                                    <div class="toggle-label-text">
+                                        <strong>VAD Filter</strong>
+                                        <span>Lọc ảo giác</span>
+                                    </div>
+                                    <div class="toggle-switch">
+                                        <input type="checkbox" id="detail-whisper-vad-filter" checked>
+                                        <span class="toggle-slider"></span>
+                                    </div>
                                 </label>
                             </div>
-                            <div class="form-group">
-                                <label for="detail-hardsub-blur">Làm mờ chữ (Blur)</label>
-                                <label style="display:flex;align-items:center;gap:8px;height:38px;">
-                                    <input type="checkbox" id="detail-hardsub-blur" checked>
-                                    <span>Bật làm mờ chữ (Nặng/Slow)</span>
-                                </label>
-                            </div>
-                        </div>
 
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="detail-use-local-ocr">Nhận diện phụ đề bằng OCR</label>
-                                <label style="display:flex;align-items:center;gap:8px;height:38px;">
-                                    <input type="checkbox" id="detail-use-local-ocr">
-                                    <span>Sử dụng PaddleOCR quét chữ thay vì Whisper</span>
-                                </label>
-                            </div>
-                            <div class="form-group">
-                                <label for="detail-use-local-whisper">Sử dụng local Whisper</label>
-                                <label style="display:flex;align-items:center;gap:8px;height:38px;">
-                                    <input type="checkbox" id="detail-use-local-whisper" checked>
-                                    <span>Dùng Whisper nhận dạng tiếng (Mặc định)</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <!-- OCR Crop Mode & Custom Coordinates -->
-                        <div id="ocr-crop-settings-section" style="border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-bottom: 15px; background: rgba(0, 242, 254, 0.02); display: none;">
-                            <div style="font-weight: 600; font-size: 0.88rem; color: var(--accent-cyan); margin-bottom: 10px;">🔍 Cấu hình Vùng quét OCR</div>
-                            <div class="form-row" style="margin-bottom: 10px;">
-                                <div class="form-group" style="width: 100%;">
-                                    <label for="detail-ocr-crop-mode">Vùng quét chữ</label>
+                            <!-- OCR Crop Settings -->
+                            <div id="ocr-crop-settings-section" style="border: 1px solid rgba(242,153,74,0.25); border-radius: 8px; padding: 10px; margin-bottom: 14px; background: rgba(242,153,74,0.03); display: none;">
+                                <div style="font-weight: 600; font-size: 0.8rem; color: #f2994a; margin-bottom: 6px;">🔍 Vùng quét OCR</div>
+                                <div class="form-group" style="margin-bottom: 6px;">
                                     <select id="detail-ocr-crop-mode" onchange="toggleOcrCropCoordinates()">
-                                        <option value="auto">🤖 Tự động (Dọc: 60%-95% | Ngang: 25% dưới)</option>
+                                        <option value="auto">🤖 Tự động (Dọc: 60–95% | Ngang: 25% dưới)</option>
                                         <option value="horizontal">🖥️ Video ngang (Bottom 25%)</option>
-                                        <option value="vertical">📱 Video dọc (60% - 95% chiều cao)</option>
-                                        <option value="full">📺 Toàn màn hình (Full Screen)</option>
-                                        <option value="custom">🛠️ Tùy chỉnh (Tọa độ X, Y, W, H)</option>
+                                        <option value="vertical">📱 Video dọc (60% – 95%)</option>
+                                        <option value="full">📺 Toàn màn hình</option>
+                                        <option value="custom">🛠️ Tùy chỉnh (X, Y, W, H)</option>
+                                    </select>
+                                </div>
+                                <div class="form-row-4" id="detail-ocr-coords-row" style="display: none;">
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label for="detail-ocr-crop-x" style="font-size: 0.7rem;">X</label>
+                                        <input type="number" id="detail-ocr-crop-x" value="0">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label for="detail-ocr-crop-y" style="font-size: 0.7rem;">Y</label>
+                                        <input type="number" id="detail-ocr-crop-y" value="0">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label for="detail-ocr-crop-w" style="font-size: 0.7rem;">Rộng (W)</label>
+                                        <input type="number" id="detail-ocr-crop-w" value="0">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label for="detail-ocr-crop-h" style="font-size: 0.7rem;">Cao (H)</label>
+                                        <input type="number" id="detail-ocr-crop-h" value="0">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="form-row-3">
+                                <div class="form-group">
+                                    <label for="detail-whisper-model" style="white-space: nowrap;">Model Whisper</label>
+                                    <select id="detail-whisper-model">
+                                        <option value="large-v3">large-v3 ★</option>
+                                        <option value="large-v3-turbo">large-v3-turbo</option>
+                                        <option value="medium">medium</option>
+                                        <option value="small">small</option>
+                                        <option value="base">base</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="detail-subtitle-offset" style="white-space: nowrap;">Lệch sub (ms)</label>
+                                    <input type="number" id="detail-subtitle-offset" step="50" value="0">
+                                </div>
+                                <div class="form-group">
+                                    <label for="detail-tts-engine" style="white-space: nowrap;">Engine TTS</label>
+                                    <select id="detail-tts-engine">
+                                        <option value="local">NGHI-TTS</option>
+                                        <option value="capcut">CapCut GUI</option>
                                     </select>
                                 </div>
                             </div>
-                            <div class="form-row" id="detail-ocr-coords-row" style="display: none; gap: 8px;">
-                                <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                                    <label for="detail-ocr-crop-x" style="font-size: 0.75rem;">X</label>
-                                    <input type="number" id="detail-ocr-crop-x" value="0" style="padding: 6px;">
+
+                            <div class="form-row-4" style="margin-top: 8px;">
+                                <div class="form-group">
+                                    <label for="detail-tts-speed" style="white-space: nowrap;">Tốc độ TTS</label>
+                                    <input type="number" id="detail-tts-speed" step="0.01" value="1.17">
                                 </div>
-                                <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                                    <label for="detail-ocr-crop-y" style="font-size: 0.75rem;">Y</label>
-                                    <input type="number" id="detail-ocr-crop-y" value="0" style="padding: 6px;">
+                                <div class="form-group">
+                                    <label for="detail-font-size" style="white-space: nowrap;">Cỡ chữ Sub</label>
+                                    <input type="number" id="detail-font-size" step="0.5" value="15.0">
                                 </div>
-                                <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                                    <label for="detail-ocr-crop-w" style="font-size: 0.75rem;">Rộng (W)</label>
-                                    <input type="number" id="detail-ocr-crop-w" value="0" style="padding: 6px;">
+                                <div class="form-group">
+                                    <label for="detail-font-color" style="white-space: nowrap;">Màu chữ</label>
+                                    <select id="detail-font-color">
+                                        <option value="#f0ff00">🟡 Vàng preset</option>
+                                        <option value="#FFFF00">🟡 Vàng thuần</option>
+                                        <option value="#FFFFFF">⬜ Trắng</option>
+                                        <option value="#FF0000">🔴 Đỏ</option>
+                                        <option value="#00FF00">🟢 Xanh Lá</option>
+                                    </select>
                                 </div>
-                                <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                                    <label for="detail-ocr-crop-h" style="font-size: 0.75rem;">Cao (H)</label>
-                                    <input type="number" id="detail-ocr-crop-h" value="0" style="padding: 6px;">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="detail-tts-engine">Engine TTS (Step 6)</label>
-                                <select id="detail-tts-engine">
-                                    <option value="local">Local NGHI-TTS (Mặc định)</option>
-                                    <option value="capcut">CapCut GUI TTS</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="detail-tts-speed">Tốc độ Đọc (Step 7)</label>
-                                <input type="number" id="detail-tts-speed" step="0.01" value="1.17">
-                            </div>
-                            <div class="form-group">
-                                <label for="detail-font-size">Cỡ chữ Sub (Step 5)</label>
-                                <input type="number" id="detail-font-size" step="0.5" value="15.0">
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="detail-font-color">Màu chữ Sub</label>
-                                <select id="detail-font-color">
-                                    <option value="#f0ff00">Màu Vàng preset</option>
-                                    <option value="#FFFF00">Màu Vàng</option>
-                                    <option value="#FFFFFF">Màu Trắng</option>
-                                    <option value="#FF0000">Màu Đỏ</option>
-                                    <option value="#00FF00">Màu Xanh Lá</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="detail-font-name">Font chữ</label>
-                                <input type="text" id="detail-font-name"
-                                    value="C:/Users/nguye/AppData/Local/CapCut/Apps/8.9.1.3802/Resources/Font/SystemFont/en.ttf">
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="detail-subtitle-offset">Lệch sub (ms) <span style="font-size:0.8em;color:var(--text-muted)">+delay / -sớm</span></label>
-                                <input type="number" id="detail-subtitle-offset" step="50" value="0"
-                                    title="Sub hiện sớm hơn lời? → nhập số dương (vd: 200). Sub hiện trễ? → nhập số âm (vd: -100)">
-                            </div>
-                            <div class="form-group">
-                                <label for="detail-whisper-model">Model Whisper GPU</label>
-                                <select id="detail-whisper-model">
-                                    <option value="large-v3">large-v3 (Chất lượng cao nhất - Khuyên dùng)</option>
-                                    <option value="large-v3-turbo">large-v3-turbo (Tốc độ nhanh)</option>
-                                    <option value="medium">medium (Cân bằng)</option>
-                                    <option value="small">small (Nhẹ)</option>
-                                    <option value="base">base (Siêu nhẹ)</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="detail-whisper-vad-filter">Bộ lọc khoảng im lặng (VAD Filter)</label>
-                                <label style="display:flex;align-items:center;gap:8px;height:38px;">
-                                    <input type="checkbox" id="detail-whisper-vad-filter" checked>
-                                    <span>Lọc bỏ tạp âm/hallucination của Whisper</span>
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="detail-canvas-ratio">📐 Tỷ lệ Canvas (Aspect Ratio)</label>
-                                <select id="detail-canvas-ratio" style="background: linear-gradient(135deg, rgba(0,242,254,0.08), rgba(155,81,224,0.08)); border-color: rgba(0,242,254,0.3);">
-                                    <option value="16:9">🖥️ 16:9 — Ngang (1920×1080)</option>
-                                    <option value="9:16">📱 9:16 — Dọc (1080×1920)</option>
-                                    <option value="1:1">⬛ 1:1 — Vuông (1080×1080)</option>
-                                    <option value="4:3">📺 4:3 — Cổ điển (1440×1080)</option>
-                                </select>
-                            </div>
-                            <div class="form-group" style="display:flex; align-items:flex-end; padding-bottom: 2px;">
-                                <div id="detail-canvas-preview" style="font-size:0.78rem; color: var(--text-muted); padding: 9px 10px; border: 1px solid var(--border-color); border-radius: 8px; background: rgba(255,255,255,0.02); width:100%; text-align:center; line-height:1.5;">
-                                    <span style="font-weight:700; color: var(--accent-cyan);">1920 × 1080</span><br>
-                                    <span style="font-size:0.72rem;">canvas_width × canvas_height</span>
+                                <div class="form-group">
+                                    <label for="detail-font-name" style="white-space: nowrap;">Font chữ</label>
+                                    <input type="text" id="detail-font-name" value="C:/Users/nguye/AppData/Local/CapCut/Apps/8.9.1.3802/Resources/Font/SystemFont/en.ttf">
                                 </div>
                             </div>
                         </div>
-
-                        <h4
-                            style="margin: 20px 0 10px; color: var(--text-muted); font-size: 0.95rem; border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">
-                            Dịch phụ đề</h4>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="detail-translation-method">Nguồn dịch</label>
-                                <select id="detail-translation-method">
-                                    <option value="google">Google miễn phí</option>
-                                    <option value="ai">AI ChatGPT/Gemini</option>
-                                </select>
-                            </div>
-                            <div class="form-group">
-                                <label for="detail-translation-ai-profile">AI cho dịch</label>
-                                <select id="detail-translation-ai-profile"></select>
-                                <div class="profile-summary" id="detail-translation-ai-summary"></div>
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="detail-context-ai-profile">AI cho Context (Ngữ cảnh)</label>
-                                <select id="detail-context-ai-profile"></select>
-                                <div class="profile-summary" id="detail-context-ai-summary"></div>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="detail-video-context">Ngữ cảnh dịch</label>
-                            <input type="text" id="detail-video-context"
-                                value="Short fantasy game online videos, MMORPG gameplay review, PvP server war">
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="detail-source-language">Ngôn ngữ gốc</label>
-                                <input type="text" id="detail-source-language" value="Chinese">
-                            </div>
-                            <div class="form-group">
-                                <label for="detail-target-language">Ngôn ngữ dịch</label>
-                                <input type="text" id="detail-target-language" value="Vietnamese">
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label for="detail-ai-tone">Tone dịch</label>
-                                <input type="text" id="detail-ai-tone" value="natural and fluent">
-                            </div>
-                            <div class="form-group">
-                                <label for="detail-ai-temperature">AI temperature</label>
-                                <input type="number" id="detail-ai-temperature" step="0.1" min="0" max="2" value="0.0">
-                            </div>
-                        </div>
-
-                        <div style="display: flex; gap: 15px; margin-top: 30px;">
-                            <button type="submit" class="btn btn-primary" style="flex: 1;">Lưu cấu hình</button>
-                            <button type="button" class="btn btn-warning" id="btn-detail-run"
-                                style="background:#f2994a; color:#fff; border:none; flex: 1.2;">
-                                Chạy Pipeline ngay
-                            </button>
-                        </div>
-                    </form>
+                    </div>
                 </div>
-            </div>
+
+                <!-- TAB 3: TRANSLATION & AI -->
+                <div id="tab-translate" class="tab-pane">
+                    <div class="form-section section-translate">
+                        <div class="form-section-header">
+                            <span class="section-icon">🌐</span> Dịch phụ đề & AI Context
+                            <span class="step-badge step-badge-green">STEP 4</span>
+                        </div>
+                        <div class="form-section-body">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="detail-translation-method" style="white-space: nowrap;">Nguồn dịch</label>
+                                    <select id="detail-translation-method">
+                                        <option value="google">Miễn phí (Google Translate)</option>
+                                        <option value="ai">AI chuyên sâu (ChatGPT / Gemini)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label for="detail-translation-ai-profile" style="white-space: nowrap;">AI Dịch phụ đề</label>
+                                    <select id="detail-translation-ai-profile"></select>
+                                    <div class="profile-summary" id="detail-translation-ai-summary"></div>
+                                </div>
+                            </div>
+                            <div class="form-row" style="margin-top: 8px;">
+                                <div class="form-group">
+                                    <label for="detail-context-ai-profile" style="white-space: nowrap;">AI Phân tích Ngữ cảnh (Context)</label>
+                                    <select id="detail-context-ai-profile"></select>
+                                    <div class="profile-summary" id="detail-context-ai-summary"></div>
+                                </div>
+                                <div class="form-group">
+                                    <label for="detail-video-context" style="white-space: nowrap;">Mô tả Ngữ cảnh video</label>
+                                    <input type="text" id="detail-video-context" value="Short fantasy game online videos, MMORPG gameplay review, PvP server war">
+                                </div>
+                            </div>
+                            <div class="form-row-4" style="margin-top: 8px;">
+                                <div class="form-group">
+                                    <label for="detail-source-language" style="white-space: nowrap;">Ngôn ngữ gốc</label>
+                                    <input type="text" id="detail-source-language" value="Chinese">
+                                </div>
+                                <div class="form-group">
+                                    <label for="detail-target-language" style="white-space: nowrap;">Ngôn ngữ đích</label>
+                                    <input type="text" id="detail-target-language" value="Vietnamese">
+                                </div>
+                                <div class="form-group">
+                                    <label for="detail-ai-tone" style="white-space: nowrap;">Tone dịch</label>
+                                    <input type="text" id="detail-ai-tone" value="natural and fluent">
+                                </div>
+                                <div class="form-group">
+                                    <label for="detail-ai-temperature" style="white-space: nowrap;">AI Temp (0–2)</label>
+                                    <input type="number" id="detail-ai-temperature" step="0.1" min="0" max="2" value="0.0">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TAB 4: ALL SETTINGS (FULL VIEW) -->
+                <div id="tab-all" class="tab-pane">
+                    <div id="all-settings-clone-container"></div>
+                </div>
+
+                <!-- BOTTOM ACTION BUTTONS -->
+                <div style="display: flex; gap: 16px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1; padding: 12px; font-size: 0.9rem;">
+                        💾 Lưu cấu hình
+                    </button>
+                    <button type="button" class="btn btn-warning" id="btn-detail-run"
+                        style="background: linear-gradient(135deg,#f2994a,#e67e22); color:#fff; border:none; flex: 1.2; padding: 12px; font-size: 0.9rem;">
+                        ▶ Chạy Pipeline ngay
+                    </button>
+                </div>
+            </form>
         </div>
 
         <!-- Split Queue & Logs Panel -->
@@ -1196,24 +1570,30 @@
                     <div style="display:flex; gap:8px; align-items:center;">
                         <button class="btn btn-secondary" id="btn-start"
                             style="width:auto; padding:8px 12px;">Chạy</button>
-                        <button class="btn btn-secondary" id="btn-pause"
-                            style="width:auto; padding:8px 12px;">Tạm dừng</button>
-                        <button class="btn btn-secondary" id="btn-resume"
-                            style="width:auto; padding:8px 12px;">Tiếp tục</button>
+                        <button class="btn btn-secondary" id="btn-pause" style="width:auto; padding:8px 12px;">Tạm
+                            dừng</button>
+                        <button class="btn btn-secondary" id="btn-resume" style="width:auto; padding:8px 12px;">Tiếp
+                            tục</button>
                         <button class="btn btn-secondary" id="btn-clear" style="width:auto; padding:8px 12px;">Xóa hàng
                             chờ</button>
                     </div>
                 </div>
                 <!-- Queue Diagnostics Panel -->
-                <div id="diagnostics-panel" style="margin-bottom: 12px; font-size: 0.82rem; padding: 10px; border-radius: 6px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 6px;">
+                <div id="diagnostics-panel"
+                    style="margin-bottom: 12px; font-size: 0.82rem; padding: 10px; border-radius: 6px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 6px;">
                     <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
-                        <div>⚙️ <strong>Workers:</strong> 
-                            <span id="worker-preprocess-status" style="margin-right: 15px; font-weight: 500;">Preprocess: <span style="color: var(--text-muted);">INACTIVE</span></span>
-                            <span id="worker-gui-status" style="font-weight: 500;">GUI: <span style="color: var(--text-muted);">INACTIVE</span></span>
+                        <div>⚙️ <strong>Workers:</strong>
+                            <span id="worker-preprocess-status"
+                                style="margin-right: 15px; font-weight: 500;">Preprocess: <span
+                                    style="color: var(--text-muted);">INACTIVE</span></span>
+                            <span id="worker-gui-status" style="font-weight: 500;">GUI: <span
+                                    style="color: var(--text-muted);">INACTIVE</span></span>
                         </div>
-                        <div>📁 <strong>Buffers:</strong> 
-                            <span id="buffer-a-status" style="margin-right: 15px; font-weight: 500;">A (00000000000): <span style="color: #6fcf97;">FREE</span></span>
-                            <span id="buffer-b-status" style="font-weight: 500;">B (111111111111111111): <span style="color: #6fcf97;">FREE</span></span>
+                        <div>📁 <strong>Buffers:</strong>
+                            <span id="buffer-a-status" style="margin-right: 15px; font-weight: 500;">A (00000000000):
+                                <span style="color: #6fcf97;">FREE</span></span>
+                            <span id="buffer-b-status" style="font-weight: 500;">B (111111111111111111): <span
+                                    style="color: #6fcf97;">FREE</span></span>
                         </div>
                     </div>
                 </div>
@@ -1504,10 +1884,10 @@
             }
             // Canvas ratio helpers
             const CANVAS_RATIO_MAP = {
-                '16:9':  { canvas_width: 1920, canvas_height: 1080 },
-                '9:16':  { canvas_width: 1080, canvas_height: 1920 },
-                '1:1':   { canvas_width: 1080, canvas_height: 1080 },
-                '4:3':   { canvas_width: 1440, canvas_height: 1080 },
+                '16:9': { canvas_width: 1920, canvas_height: 1080 },
+                '9:16': { canvas_width: 1080, canvas_height: 1920 },
+                '1:1': { canvas_width: 1080, canvas_height: 1080 },
+                '4:3': { canvas_width: 1440, canvas_height: 1080 },
             };
             function canvasRatioDimensions(ratio) {
                 return CANVAS_RATIO_MAP[ratio] || CANVAS_RATIO_MAP['16:9'];
@@ -1861,14 +2241,14 @@
                 document.getElementById('ai-profile-modal-title').textContent = aiProfileEditingIndex >= 0 ? 'Sửa AI Profile' : 'Thêm AI Profile';
                 document.getElementById('ai-profile-label').value = profile?.label || '';
                 document.getElementById('ai-profile-id').value = profile?.id || '';
-                
+
                 const selectProvider = document.getElementById('ai-profile-provider');
                 const customProviderContainer = document.getElementById('ai-profile-provider-custom-container');
                 const customProviderInput = document.getElementById('ai-profile-provider-custom');
-                
+
                 const standardProviders = ['openai', 'chat', 'chatgpt', 'gemini', 'anthropic'];
                 const currentProvider = profile?.provider || 'openai';
-                
+
                 if (standardProviders.includes(currentProvider)) {
                     selectProvider.value = currentProvider;
                     customProviderContainer.style.display = 'none';
@@ -1878,7 +2258,7 @@
                     customProviderContainer.style.display = 'block';
                     customProviderInput.value = currentProvider;
                 }
-                
+
                 document.getElementById('ai-profile-model').value = profile?.model || '';
                 document.getElementById('ai-profile-api-key').value = profile?.api_key || '';
                 document.getElementById('ai-profile-base-url').value = profile?.base_url || '';
@@ -1889,7 +2269,7 @@
                 e.preventDefault();
                 const label = document.getElementById('ai-profile-label').value.trim();
                 const manualId = document.getElementById('ai-profile-id').value.trim();
-                
+
                 if (!label) {
                     alert('Vui lòng nhập tên hiển thị (Label).');
                     return;
@@ -2236,8 +2616,8 @@
                             const RATIO_COLORS = {
                                 '16:9': 'rgba(0,242,254,0.85)',
                                 '9:16': 'rgba(155,81,224,0.85)',
-                                '1:1':  'rgba(242,153,74,0.85)',
-                                '4:3':  'rgba(39,174,96,0.85)'
+                                '1:1': 'rgba(242,153,74,0.85)',
+                                '4:3': 'rgba(39,174,96,0.85)'
                             };
                             const ratioBadge = p.canvas_ratio ? `<div style="position:absolute; top:8px; right:8px; background:${RATIO_COLORS[p.canvas_ratio] || 'rgba(0,242,254,0.85)'}; border-radius:5px; padding:2px 7px; font-size:0.65rem; font-weight:800; color:#0b0a10; z-index:3; pointer-events:none; letter-spacing:0.3px;">${RATIO_ICONS[p.canvas_ratio] || ''} ${p.canvas_ratio}</div>` : '';
 
@@ -2333,6 +2713,7 @@
                         document.getElementById('detail-hardsub-blur').checked = config.hardsub_blur_enabled !== false;
                         document.getElementById('detail-use-local-ocr').checked = config.use_local_ocr === true;
                         document.getElementById('detail-use-local-whisper').checked = config.use_local_whisper === true;
+                        document.getElementById('detail-filter-audio').checked = config.filter_audio === true;
 
                         // Bind OCR Crop Mode & Coordinates
                         document.getElementById('detail-ocr-crop-mode').value = config.ocr_crop_mode || 'auto';
@@ -2361,6 +2742,18 @@
                     });
             }
 
+            // Tab Switching Logic
+            window.switchDetailTab = function(tabId) {
+                document.querySelectorAll('.detail-tab-btn').forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+                
+                const activeBtn = document.querySelector(`.detail-tab-btn[onclick*="${tabId}"]`);
+                if (activeBtn) activeBtn.classList.add('active');
+                
+                const targetPane = document.getElementById(tabId);
+                if (targetPane) targetPane.classList.add('active');
+            };
+
             function getDetailProjectConfigPayload() {
                 return {
                     video_path: detailVideoPathInput.value,
@@ -2383,6 +2776,7 @@
                     hardsub_blur_enabled: document.getElementById('detail-hardsub-blur').checked,
                     use_local_ocr: document.getElementById('detail-use-local-ocr').checked,
                     use_local_whisper: document.getElementById('detail-use-local-whisper').checked,
+                    filter_audio: document.getElementById('detail-filter-audio').checked,
                     ocr_crop_mode: document.getElementById('detail-ocr-crop-mode').value,
                     ocr_crop_x: parseInt(document.getElementById('detail-ocr-crop-x').value) || 0,
                     ocr_crop_y: parseInt(document.getElementById('detail-ocr-crop-y').value) || 0,
@@ -2411,6 +2805,10 @@
                     .then(data => {
                         if (data.ok) {
                             log(`Đã lưu cấu hình pipeline cho dự án thành công.`, 'success');
+                            // Fix bug: hide detail view and show grid BEFORE calling loadProjects
+                            projectDetailsContainer.style.display = 'none';
+                            projectsGridContainer.style.display = 'block';
+                            document.body.classList.remove('detail-mode');
                             loadProjects();
                         } else {
                             log('Lỗi khi lưu cấu hình: ' + data.error, 'error');
@@ -2664,7 +3062,7 @@
                         systemStatusDot.className = 'status-dot active';
                         systemStatusText.innerText = 'Máy chủ Hoạt động';
                         isProcessing = data.is_processing;
-                        
+
                         // Update diagnostics UI
                         const workers = data.workers || { preprocess: 'inactive', gui: 'inactive' };
                         const preprocessStatusEl = document.getElementById('worker-preprocess-status');
@@ -2679,10 +3077,10 @@
                         const buffers = data.buffer_status || {};
                         const bufA = buffers["00000000000"] || { occupied: false, owner_video: '', owner_status: 'free' };
                         const bufB = buffers["111111111111111111"] || { occupied: false, owner_video: '', owner_status: 'free' };
-                        
+
                         const bufAEl = document.getElementById('buffer-a-status');
                         const bufBEl = document.getElementById('buffer-b-status');
-                        
+
                         if (bufAEl) {
                             if (bufA.occupied) {
                                 bufAEl.innerHTML = `A (00000000000): <span style="color: #f2994a; font-weight: 500;">${bufA.owner_video} (${bufA.owner_status})</span>`;

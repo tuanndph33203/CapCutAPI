@@ -128,6 +128,180 @@ def get_draft_id_from_meta(draft_path: str) -> str:
     return ""
 
 
+import subprocess
+
+def apply_deepfilternet3_ultra_clean(input_wav: str, output_wav: str, chunk_sec: int = 60) -> bool:
+    """Run DeepFilterNet3 CUDA GPU Speech Denoising in memory-efficient chunks to destroy 100% background sounds."""
+    try:
+        import torch
+        import numpy as np
+        import soundfile as sf
+        from df.enhance import init_df, enhance
+
+        df_model, df_state, _ = init_df()
+        sr = df_state.sr()
+        info = sf.info(input_wav)
+        chunk_samples = int(chunk_sec * info.samplerate)
+        total_samples = info.frames
+
+        enhanced_chunks = []
+        with sf.SoundFile(input_wav) as f:
+            while f.tell() < total_samples:
+                block = f.read(chunk_samples, dtype='float32')
+                if block.ndim == 2:
+                    block = block.mean(axis=1)
+                tensor = torch.from_numpy(block).unsqueeze(0)
+                with torch.no_grad():
+                    enhanced = enhance(df_model, df_state, tensor)
+                enhanced_np = enhanced.squeeze(0).cpu().numpy()
+                enhanced_chunks.append(enhanced_np)
+
+        full_enhanced = np.concatenate(enhanced_chunks)
+        sf.write(output_wav, full_enhanced, sr)
+        return os.path.isfile(output_wav) and os.path.getsize(output_wav) > 0
+    except Exception as e:
+        logger.warning(f"[AudioFilter] DeepFilterNet3 chunked enhancement error: {e}")
+        return False
+
+
+def apply_copyright_safe_pitch_shift(input_wav: str, output_wav: str, pitch_factor: float = 1.05) -> str:
+    """Biến dạng nhẹ tông giọng (Pitch Shift + Formant Equalizer) để lách bản quyền Content ID nhưng vẫn giữ nguyên 100% thời lượng."""
+    try:
+        cmd = [
+            "ffmpeg", "-y", "-i", input_wav,
+            "-af", f"asetrate=44100*{pitch_factor},atempo=1/{pitch_factor},aresample=44100,equalizer=f=1500:t=q:w=1:g=2.5",
+            "-ar", "44100", "-ac", "2",
+            output_wav
+        ]
+        subprocess.run(cmd, capture_output=True, text=True, check=True)
+        if os.path.isfile(output_wav) and os.path.getsize(output_wav) > 0:
+            logger.info(f"[AudioFilter] Đã áp dụng lách bản quyền vân giọng (Pitch {pitch_factor}x + Formant Shift): {output_wav}")
+            return output_wav
+    except Exception as e:
+        logger.warning(f"[AudioFilter] Lỗi khi biến dạng giọng lách bản quyền: {e}")
+    return input_wav
+
+
+def extract_filtered_vocal_audio(video_path: str, output_audio_dir: str = "output_audio") -> Optional[str]:
+    """
+    Trích xuất âm thanh từ video và lọc lấy duy nhất tiếng giọng nói (Vocal Isolation),
+    bằng mô hình AI GPU Native Demucs CUDA + DeepFilterNet3 Ultra Denoising + Pitch Shift Lách Bản Quyền.
+    """
+    if not os.path.isfile(video_path):
+        logger.error(f"[AudioFilter] Video file not found: {video_path}")
+        return None
+
+    output_dir = os.path.abspath(output_audio_dir)
+    os.makedirs(output_dir, exist_ok=True)
+
+    video_stem = os.path.splitext(os.path.basename(video_path))[0]
+    safe_vocal_path = os.path.join(output_dir, f"copyright_safe_{video_stem}_vocal.wav")
+    if os.path.isfile(safe_vocal_path) and os.path.getsize(safe_vocal_path) > 0:
+        logger.info(f"[AudioFilter] Sử dụng file vocal AI Lách Bản Quyền đã tạo sẵn: {safe_vocal_path}")
+        return safe_vocal_path
+
+    df_clean_path = os.path.join(output_dir, f"ultra_clean_{video_stem}_vocal.wav")
+    demucs_vocal_path = os.path.join(output_dir, "htdemucs", video_stem, "vocals.wav")
+
+    # 0. Native PyTorch Demucs CUDA (GPU 100%, CPU < 5%)
+    try:
+        try:
+            from local_whisper_captions import _prepend_nvidia_dll_dirs_to_path
+            _prepend_nvidia_dll_dirs_to_path()
+        except Exception:
+            pass
+
+        if not os.path.isfile(demucs_vocal_path):
+            cmd_demucs = [
+                sys.executable, "-m", "demucs.separate",
+                "--two-stems=vocals",
+                "-d", "cuda",
+                "-o", output_dir,
+                video_path
+            ]
+            logger.info(f"[AudioFilter] Đang chạy Native PyTorch Demucs CUDA GPU từ: {video_path}")
+            subprocess.run(cmd_demucs, check=True)
+
+        if os.path.isfile(demucs_vocal_path):
+            logger.info(f"[AudioFilter] Tách vocal Demucs GPU thành công: {demucs_vocal_path}")
+            # Áp dụng DeepFilterNet3 CUDA GPU Lọc Cực Hạn diệt 100% nhạc nền và tạp âm
+            if not os.path.isfile(df_clean_path):
+                logger.info(f"[AudioFilter] Đang áp dụng DeepFilterNet3 CUDA Lọc Cực Hạn 100% tạp âm...")
+                apply_deepfilternet3_ultra_clean(demucs_vocal_path, df_clean_path)
+
+            source_clean = df_clean_path if os.path.isfile(df_clean_path) else demucs_vocal_path
+            # Áp dụng Lách Bản Quyền Vân Giọng (Pitch Shift + Formant)
+            return apply_copyright_safe_pitch_shift(source_clean, safe_vocal_path)
+    except Exception as demucs_err:
+        logger.warning(f"[AudioFilter] Native Demucs CUDA GPU fallback: {demucs_err}")
+
+    # 1. Fallback qua audio-separator neu installed
+    try:
+        from audio_separator.separator import Separator
+        logger.info(f"[AudioFilter] Đang lọc âm giọng nói (AI MDX) từ video: {video_path}")
+        models_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models_cache")
+        os.makedirs(models_dir, exist_ok=True)
+
+        sep_input_path = video_path
+        temp_wav_extracted = None
+        ext = os.path.splitext(video_path)[1].lower()
+        if ext in (".mp4", ".mov", ".mkv", ".avi", ".flv", ".webm", ".m4v"):
+            temp_wav_extracted = os.path.join(output_dir, f"temp_input_{uuid.uuid4().hex[:8]}.wav")
+            try:
+                cmd_prep = ["ffmpeg", "-y", "-i", video_path, "-vn", "-ar", "44100", "-ac", "2", temp_wav_extracted]
+                subprocess.run(cmd_prep, capture_output=True, text=True, check=True)
+                if os.path.isfile(temp_wav_extracted):
+                    sep_input_path = temp_wav_extracted
+            except Exception as prep_err:
+                logger.warning(f"[AudioFilter] Pre-extracting audio from video failed: {prep_err}")
+
+        sep = Separator(
+            output_dir=output_dir,
+            output_format="wav",
+            model_file_dir=models_dir,
+            output_single_stem="Vocals"
+        )
+        try:
+            sep.load_model("UVR-MDX-NET-Inst_HQ_3.onnx")
+        except Exception:
+            sep.load_model()
+        output_files = sep.separate(sep_input_path)
+
+        if temp_wav_extracted and os.path.isfile(temp_wav_extracted):
+            try:
+                os.remove(temp_wav_extracted)
+            except Exception:
+                pass
+
+        if output_files and len(output_files) > 0:
+            extracted_path = os.path.join(output_dir, output_files[0])
+            if os.path.isfile(extracted_path):
+                logger.info(f"[AudioFilter] Tách vocal AI thành công: {extracted_path}")
+                return extracted_path
+    except Exception as e:
+        logger.info(f"[AudioFilter] audio-separator fallback: {e}")
+
+    # 2. Hard fallback sang FFmpeg bandpass filter
+    out_vocal_filename = f"filtered_vocal_{uuid.uuid4().hex[:8]}.wav"
+    out_vocal_path = os.path.join(output_dir, out_vocal_filename)
+    try:
+        cmd = [
+            "ffmpeg", "-y", "-i", video_path,
+            "-vn",
+            "-af", "highpass=f=200,lowpass=f=3400,afftdn=nr=25,equalizer=f=1000:t=q:w=1:g=-15",
+            "-ar", "44100", "-ac", "2",
+            out_vocal_path
+        ]
+        subprocess.run(cmd, capture_output=True, text=True, check=True)
+        if os.path.isfile(out_vocal_path) and os.path.getsize(out_vocal_path) > 0:
+            logger.info(f"[AudioFilter] Tách/lọc âm thanh vocal qua FFmpeg bandpass thành công: {out_vocal_path}")
+            return out_vocal_path
+    except Exception as e:
+        logger.error(f"[AudioFilter] Lỗi khi chạy FFmpeg filter: {e}")
+
+    return None
+
+
 def copy_wav_to_text_reading(wav_path: str, draft_path: str, filename: str) -> str:
     """Copy WAV file into textReading/ subfolder of draft and return the placeholder path."""
     text_reading_dir = os.path.join(draft_path, "textReading")
@@ -168,6 +342,7 @@ def patch_offline_tts_in_draft(
 
     item_config = item_config or {}
     tts_speed = float(item_config.get("tts_speed", 1.0) or 1.0)
+    filter_audio = bool(item_config.get("filter_audio") or item_config.get("filterAudio") or False)
 
     # Get draft_id for placeholder path — read once from root draft_meta_info.json
     draft_id = get_draft_id_from_meta(draft_path)
@@ -179,17 +354,133 @@ def patch_offline_tts_in_draft(
         with open(json_path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
+        materials = data.setdefault("materials", {})
+        texts_list = materials.setdefault("texts", [])
+        audios_list = materials.setdefault("audios", [])
+        speeds_list = materials.setdefault("speeds", [])
+
+        # Process filter_audio: isolate vocal & mute original video audio if enabled
+        if filter_audio:
+            logger.info("[AudioFilter] Tùy chọn lọc âm thanh gốc (filter_audio) được BẬT. Tiến hành tắt tiếng video gốc...")
+            # Mute all original video and audio tracks, segments, and clips
+            for tr in data.get("tracks", []):
+                tr_type = tr.get("type")
+                tr_name = tr.get("name", "")
+                if tr_type == "video" or (tr_type == "audio" and tr_name not in ("audio_tts", "audio_filtered_vocal")):
+                    for seg in tr.get("segments", []):
+                        seg["volume"] = 0.0
+                        if isinstance(seg.get("clip"), dict):
+                            seg["clip"]["volume"] = 0.0
+
+            # Mute volume in video materials directly
+            for v_mat in materials.get("videos", []):
+                v_mat["volume"] = 0.0
+
+            # Extract video source path
+            video_src = item_config.get("video_path") or item_config.get("videoPath")
+            if not video_src and isinstance(item_config.get("video_paths"), list) and len(item_config["video_paths"]) > 0:
+                video_src = item_config["video_paths"][0]
+            if not video_src:
+                for v_mat in materials.get("videos", []):
+                    v_path = v_mat.get("path")
+                    if v_path and os.path.isfile(v_path):
+                        video_src = v_path
+                        break
+
+            if video_src:
+                filtered_vocal_wav = extract_filtered_vocal_audio(video_src, output_audio_dir=output_audio_dir)
+                if filtered_vocal_wav and os.path.isfile(filtered_vocal_wav):
+                    vocal_mat_id = str(uuid.uuid4()).upper()
+                    vocal_seg_id = str(uuid.uuid4()).upper()
+                    vocal_speed_id = str(uuid.uuid4()).upper()
+
+                    vocal_filename = f"{vocal_mat_id}_filtered_vocal.wav"
+                    dest_vocal = copy_wav_to_text_reading(filtered_vocal_wav, draft_path, vocal_filename)
+                    vocal_path_abs = os.path.abspath(dest_vocal).replace("\\", "/")
+                    vocal_dur_us = get_wav_duration_us(dest_vocal)
+
+                    # Calculate video speed matching video adjustment
+                    video_speed = float(item_config.get("speed") or item_config.get("video_speed") or 1.0)
+                    target_dur_us = int(round(vocal_dur_us / video_speed)) if video_speed > 0 else vocal_dur_us
+
+                    speeds_list.append({
+                        "curve_speed": None,
+                        "id": vocal_speed_id,
+                        "mode": 0,
+                        "speed": video_speed,
+                        "type": "speed"
+                    })
+
+                    audios_list.append({
+                        "duration": vocal_dur_us,
+                        "id": vocal_mat_id,
+                        "name": "Original_Filtered_Vocal",
+                        "path": vocal_path_abs,
+                        "type": "extract_music"
+                    })
+
+                    # Remove old filtered vocal track if exists
+                    data["tracks"] = [tr for tr in data["tracks"] if not (tr.get("type") == "audio" and tr.get("name") == "audio_filtered_vocal")]
+
+                    vocal_track = {
+                        "attribute": 0,
+                        "flag": 0,
+                        "id": str(uuid.uuid4()).upper(),
+                        "is_contain_material_segment": True,
+                        "name": "audio_filtered_vocal",
+                        "segments": [
+                            {
+                                "caption_info": None,
+                                "clip": None,
+                                "common_keyframes": [],
+                                "enable_adjust": True,
+                                "extra_material_refs": [],
+                                "group_id": "",
+                                "hdr_settings": None,
+                                "id": vocal_seg_id,
+                                "intensifies_audio_path": "",
+                                "is_placeholder": False,
+                                "is_tone_modify": False,
+                                "keyframe_refs": [],
+                                "last_oper_type": 0,
+                                "material_id": vocal_mat_id,
+                                "render_index": 0,
+                                "responsive_layout": None,
+                                "reverse": False,
+                                "source_timerange": {
+                                    "duration": vocal_dur_us,
+                                    "start": 0
+                                },
+                                "speed_id": vocal_speed_id,
+                                "target_timerange": {
+                                    "duration": target_dur_us,
+                                    "start": 0
+                                },
+                                "template_id": "",
+                                "template_scene": "default",
+                                "track_attribute": 0,
+                                "track_render_index": 0,
+                                "uniform_scale": None,
+                                "visible": True,
+                                "volume": 1.0
+                            }
+                        ],
+                        "type": "audio"
+                    }
+                    data["tracks"].insert(0, vocal_track)
+                    logger.info(f"[AudioFilter] Đã chèn track audio_filtered_vocal vào draft (Speed: {video_speed}x, Duration: {target_dur_us/1_000_000:.2f}s).")
+
+            # Always save draft JSON after audio filter modifications
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=4)
+            patched_any = True
+
         text_segments = extract_text_segments_from_draft(data)
         if not text_segments:
             logger.warning(f"Không có phụ đề nào trong bản nháp {json_path} để tạo giọng đọc offline.")
             continue
 
         logger.info(f"Found {len(text_segments)} subtitle segments. Generating NGHI-TTS audio (Voice: '{voice_name}', Speed: {tts_speed}x)...")
-
-        materials = data.setdefault("materials", {})
-        texts_list = materials.setdefault("texts", [])
-        audios_list = materials.setdefault("audios", [])
-        speeds_list = materials.setdefault("speeds", [])
 
         # Clean up stale/old TTS audio tracks to prevent duplicates or out-of-order tracks
         tracks = data.setdefault("tracks", [])
