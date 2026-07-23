@@ -640,7 +640,7 @@ def open_project_in_gui(controller, project_name, cancel_check=None):
         marker_started = time.time()
         marker_warned = False
         last_marker_error = None
-        for marker_attempt in range(1, 31):
+        for marker_attempt in range(1, 241):
             try:
                 click_result = click_template(
                     template_file,
@@ -658,7 +658,7 @@ def open_project_in_gui(controller, project_name, cancel_check=None):
                     marker_warned = True
                     logger.warning(
                         f"Chua click duoc project marker {template_file.name} sau {elapsed:.1f}s "
-                        f"(lan {marker_attempt}/30): {marker_error}. Van retry ngam..."
+                        f"(lan {marker_attempt}/240): {marker_error}. Van retry ngam..."
                     )
         if click_result is None:
             raise last_marker_error or RuntimeError(f"Khong click duoc project marker {template_file.name}.")
@@ -4851,7 +4851,7 @@ class QueueRunner:
                 export_source_video,
                 export_before_snapshot,
                 item_config=item_config,
-                timeout=int(item_config.get("export_detect_timeout", 180)),
+                timeout=int(item_config.get("export_detect_timeout", 1800) or 1800),
                 cancel_check=lambda: self._check_cancel(item),
             )
             if exported_path:

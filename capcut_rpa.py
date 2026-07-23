@@ -2,13 +2,14 @@
 from __future__ import annotations
 
 import argparse
+import ctypes
 import json
 import logging
 import sys
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import cv2
 import numpy as np
@@ -163,7 +164,10 @@ def find_capcut_window(debug_report: Path | None = None) -> WindowBox:
                 return
             matches.append(WindowBox(hwnd, title or "CapCut", left, top, right, bottom))
 
-        win32gui.EnumWindows(enum_window, None)
+        try:
+            win32gui.EnumWindows(enum_window, None)
+        except Exception as enum_exc:
+            last_reason = f"EnumWindows failed: {enum_exc}"
         if matches:
             selected = sorted(matches, key=lambda box: box.width * box.height, reverse=True)[0]
             if debug_report:
@@ -216,7 +220,11 @@ def screenshot_window(window: WindowBox) -> np.ndarray:
 
         # PW_RENDERFULLCONTENT helps with modern Chromium/DirectComposition
         # windows; fall back to a plain BitBlt if the app refuses PrintWindow.
-        rendered = win32gui.PrintWindow(window.hwnd, save_dc.GetSafeHdc(), 2)
+        rendered = False
+        try:
+            rendered = ctypes.windll.user32.PrintWindow(window.hwnd, save_dc.GetSafeHdc(), 2) != 0
+        except Exception:
+            rendered = False
         if not rendered:
             save_dc.BitBlt((0, 0), (width, height), mfc_dc, (0, 0), win32con.SRCCOPY)
 
@@ -379,11 +387,16 @@ def click_template(
     click_offset_x: int = 0,
     click_offset_y: int = 0,
     search_region: list[float] | None = None,
+    fallback_fn: Callable[[], Any] | None = None,
+    max_fallback: int = 10,
+    fallback_delay: float = 2.0,
 ) -> dict[str, Any]:
     start = time.time()
     template = cv2.imread(str(template_path), cv2.IMREAD_COLOR)
     if template is None:
         raise FileNotFoundError(f"template not found or unreadable: {template_path}")
+
+    fallback_count = 0
 
     while True:
         window = find_capcut_window()
@@ -409,7 +422,7 @@ def click_template(
             x = window.left + crop_left + max_loc[0] + w // 2 + click_offset_x
             y = window.top + crop_top + max_loc[1] + h // 2 + click_offset_y
             clicked = click_abs(x, y, dry_run)
-            return {
+            res = {
                 "action": "click_template",
                 "template": str(template_path),
                 "score": float(score),
@@ -417,8 +430,30 @@ def click_template(
                 "search_region": search_region,
                 **clicked,
             }
+            if fallback_count > 0:
+                res["fallback_used"] = fallback_count
+            return res
+
         if time.time() - start > timeout:
-            raise TimeoutError(f"template not found above threshold {threshold}: {template_path}, last score={score:.4f}")
+            if fallback_fn is not None and fallback_count < max_fallback:
+                fallback_count += 1
+                logger.warning(
+                    f"Máy lag: Nút tiếp theo '{template_path.name}' chưa xuất hiện (score {score:.4f} < {threshold}). "
+                    f"Thực hiện fallback click lại nút cũ (Lần {fallback_count}/{max_fallback})..."
+                )
+                try:
+                    fallback_fn()
+                except Exception as exc:
+                    logger.warning(f"Lỗi khi thực hiện fallback_fn click nút cũ: {exc}")
+                if fallback_delay > 0 and not dry_run:
+                    time.sleep(fallback_delay)
+                start = time.time()
+                continue
+
+            err_msg = f"template not found above threshold {threshold}: {template_path}, last score={score:.4f}"
+            if fallback_count > 0:
+                err_msg += f" (đã fallback click lại nút cũ {fallback_count} lần)"
+            raise TimeoutError(err_msg)
         time.sleep(0.3)
 
 
@@ -447,10 +482,14 @@ def wait_action(
     interval: float = 0.5,
     dry_run: bool = False,
     require_seen: bool = False,
+    fallback_fn: Callable[[], Any] | None = None,
+    max_fallback: int = 10,
+    fallback_delay: float = 2.0,
 ) -> dict[str, Any]:
     start = time.time()
     last_score: float | None = None
     seen_once = False
+    fallback_count = 0
 
     if template_path is None:
         if not dry_run:
@@ -468,7 +507,7 @@ def wait_action(
             seen_once = True
 
         if (mode == "present" and found) or (mode == "gone" and not found and (not require_seen or seen_once)):
-            return {
+            res = {
                 "action": "wait",
                 "mode": mode,
                 "template": str(template_path),
@@ -479,11 +518,30 @@ def wait_action(
                 "require_seen": require_seen,
                 "seen_once": seen_once,
             }
+            if fallback_count > 0:
+                res["fallback_used"] = fallback_count
+            return res
 
         if timeout > 0 and time.time() - start > timeout:
-            raise TimeoutError(
-                f"wait timeout: mode={mode}, template={template_path}, threshold={threshold}, last score={last_score:.4f}, seen_once={seen_once}"
-            )
+            if mode == "present" and fallback_fn is not None and fallback_count < max_fallback:
+                fallback_count += 1
+                logger.warning(
+                    f"Máy lag: Nút/giao diện chờ '{template_path.name}' chưa xuất hiện. "
+                    f"Thực hiện fallback click lại nút cũ (Lần {fallback_count}/{max_fallback})..."
+                )
+                try:
+                    fallback_fn()
+                except Exception as exc:
+                    logger.warning(f"Lỗi khi thực hiện fallback_fn click nút cũ: {exc}")
+                if fallback_delay > 0 and not dry_run:
+                    time.sleep(fallback_delay)
+                start = time.time()
+                continue
+
+            err_msg = f"wait timeout: mode={mode}, template={template_path}, threshold={threshold}, last score={last_score:.4f}, seen_once={seen_once}"
+            if fallback_count > 0:
+                err_msg += f" (đã fallback click lại nút cũ {fallback_count} lần)"
+            raise TimeoutError(err_msg)
 
         if dry_run:
             return {
@@ -571,14 +629,31 @@ def run_workflow(config_path: Path, dry_run: bool) -> dict[str, Any]:
     config = json.loads(config_path.read_text(encoding="utf-8"))
     base = config_path.parent
     steps = []
+    last_click_executor: Callable[[], Any] | None = None
+
     for index, step in enumerate(config.get("steps", []), start=1):
         action = step["action"]
+        max_fallback = int(step.get("max_fallback", step.get("fallback_attempts", 10)))
+        fallback_delay = float(step.get("fallback_delay", 2.0))
+        enable_fallback = bool(step.get("enable_fallback", True))
+        current_fallback_fn = last_click_executor if enable_fallback else None
+
         if action == "open_first_project":
+            min_area = int(step.get("min_area", 1500))
+            debug_img = Path(step["debug_image"]) if step.get("debug_image") else None
             result = detect_first_project_card(
-                min_area=int(step.get("min_area", 1500)),
+                min_area=min_area,
                 dry_run=dry_run,
-                debug_image=Path(step["debug_image"]) if step.get("debug_image") else None,
+                debug_image=debug_img,
             )
+            saved_min_area = min_area
+            saved_debug_img = debug_img
+            last_click_executor = lambda: detect_first_project_card(
+                min_area=saved_min_area,
+                dry_run=dry_run,
+                debug_image=saved_debug_img,
+            )
+
         elif action == "select_all_timeline":
             verify_template = step.get("verify_template")
             if verify_template:
@@ -588,15 +663,30 @@ def run_workflow(config_path: Path, dry_run: bool) -> dict[str, Any]:
             else:
                 verify_template_path = None
 
+            click_x_ratio = float(step.get("click_x_ratio", 0.5))
+            click_y_from_bottom = int(step.get("click_y_from_bottom", 150))
+            pause_after_click = float(step.get("pause_after_click", 0.5))
+            pause_after_hotkey = float(step.get("pause_after_hotkey", 1.0))
+            verify_threshold = float(step.get("verify_threshold", 0.68))
+
             result = select_all_timeline(
                 dry_run=dry_run,
-                click_x_ratio=float(step.get("click_x_ratio", 0.5)),
-                click_y_from_bottom=int(step.get("click_y_from_bottom", 150)),
-                pause_after_click=float(step.get("pause_after_click", 0.5)),
-                pause_after_hotkey=float(step.get("pause_after_hotkey", 1.0)),
+                click_x_ratio=click_x_ratio,
+                click_y_from_bottom=click_y_from_bottom,
+                pause_after_click=pause_after_click,
+                pause_after_hotkey=pause_after_hotkey,
                 verify_template=verify_template_path,
-                verify_threshold=float(step.get("verify_threshold", 0.68)),
+                verify_threshold=verify_threshold,
             )
+            last_click_executor = lambda: select_all_timeline(
+                dry_run=dry_run,
+                click_x_ratio=click_x_ratio,
+                click_y_from_bottom=click_y_from_bottom,
+                pause_after_click=pause_after_click,
+                pause_after_hotkey=pause_after_hotkey,
+                verify_template=None,
+            )
+
         elif action == "click_template":
             template = Path(step["template"])
             if not template.is_absolute():
@@ -604,6 +694,12 @@ def run_workflow(config_path: Path, dry_run: bool) -> dict[str, Any]:
             step_attempts = max(1, int(step.get("attempts", 1) or 1))
             retry_delay = float(step.get("retry_delay", 0.0) or 0.0)
             warn_after = float(step.get("warn_after", 0) or 0)
+            threshold = float(step.get("threshold", 0.82))
+            timeout = float(step.get("timeout", 20))
+            click_offset_x = int(step.get("click_offset_x", 0))
+            click_offset_y = int(step.get("click_offset_y", 0))
+            search_region = step.get("search_region")
+
             step_started = time.time()
             last_exc: Exception | None = None
             try:
@@ -611,12 +707,15 @@ def run_workflow(config_path: Path, dry_run: bool) -> dict[str, Any]:
                     try:
                         result = click_template(
                             template,
-                            threshold=float(step.get("threshold", 0.82)),
+                            threshold=threshold,
                             dry_run=dry_run,
-                            timeout=float(step.get("timeout", 20)),
-                            click_offset_x=int(step.get("click_offset_x", 0)),
-                            click_offset_y=int(step.get("click_offset_y", 0)),
-                            search_region=step.get("search_region"),
+                            timeout=timeout,
+                            click_offset_x=click_offset_x,
+                            click_offset_y=click_offset_y,
+                            search_region=search_region,
+                            fallback_fn=current_fallback_fn,
+                            max_fallback=max_fallback,
+                            fallback_delay=fallback_delay,
                         )
                         result["attempt"] = attempt
                         result["attempts"] = step_attempts
@@ -651,6 +750,38 @@ def run_workflow(config_path: Path, dry_run: bool) -> dict[str, Any]:
                     "error": str(last_exc or exc),
                     "dry_run": dry_run,
                 }
+
+            if not result.get("skipped"):
+                click_x = result.get("x")
+                click_y = result.get("y")
+                saved_template = template
+                saved_threshold = threshold
+                saved_offset_x = click_offset_x
+                saved_offset_y = click_offset_y
+                saved_region = search_region
+
+                def _make_fallback(tx, ty, tmpl, thresh, ox, oy, sreg):
+                    def _do_fallback():
+                        if tx is not None and ty is not None and not dry_run:
+                            logger.info(f"Fallback: Click lại vị trí cũ ({tx}, {ty}) của nút {tmpl.name}")
+                            click_abs(tx, ty, dry_run=False)
+                        else:
+                            click_template(
+                                tmpl,
+                                threshold=thresh,
+                                dry_run=dry_run,
+                                timeout=1.0,
+                                click_offset_x=ox,
+                                click_offset_y=oy,
+                                search_region=sreg,
+                                fallback_fn=None,
+                            )
+                    return _do_fallback
+
+                last_click_executor = _make_fallback(
+                    click_x, click_y, saved_template, saved_threshold, saved_offset_x, saved_offset_y, saved_region
+                )
+
         elif action == "wait":
             template = step.get("template")
             template_path = None
@@ -666,6 +797,9 @@ def run_workflow(config_path: Path, dry_run: bool) -> dict[str, Any]:
                 interval=float(step.get("interval", 0.5)),
                 dry_run=dry_run,
                 require_seen=bool(step.get("require_seen", False)),
+                fallback_fn=current_fallback_fn,
+                max_fallback=max_fallback,
+                fallback_delay=fallback_delay,
             )
         elif action == "sleep":
             seconds = float(step.get("seconds", 1))

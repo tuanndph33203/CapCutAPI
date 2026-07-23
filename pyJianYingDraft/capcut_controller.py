@@ -61,23 +61,29 @@ def capcut_main_hwnd_and_rect() -> tuple[int, tuple[int, int, int, int]] | None:
 
     def enum_proc(hwnd, _):
         nonlocal best
-        if not win32gui.IsWindow(hwnd) or not win32gui.IsWindowVisible(hwnd):
-            return
-        _, pid = win32process.GetWindowThreadProcessId(hwnd)
-        if pid not in pids:
-            return
-        title = win32gui.GetWindowText(hwnd)
-        class_name = win32gui.GetClassName(hwnd)
-        if "Qt" not in class_name:
-            return
-        rect = win32gui.GetWindowRect(hwnd)
-        area = max(0, rect[2] - rect[0]) * max(0, rect[3] - rect[1])
-        if area < 400 * 300:
-            return
-        if best is None or area > best[2]:
-            best = (hwnd, rect, area)
+        try:
+            if not win32gui.IsWindow(hwnd) or not win32gui.IsWindowVisible(hwnd):
+                return
+            _, pid = win32process.GetWindowThreadProcessId(hwnd)
+            if pid not in pids:
+                return
+            title = win32gui.GetWindowText(hwnd)
+            class_name = win32gui.GetClassName(hwnd)
+            if "Qt" not in class_name:
+                return
+            rect = win32gui.GetWindowRect(hwnd)
+            area = max(0, rect[2] - rect[0]) * max(0, rect[3] - rect[1])
+            if area < 400 * 300:
+                return
+            if best is None or area > best[2]:
+                best = (hwnd, rect, area)
+        except Exception:
+            pass
 
-    win32gui.EnumWindows(enum_proc, None)
+    try:
+        win32gui.EnumWindows(enum_proc, None)
+    except Exception:
+        return None
     if best is None:
         return None
     return best[0], best[1]

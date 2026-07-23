@@ -1,14 +1,14 @@
 {
     "version": 1,
-    "source": "C:\\Users\\nguye\\AppData\\Local\\CapCut\\User Data\\Projects\\com.lveditor.draft\\00000000000\\draft_content.json",
+    "source": "C:\\Users\\nguye\\AppData\\Local\\CapCut\\User Data\\Projects\\com.lveditor.draft\\00000000000\\draft_info.json",
     "materials": {
         "videos": [
             {
-                "id": "205B0FC0-CBC4-45f0-BE9B-A3DBBDBD7A6D",
+                "id": "9D84B894-1A60-40f7-B78F-38F5A8E8C6B2",
                 "unique_id": "",
                 "type": "gif",
                 "duration": 10800000000,
-                "path": "C:/Users/nguye/OneDrive/Hình ảnh/live.gif",
+                "path": "C:/Users/nguye/OneDrive/Hình ảnh/chinese-panda-panda.gif",
                 "media_path": "",
                 "local_id": "",
                 "has_audio": false,
@@ -17,8 +17,8 @@
                 "reverse_intensifies_path": "",
                 "intensifies_audio_path": "",
                 "cartoon_path": "",
-                "width": 480,
-                "height": 480,
+                "width": 200,
+                "height": 158,
                 "category_id": "",
                 "category_name": "",
                 "material_id": "",
@@ -65,7 +65,7 @@
                 "source": 0,
                 "source_platform": 0,
                 "formula_id": "",
-                "check_flag": 1132525567,
+                "check_flag": 1006696447,
                 "video_algorithm": {
                     "algorithms": [],
                     "time_range": null,
@@ -157,11 +157,11 @@
                 "workflow_node_id": ""
             },
             {
-                "id": "9D84B894-1A60-40f7-B78F-38F5A8E8C6B2",
+                "id": "205B0FC0-CBC4-45f0-BE9B-A3DBBDBD7A6D",
                 "unique_id": "",
                 "type": "gif",
                 "duration": 10800000000,
-                "path": "C:/Users/nguye/OneDrive/Hình ảnh/chinese-panda-panda.gif",
+                "path": "C:/Users/nguye/OneDrive/Hình ảnh/live.gif",
                 "media_path": "",
                 "local_id": "",
                 "has_audio": false,
@@ -170,8 +170,8 @@
                 "reverse_intensifies_path": "",
                 "intensifies_audio_path": "",
                 "cartoon_path": "",
-                "width": 200,
-                "height": 158,
+                "width": 480,
+                "height": 480,
                 "category_id": "",
                 "category_name": "",
                 "material_id": "",
@@ -218,7 +218,7 @@
                 "source": 0,
                 "source_platform": 0,
                 "formula_id": "",
-                "check_flag": 1132525567,
+                "check_flag": 1006696447,
                 "video_algorithm": {
                     "algorithms": [],
                     "time_range": null,
@@ -312,23 +312,23 @@
         ],
         "speeds": [
             {
-                "id": "0313E9B2-A5C7-4d75-BCEB-2E6F18306174",
+                "id": "63EA1455-8778-4230-8A41-11BB86E54EA0",
                 "type": "speed",
                 "mode": 0,
-                "speed": 1.0,
+                "speed": 0.8500714740659004,
                 "curve_speed": null
             },
             {
-                "id": "8F8099F1-C87B-44fa-B44B-000E4AF08539",
+                "id": "FB930A00-4C60-4616-9E37-DA4617D98E4E",
                 "type": "speed",
                 "mode": 0,
-                "speed": 1.0,
+                "speed": 0.8500714740659004,
                 "curve_speed": null
             }
         ],
         "placeholder_infos": [
             {
-                "id": "AAC5F123-CAFF-4ad7-8547-0CA0D0B76342",
+                "id": "02E84965-2E8F-4d8c-B978-1E28A20E9704",
                 "type": "placeholder_info",
                 "meta_type": "none",
                 "res_path": "",
@@ -337,7 +337,7 @@
                 "error_text": ""
             },
             {
-                "id": "5D969D0B-1687-499a-8C5A-B5C96F2EAF1F",
+                "id": "B0585093-2E47-4871-BFD0-879BA88E21AA",
                 "type": "placeholder_info",
                 "meta_type": "none",
                 "res_path": "",
@@ -348,7 +348,7 @@
         ],
         "canvases": [
             {
-                "id": "6CD1DE35-F6FC-4fdf-BCA1-146A50DE918A",
+                "id": "F8D497EE-A542-4bfa-8A57-545261F93372",
                 "type": "canvas_color",
                 "color": "",
                 "blur": 0.0,
@@ -360,7 +360,7 @@
                 "team_id": ""
             },
             {
-                "id": "032BDFDF-34E6-45de-9BBD-DB7AE2321EA9",
+                "id": "685CCAEA-8B48-4ff9-ACB8-A04C2B705436",
                 "type": "canvas_color",
                 "color": "",
                 "blur": 0.0,
@@ -374,13 +374,13 @@
         ],
         "sound_channel_mappings": [
             {
-                "id": "D3E3CCBF-0042-41c5-BAD3-35A2D0847D3E",
+                "id": "96A94138-A25D-484c-8CB3-D41A3EF519AD",
                 "type": "none",
                 "audio_channel_mapping": 0,
                 "is_config_open": false
             },
             {
-                "id": "DCA9E71A-226B-4a1c-B920-646B12F6B72F",
+                "id": "AE41E0AD-2FAD-4459-8AE4-6F43A86EAA64",
                 "type": "none",
                 "audio_channel_mapping": 0,
                 "is_config_open": false
@@ -388,7 +388,7 @@
         ],
         "material_colors": [
             {
-                "id": "1EF2D849-435C-4612-87EE-B760D003DE8C",
+                "id": "B81B1FB5-9A79-4029-9F8A-2F9737DEF2F5",
                 "is_color_clip": false,
                 "is_gradient": false,
                 "solid_color": "",
@@ -399,7 +399,7 @@
                 "height": 0.0
             },
             {
-                "id": "59B7769A-DF7E-427d-AB33-14E0103E4FB1",
+                "id": "A51D30D1-B76E-4549-8F58-6E885C4DB0D8",
                 "is_color_clip": false,
                 "is_gradient": false,
                 "solid_color": "",
@@ -412,7 +412,7 @@
         ],
         "loudnesses": [
             {
-                "id": "4ECF5697-9431-4b00-B1A5-276CE6ED9325",
+                "id": "29AB3C8D-989C-4c20-8F43-1FFAAC085546",
                 "enable": false,
                 "time_range": null,
                 "file_id": "",
@@ -420,7 +420,7 @@
                 "loudness_param": null
             },
             {
-                "id": "CCB6E619-45E1-4016-9A1D-4167E3CAFD42",
+                "id": "3F258242-A3CE-40c9-9B31-1042A0C57196",
                 "enable": false,
                 "time_range": null,
                 "file_id": "",
@@ -430,7 +430,7 @@
         ],
         "vocal_separations": [
             {
-                "id": "A79055A5-F576-49e1-8698-FEEBE7D6B837",
+                "id": "86FED0D7-69F7-4883-9E67-D5E9FFE5A547",
                 "type": "vocal_separation",
                 "choice": 0,
                 "removed_sounds": [],
@@ -440,7 +440,7 @@
                 "enter_from": ""
             },
             {
-                "id": "8D8E5A63-4827-47fa-8F3A-43526BD2D779",
+                "id": "852CCEEB-935B-4a41-8F7A-004D4FA4EBBC",
                 "type": "vocal_separation",
                 "choice": 0,
                 "removed_sounds": [],
@@ -457,14 +457,14 @@
             "type": "video",
             "segments": [
                 {
-                    "id": "8088c069bf9d4994a1f5ae54f4c76311",
+                    "id": "283781f6cedb4fd2a5b44abc37d89ff8",
                     "source_timerange": {
                         "start": 0,
-                        "duration": 138766666
+                        "duration": 7103133333
                     },
                     "target_timerange": {
                         "start": 0,
-                        "duration": 163233333
+                        "duration": 7103133333
                     },
                     "render_timerange": {
                         "start": 0,
@@ -472,7 +472,7 @@
                     },
                     "desc": "",
                     "state": 0,
-                    "speed": 1.0,
+                    "speed": 0.8500714740659004,
                     "is_loop": false,
                     "is_tone_modify": false,
                     "reverse": false,
@@ -492,7 +492,7 @@
                         },
                         "flip": {
                             "vertical": false,
-                            "horizontal": false
+                            "horizontal": true
                         },
                         "alpha": 1.0
                     },
@@ -502,13 +502,13 @@
                     },
                     "material_id": "205B0FC0-CBC4-45f0-BE9B-A3DBBDBD7A6D",
                     "extra_material_refs": [
-                        "0313E9B2-A5C7-4d75-BCEB-2E6F18306174",
-                        "AAC5F123-CAFF-4ad7-8547-0CA0D0B76342",
-                        "6CD1DE35-F6FC-4fdf-BCA1-146A50DE918A",
-                        "D3E3CCBF-0042-41c5-BAD3-35A2D0847D3E",
-                        "1EF2D849-435C-4612-87EE-B760D003DE8C",
-                        "4ECF5697-9431-4b00-B1A5-276CE6ED9325",
-                        "A79055A5-F576-49e1-8698-FEEBE7D6B837"
+                        "63EA1455-8778-4230-8A41-11BB86E54EA0",
+                        "02E84965-2E8F-4d8c-B978-1E28A20E9704",
+                        "F8D497EE-A542-4bfa-8A57-545261F93372",
+                        "96A94138-A25D-484c-8CB3-D41A3EF519AD",
+                        "B81B1FB5-9A79-4029-9F8A-2F9737DEF2F5",
+                        "29AB3C8D-989C-4c20-8F43-1FFAAC085546",
+                        "86FED0D7-69F7-4883-9E67-D5E9FFE5A547"
                     ],
                     "render_index": 1,
                     "keyframe_refs": [],
@@ -565,14 +565,14 @@
             "type": "video",
             "segments": [
                 {
-                    "id": "7224e0fa67ae4be8be3a064dc3dbba16",
+                    "id": "bce6c9e406154749a2dc4b75d463ecc4",
                     "source_timerange": {
                         "start": 0,
-                        "duration": 138766666
+                        "duration": 7103133333
                     },
                     "target_timerange": {
                         "start": 0,
-                        "duration": 163233333
+                        "duration": 7103133333
                     },
                     "render_timerange": {
                         "start": 0,
@@ -580,7 +580,7 @@
                     },
                     "desc": "",
                     "state": 0,
-                    "speed": 1.0,
+                    "speed": 0.8500714740659004,
                     "is_loop": false,
                     "is_tone_modify": false,
                     "reverse": false,
@@ -600,7 +600,7 @@
                         },
                         "flip": {
                             "vertical": false,
-                            "horizontal": false
+                            "horizontal": true
                         },
                         "alpha": 1.0
                     },
@@ -610,13 +610,13 @@
                     },
                     "material_id": "9D84B894-1A60-40f7-B78F-38F5A8E8C6B2",
                     "extra_material_refs": [
-                        "8F8099F1-C87B-44fa-B44B-000E4AF08539",
-                        "5D969D0B-1687-499a-8C5A-B5C96F2EAF1F",
-                        "032BDFDF-34E6-45de-9BBD-DB7AE2321EA9",
-                        "DCA9E71A-226B-4a1c-B920-646B12F6B72F",
-                        "59B7769A-DF7E-427d-AB33-14E0103E4FB1",
-                        "CCB6E619-45E1-4016-9A1D-4167E3CAFD42",
-                        "8D8E5A63-4827-47fa-8F3A-43526BD2D779"
+                        "FB930A00-4C60-4616-9E37-DA4617D98E4E",
+                        "B0585093-2E47-4871-BFD0-879BA88E21AA",
+                        "685CCAEA-8B48-4ff9-ACB8-A04C2B705436",
+                        "AE41E0AD-2FAD-4459-8AE4-6F43A86EAA64",
+                        "A51D30D1-B76E-4549-8F58-6E885C4DB0D8",
+                        "3F258242-A3CE-40c9-9B31-1042A0C57196",
+                        "852CCEEB-935B-4a41-8F7A-004D4FA4EBBC"
                     ],
                     "render_index": 2,
                     "keyframe_refs": [],

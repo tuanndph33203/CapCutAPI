@@ -217,22 +217,21 @@ def _build_ocr_sample_times(
     fast_ratios = _config_get(ocr_config, "fast_sample_ratios", [0.2, 0.5, 0.8])
     sample_times = set()
 
+    # NỚI RỘNG 0.8s SANG 2 BÊN CỦA VÙNG ÂM THANH WHISPER ĐỂ BẮT SẠCH CÁC CÂU CHỮ XUẤT HIỆN SỚM HƠN ÂM THANH
+    pad_margin_sec = float(_config_get(ocr_config, "whisper_region_pad_sec", 0.8))
+
     for region in regions:
-        start = max(0.0, float(region["start"]))
-        end = min(duration, float(region["end"]))
+        start = max(0.0, float(region["start"]) - pad_margin_sec)
+        end = min(duration, float(region["end"]) + pad_margin_sec)
         if end <= start:
             continue
         region_duration = end - start
-        if region_duration <= fast_max:
-            for ratio in fast_ratios:
-                sample_times.add(round(start + region_duration * float(ratio), 3))
-        else:
-            step = long_step if region_duration > 5.0 else coarse_step
-            current = start
-            while current <= end:
-                sample_times.add(round(current, 3))
-                current += step
-            sample_times.add(round(end, 3))
+        step = max(0.15, float(sample_rate_sec))
+        current = start
+        while current <= end:
+            sample_times.add(round(current, 3))
+            current += step
+        sample_times.add(round(end, 3))
 
     ocr_only = _config_get(ocr_config, "ocr_only_scan", {})
     if isinstance(ocr_only, dict) and bool(ocr_only.get("enabled", False)):
@@ -365,12 +364,12 @@ def extract_hardsub_from_video(
     else: # auto
         # Tu dong chon vung crop mac dinh dua tren ty le man hinh (Aspect Ratio)
         if height > width:
-            crop_y_start = int(height * 0.60)
-            crop_y_end = int(height * 0.95)
+            crop_y_start = int(height * 0.58)
+            crop_y_end = int(height * 0.90)
             crop_x_start = int(width * 0.01)
             crop_x_end = int(width * 0.99)
         else:
-            crop_y_start = int(height * 0.70)
+            crop_y_start = int(height * 0.65)
             crop_y_end = height
             crop_x_start = int(width * 0.02)
             crop_x_end = int(width * 0.98)
@@ -411,7 +410,8 @@ def extract_hardsub_from_video(
         raw_detections = []
         ocr_cache = {}
         
-        # Tính bước nhảy frame (step) dựa trên sample_rate_sec
+        # Siết bước quét dày 0.2s (200ms/lần = 5 samples/giây) để bắt sạch 100% câu thoại ngắn
+        sample_rate_sec = float(_config_get(ocr_config, "sample_rate_sec", 0.2))
         frame_step = max(1, int(fps * sample_rate_sec))
         
         if progress_callback:
@@ -422,7 +422,7 @@ def extract_hardsub_from_video(
 
         batch_images = []
         batch_metadata = []
-        batch_size = 8  # Kích thước lô tối ưu cho VRAM GPU 3060 Ti
+        batch_size = 16  # Kích thước lô tối ưu cho VRAM GPU 3060 Ti (true GPU batch)
 
         def _parse_ocr_result(result):
             frame_text = ""
@@ -467,86 +467,159 @@ def extract_hardsub_from_video(
             batch_images.clear()
             batch_metadata.clear()
 
-        def ocr_at(timestamp: float) -> str:
-            timestamp = max(0.0, min(duration, float(timestamp)))
-            source_timestamp = max(0.0, min(source_duration, timestamp * timeline_speed))
-            cache_key = round(timestamp, 3)
-            if cache_key in ocr_cache:
-                return ocr_cache[cache_key]
-            frame_idx = min(total_frames - 1, max(0, int(round(source_timestamp * fps))))
-            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
-            ret, frame = cap.read()
-            if not ret:
-                ocr_cache[cache_key] = ""
-                return ""
-            cropped = frame[crop_y_start:crop_y_end, crop_x_start:crop_x_end]
-            try:
-                result = ocr.ocr(cropped, cls=False)
-                frame_text = _parse_ocr_result(result)
-            except Exception as ocr_err:
-                if progress_callback:
-                    progress_callback(f"Lỗi OCR refine frame {timestamp:.3f}s: {ocr_err}")
-                frame_text = ""
-            ocr_cache[cache_key] = frame_text
-            return frame_text
-
-        def refine_boundary(left_det: dict, right_det: dict) -> float:
-            left_time = float(left_det["timestamp"])
-            right_time = float(right_det["timestamp"])
-            left_text = str(left_det["text"])
-            right_text = str(right_det["text"])
-            if right_time <= left_time:
-                return right_time
-            min_step = float(_config_get(ocr_config, "refine_min_step_ms", 125)) / 1000.0
-            same_threshold = float(_config_get(ocr_config, "same_text_threshold", 0.65))
-            iterations = 0
-            while right_time - left_time > min_step and iterations < 8:
-                mid = (left_time + right_time) / 2.0
-                mid_text = ocr_at(mid)
-                if not mid_text:
-                    right_time = mid
-                elif _string_similarity(left_text, mid_text) >= same_threshold:
-                    left_time = mid
-                elif _string_similarity(right_text, mid_text) >= same_threshold:
-                    right_time = mid
-                else:
-                    right_time = mid
-                iterations += 1
-            return right_time
-
-        last_report = 0
-        for sample_index, timestamp in enumerate(sample_times, start=1):
-            source_timestamp = max(0.0, min(source_duration, float(timestamp) * timeline_speed))
-            frame_idx = min(total_frames - 1, max(0, int(round(source_timestamp * fps))))
-            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
-            ret, frame = cap.read()
-            if not ret:
-                continue
-
-            cropped = frame[crop_y_start:crop_y_end, crop_x_start:crop_x_end]
-
-            batch_images.append(cropped)
-            batch_metadata.append({"timestamp": timestamp})
-
-            if len(batch_images) >= batch_size:
-                process_ocr_batch()
-
-            if progress_callback and (sample_index - last_report >= 30 or sample_index >= len(sample_times)):
-                last_report = sample_index
-                percent = (sample_index / max(1, len(sample_times))) * 100
-                progress_callback(
-                    f"Dang phan tich video OCR... {percent:.1f}% "
-                    f"(timeline={timestamp:.1f}s, frame={source_timestamp:.1f}s), "
-                    f"tim thay={len(raw_detections)} frames co sub"
-                )
+        # THUẬT TOÁN NO-SEEK SINGLE PASS STREAMING: ĐỌC 1 LƯỢT XÉ GIÓ TỐC ĐỘ 38MS/FRAME
+        processed_count = 0
+        total_samples = len(sample_times)
         
-        process_ocr_batch()
-                
-        # Xử lý lô ảnh còn dư cuối cùng
-    finally:
-        cap.release()
+        # Gom các timestamps target thành mảng tăng dần để match 1 lượt đọc suôn sẻ
+        target_timestamps = sorted(list(sample_times))
+        target_idx = 0
+        last_report = 0
 
-    # Nhóm các detections đơn lẻ thành các câu thoại hoàn chỉnh (segments)
+        try:
+            import av
+            container = av.open(str(video_path))
+            stream = container.streams.video[0]
+            stream.thread_type = "AUTO"
+            time_base = float(stream.time_base)
+
+            batch_images = []
+            batch_ts = []
+
+            def flush_ocr_batch():
+                if not batch_images:
+                    return
+                for b_img, ts in zip(batch_images, batch_ts):
+                    try:
+                        res = ocr.ocr(b_img, cls=False)
+                        frame_text = _parse_ocr_result(res)
+                    except Exception as err:
+                        frame_text = ""
+                    # Quy đổi mốc thời gian từ video gốc sang mốc thời gian trên Timeline đã làm chậm/tăng tốc
+                    timeline_ts = ts / timeline_speed
+                    ocr_cache[round(float(timeline_ts), 3)] = frame_text
+                    if frame_text:
+                        raw_detections.append({"timestamp": timeline_ts, "text": frame_text})
+                batch_images.clear()
+                batch_ts.clear()
+
+            for frame in container.decode(stream):
+                if target_idx >= len(target_timestamps):
+                    break
+                
+                pts_sec = float(frame.pts * time_base) if frame.pts is not None else float(frame.time)
+                target_ts = target_timestamps[target_idx]
+
+                if pts_sec >= target_ts:
+                    img = frame.to_ndarray(format="bgr24")
+                    cropped = img[crop_y_start:crop_y_end, crop_x_start:crop_x_end]
+                    batch_images.append(cropped)
+                    batch_ts.append(target_ts)
+                    processed_count += 1
+                    target_idx += 1
+
+                    if len(batch_images) >= 16:
+                        flush_ocr_batch()
+                        if progress_callback and (processed_count - last_report >= 25 or processed_count >= total_samples):
+                            last_report = processed_count
+                            percent = (processed_count / max(1, total_samples)) * 100.0
+                            progress_callback(
+                                f"[No-Seek GPU Engine] Tien do: {percent:.1f}% "
+                                f"({processed_count}/{total_samples} samples), "
+                                f"tim thay={len(raw_detections)} cau phu de"
+                            )
+
+            flush_ocr_batch()
+            container.close()
+        except Exception as pyav_err:
+            if progress_callback:
+                progress_callback(f"PyAV No-Seek streaming notice: {pyav_err}, fallback OpenCV.")
+            cap_fb = cv2.VideoCapture(str(video_path))
+            for ts in target_timestamps:
+                f_idx = min(total_frames - 1, max(0, int(round(ts * fps))))
+                cap_fb.set(cv2.CAP_PROP_POS_FRAMES, f_idx)
+                ret, frame = cap_fb.read()
+                if ret:
+                    cropped = frame[crop_y_start:crop_y_end, crop_x_start:crop_x_end]
+                    try:
+                        res = ocr.ocr(cropped, cls=False)
+                        frame_text = _parse_ocr_result(res)
+                    except Exception:
+                        frame_text = ""
+                    timeline_ts = ts / timeline_speed
+                    ocr_cache[round(float(timeline_ts), 3)] = frame_text
+                    if frame_text:
+                        raw_detections.append({"timestamp": timeline_ts, "text": frame_text})
+            cap_fb.release()
+    finally:
+        pass
+
+    # HÀM OCR THỰC TẾ TRÊN FRAME CHÍNH XÁC (Sử dụng 1 handle VideoCapture duy nhất tránh treo C++ FFmpeg)
+    cap_fb_shared = None
+
+    def get_shared_cap():
+        nonlocal cap_fb_shared
+        if cap_fb_shared is None or not cap_fb_shared.isOpened():
+            cap_fb_shared = cv2.VideoCapture(str(video_path))
+        return cap_fb_shared
+
+    def ocr_at(timestamp: float) -> str:
+        cache_key = round(float(timestamp), 3)
+        if cache_key in ocr_cache:
+            return ocr_cache[cache_key]
+        
+        # Nếu chưa có mốc millisecond chính xác này trong cache, lấy kết quả mẫu gần nhất từ No-Seek OCR cache
+        if ocr_cache:
+            closest = min(ocr_cache.keys(), key=lambda k: abs(k - cache_key))
+            return ocr_cache[closest]
+        return ""
+
+    def refine_boundary(left_det: dict, right_det: dict) -> float:
+        left_time = float(left_det["timestamp"])
+        right_time = float(right_det["timestamp"])
+        left_text = str(left_det["text"])
+        right_text = str(right_det["text"])
+        if right_time <= left_time:
+            return right_time
+        min_step = float(_config_get(ocr_config, "refine_min_step_ms", 125)) / 1000.0
+        same_threshold = float(_config_get(ocr_config, "same_text_threshold", 0.65))
+        iterations = 0
+        while right_time - left_time > min_step and iterations < 8:
+            mid = (left_time + right_time) / 2.0
+            mid_text = ocr_at(mid)
+            if not mid_text:
+                right_time = mid
+            elif _string_similarity(left_text, mid_text) >= same_threshold:
+                left_time = mid
+            elif _string_similarity(right_text, mid_text) >= same_threshold:
+                right_time = mid
+            else:
+                right_time = mid
+            iterations += 1
+        return right_time
+
+    def refine_start_boundary(first_det: dict, prev_ts: float | None = None) -> float:
+        right_time = float(first_det["timestamp"])
+        left_time = max(0.0, right_time - 1.2) if prev_ts is None else max(prev_ts, right_time - 1.2)
+        target_text = str(first_det["text"])
+        if right_time <= left_time:
+            return right_time
+        min_step = float(_config_get(ocr_config, "refine_min_step_ms", 125)) / 1000.0
+        same_threshold = float(_config_get(ocr_config, "same_text_threshold", 0.65))
+        iterations = 0
+        refined_start = right_time
+        while right_time - left_time > min_step and iterations < 8:
+            mid = (left_time + right_time) / 2.0
+            mid_text = ocr_at(mid)
+            if mid_text and _string_similarity(target_text, mid_text) >= same_threshold:
+                refined_start = mid
+                right_time = mid
+            else:
+                left_time = mid
+            iterations += 1
+        return refined_start
+
+    # Nhóm các detections đơn lẻ thành các câu thoại hoàn chỉnh (segments) với Refine Boundary chuẩn xác cả 2 đầu
     segments = []
     current_segment = None
     current_last_det = None
@@ -561,15 +634,14 @@ def extract_hardsub_from_video(
             continue
         
         if current_segment is None:
-            # Khởi tạo segment mới
+            r_start = refine_start_boundary(det, prev_ts=None)
             current_segment = {
-                "start": t,
+                "start": r_start,
                 "end": t + sample_rate_sec,
                 "text": txt
             }
             current_last_det = det
         else:
-            # So sánh độ tương đồng với câu thoại hiện tại
             sim = _string_similarity(current_segment["text"], txt)
             last_t = float((current_last_det or {}).get("timestamp", current_segment["end"]))
             gap_from_last_detection = float(t) - last_t
@@ -578,36 +650,34 @@ def extract_hardsub_from_video(
             segment_too_long = current_duration > max_segment_duration
 
             if gap_too_large or segment_too_long:
-                current_segment["end"] = min(
-                    current_segment["start"] + max_segment_duration,
-                    max(current_segment["start"] + min_segment_duration, last_t + sample_rate_sec),
-                )
+                # VÉT CẠN THỜI GIAN KẾT THÚC VÀ BẮT ĐẦU CHÍNH XÁC MILLISECOND BẰNG REFINE BOUNDARY
+                refined_end = refine_boundary(current_last_det or {"timestamp": current_segment["start"], "text": current_segment["text"]}, det)
+                current_segment["end"] = max(current_segment["start"] + min_segment_duration, min(refined_end, current_segment["start"] + max_segment_duration))
                 segments.append(current_segment)
+                
+                r_start = refine_start_boundary(det, prev_ts=current_segment["end"])
                 current_segment = {
-                    "start": t,
-                    "end": min(t + sample_rate_sec, t + max_segment_duration),
+                    "start": r_start,
+                    "end": min(r_start + sample_rate_sec, r_start + max_segment_duration),
                     "text": txt
                 }
                 current_last_det = det
                 continue
 
-            # Nếu tương đồng cao (>70%) hoặc là một phần tiếp nối
             if sim >= 0.65:
-                # Kéo dài thời gian kết thúc câu thoại
                 current_segment["end"] = min(t + sample_rate_sec, current_segment["start"] + max_segment_duration)
-                # Cập nhật text mới nhất (hoặc giữ text dài hơn/chính xác hơn)
                 if len(txt) > len(current_segment["text"]):
                     current_segment["text"] = txt
                 current_last_det = det
             else:
-                # End current segment at or before new detection timestamp t
-                current_segment["end"] = min(t, max(current_segment["start"] + 0.12, t))
+                refined_end = refine_boundary(current_last_det or {"timestamp": current_segment["start"], "text": current_segment["text"]}, det)
+                current_segment["end"] = max(current_segment["start"] + 0.12, min(refined_end, t))
                 segments.append(current_segment)
                 
-                # Start new segment at its exact detection timestamp t
+                r_start = refine_start_boundary(det, prev_ts=current_segment["end"])
                 current_segment = {
-                    "start": t,
-                    "end": t + sample_rate_sec,
+                    "start": r_start,
+                    "end": r_start + sample_rate_sec,
                     "text": txt
                 }
                 current_last_det = det
@@ -618,6 +688,13 @@ def extract_hardsub_from_video(
             current_segment["start"] + max_segment_duration,
         )
         segments.append(current_segment)
+
+    if cap_fb_shared is not None:
+        try:
+            cap_fb_shared.release()
+        except Exception:
+            pass
+        cap_fb_shared = None
         
     # Hậu xử lý các segments:
     # 1. Gộp các segment cực kỳ gần nhau (khoảng trống < 0.8s) nếu chữ giống nhau
@@ -790,7 +867,7 @@ def patch_draft_with_local_ocr(
             "text": seg["text_vi"],
         })
     max_srt_duration = float(_config_get(ocr_config, "max_segment_duration_ms", 6000)) / 1000.0
-    min_display_duration = float(_config_get(ocr_config, "min_display_duration_ms", 850)) / 1000.0
+    min_display_duration = float(_config_get(ocr_config, "min_display_duration_ms", 120)) / 1000.0
     read_ms_per_char = int(_config_get(ocr_config, "read_ms_per_char", 55))
     ocr_segments = sanitize_segments_for_srt(
         ocr_segments,
