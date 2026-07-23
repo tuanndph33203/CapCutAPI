@@ -1,5 +1,6 @@
-import json
 import os
+import json
+os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 import subprocess
 import site
 import copy

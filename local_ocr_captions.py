@@ -1,6 +1,7 @@
 import os
 # Tắt cơ chế spin-wait của ONNXRuntime trên CPU để tránh FULL CPU (100%) khi chờ GPU DirectML xử lý
 os.environ["ONNXRUNTIME_CPU_THREAD_ALLOW_SPINNING"] = "0"
+os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 # Hạn chế số luồng của FFMPEG giải mã trong OpenCV để tránh FULL CPU khi giải mã video
 os.environ["OPENCV_FFMPEG_THREADS"] = "4"
 

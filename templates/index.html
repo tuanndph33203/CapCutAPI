@@ -1613,17 +1613,18 @@
                     <table>
                         <thead>
                             <tr>
-                                <th style="width: 50px;">STT</th>
+                                <th style="width: 45px;">STT</th>
                                 <th>Dự án / Video</th>
                                 <th style="width: 110px;">Trạng thái</th>
-                                <th style="width: 140px;">Tiến trình</th>
+                                <th style="width: 120px;">Tiến trình</th>
+                                <th style="width: 95px;">Thời lượng</th>
                                 <th>Chi tiết</th>
                                 <th style="width: 90px; text-align: center;">Thao tác</th>
                             </tr>
                         </thead>
                         <tbody id="queue-tbody">
                             <tr>
-                                <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                                <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">
                                     Hàng chờ trống. Vui lòng bấm "Chạy Pipeline" trên thẻ dự án hoặc bấm "+ Create
                                     project" để bắt đầu.
                                 </td>
@@ -2850,7 +2851,7 @@
                 fetch('/api/queue/add', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ folder: folder, replace_queue: !!autoStart })
+                    body: JSON.stringify({ folder: folder, replace_queue: false })
                 })
                     .then(res => res.json())
                     .then(data => {
@@ -3135,6 +3136,16 @@
                     });
             }
 
+            // Tự động cập nhật đồng hồ đếm thời gian thực hiện mỗi giây
+            setInterval(() => {
+                if (currentQueue && currentQueue.length > 0) {
+                    const hasActive = currentQueue.some(item => ['preprocessing', 'gui_processing', 'running'].includes(item.status));
+                    if (hasActive) {
+                        updateQueueTable(currentQueue);
+                    }
+                }
+            }, 1000);
+
             // Listen to log output via Server-Sent Events (SSE)
             const sseSource = new EventSource('/api/logs');
             sseSource.onmessage = function (event) {
@@ -3157,7 +3168,7 @@
                 if (!currentQueue || currentQueue.length === 0) {
                     queueTbody.innerHTML = `
                 <tr>
-                    <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                    <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">
                         Hàng chờ trống. Vui lòng bấm nút chạy trên thẻ dự án để bắt đầu.
                     </td>
                 </tr>
@@ -3168,7 +3179,7 @@
                 if (filteredQueue.length === 0) {
                     queueTbody.innerHTML = `
                 <tr>
-                    <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 30px;">
+                    <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 30px;">
                         Không có mục nào ở trạng thái này.
                     </td>
                 </tr>
@@ -3178,21 +3189,48 @@
 
                 queueTbody.innerHTML = '';
                 filteredQueue.forEach(({ item, originalIndex }, displayIndex) => {
-                    const display_name = item.video.split(/[\\/]/).pop();
-                    const badgeClass = `badge badge-${item.status}`;
-                    const statusLabel = {
+                    const display_name = item.video ? item.video.split(/[\\/]/).pop() : 'Dự án';
+                    const rawStatus = item.status || 'pending';
+                    const badgeClass = `badge badge-${rawStatus}`;
+                    const statusMap = {
                         'pending': 'Chờ xử lý',
+                        'preprocessing': 'Preprocess',
+                        'ready_for_capcut': 'Chờ CapCut',
+                        'gui_processing': 'Đang dựng',
                         'running': 'Đang chạy',
                         'paused': 'Tạm dừng',
                         'success': 'Hoàn thành',
                         'failed': 'Lỗi'
-                    }[item.status];
+                    };
+                    const statusLabel = statusMap[rawStatus] || rawStatus;
+
+                    // Tính thời lượng đã thực hiện
+                    let durationStr = '--:--';
+                    if (item.started_at) {
+                        const isFinished = (rawStatus === 'success' || rawStatus === 'failed');
+                        const endTs = item.ended_at ? item.ended_at : (Date.now() / 1000);
+                        const diffSec = Math.max(0, Math.floor(endTs - item.started_at));
+                        const m = Math.floor(diffSec / 60);
+                        const s = diffSec % 60;
+                        const mStr = String(m).padStart(2, '0');
+                        const sStr = String(s).padStart(2, '0');
+                        if (m >= 60) {
+                            const h = Math.floor(m / 60);
+                            const remM = m % 60;
+                            durationStr = `${h}:${String(remM).padStart(2, '0')}:${sStr}`;
+                        } else {
+                            durationStr = `${mStr}:${sStr}`;
+                        }
+                        if (!isFinished && rawStatus !== 'paused') {
+                            durationStr = `⏱️ ${durationStr}`;
+                        }
+                    }
 
                     // Render action button
                     let actionBtn = '';
-                    if (item.status === 'running' || item.status === 'pending') {
+                    if (rawStatus === 'running' || rawStatus === 'preprocessing' || rawStatus === 'gui_processing' || rawStatus === 'pending') {
                         actionBtn = `<button class="btn btn-danger" onclick="cancelQueueItem(${originalIndex})" style="padding: 4px 10px; font-size: 0.75rem; width: auto; height: auto;">Hủy</button>`;
-                    } else if (item.status === 'failed') {
+                    } else if (rawStatus === 'failed') {
                         actionBtn = `<button class="btn btn-warning" onclick="retryQueueItem(${originalIndex})" style="padding: 4px 10px; font-size: 0.75rem; width: auto; height: auto; background: #f2994a; border: none; color: #fff;">Thử lại</button><button class="btn btn-danger" onclick="deleteQueueItem(${originalIndex})" style="padding: 4px 10px; font-size: 0.75rem; width: auto; height: auto; margin-left: 6px;">Xóa</button>`;
                     } else {
                         actionBtn = `<button class="btn btn-danger" onclick="deleteQueueItem(${originalIndex})" style="padding: 4px 10px; font-size: 0.75rem; width: auto; height: auto;">Xóa</button>`;
@@ -3205,11 +3243,14 @@
                 <td><span class="${badgeClass}">${statusLabel}</span></td>
                 <td>
                     <div class="progress-container">
-                        <div class="progress-bar" style="width: ${item.progress}%"></div>
+                        <div class="progress-bar" style="width: ${item.progress || 0}%"></div>
                     </div>
                     <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; text-align: right;">
-                        ${item.progress}%
+                        ${item.progress || 0}%
                     </div>
+                </td>
+                <td style="font-size: 0.85rem; font-weight: 600; font-family: 'JetBrains Mono', monospace; color: var(--accent-cyan);">
+                    ${durationStr}
                 </td>
                 <td style="font-size: 0.85rem; color: var(--text-muted); max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                     ${item.message || ''}

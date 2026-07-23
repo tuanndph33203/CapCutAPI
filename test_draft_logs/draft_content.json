@@ -1,0 +1,92 @@
+{
+    "materials": {
+        "videos": [
+            {
+                "id": "V1",
+                "path": "c:/video.mp4"
+            }
+        ],
+        "texts": [],
+        "speeds": []
+    },
+    "tracks": [
+        {
+            "type": "video",
+            "name": "video",
+            "segments": [
+                {
+                    "material_id": "V1",
+                    "target_timerange": {
+                        "start": 0,
+                        "duration": 94607379
+                    },
+                    "source_timerange": {
+                        "start": 0,
+                        "duration": 100000000
+                    },
+                    "clip": {
+                        "flip": {
+                            "horizontal": true,
+                            "vertical": false
+                        },
+                        "scale": {
+                            "x": 1.055,
+                            "y": 1.055
+                        }
+                    },
+                    "speed": 1.057,
+                    "color_adjustments": {
+                        "brightness": 0.044,
+                        "contrast": 0.043,
+                        "saturation": 0.016
+                    }
+                },
+                {
+                    "material_id": "V1",
+                    "target_timerange": {
+                        "start": 94607379,
+                        "duration": 95057034
+                    },
+                    "source_timerange": {
+                        "start": 0,
+                        "duration": 100000000
+                    },
+                    "clip": {
+                        "flip": {
+                            "horizontal": true,
+                            "vertical": false
+                        },
+                        "scale": {
+                            "x": 1.074,
+                            "y": 1.074
+                        }
+                    },
+                    "speed": 1.052,
+                    "color_adjustments": {
+                        "brightness": 0.048,
+                        "contrast": 0.06,
+                        "saturation": 0.013
+                    }
+                }
+            ]
+        },
+        {
+            "type": "text",
+            "name": "subtitles",
+            "segments": [
+                {
+                    "target_timerange": {
+                        "start": 1000000,
+                        "duration": 2000000
+                    }
+                },
+                {
+                    "target_timerange": {
+                        "start": 31800000,
+                        "duration": 2000000
+                    }
+                }
+            ]
+        }
+    ]
+}

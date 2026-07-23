@@ -399,9 +399,25 @@ def patch_offline_tts_in_draft(
                     vocal_path_abs = os.path.abspath(dest_vocal).replace("\\", "/")
                     vocal_dur_us = get_wav_duration_us(dest_vocal)
 
-                    # Calculate video speed matching video adjustment
-                    video_speed = float(item_config.get("speed") or item_config.get("video_speed") or 1.0)
-                    target_dur_us = int(round(vocal_dur_us / video_speed)) if video_speed > 0 else vocal_dur_us
+                    # Read actual target duration and speed from main video track to ensure 100% audio-video sync
+                    main_video_target_dur = 0
+                    main_video_speed = 1.0
+                    for tr in data.get("tracks", []):
+                        if tr.get("type") == "video":
+                            for seg in tr.get("segments", []):
+                                t_range = seg.get("target_timerange", {})
+                                s_range = seg.get("source_timerange", {})
+                                if t_range.get("duration", 0) > 0:
+                                    main_video_target_dur += t_range["duration"]
+                                    if s_range.get("duration", 0) > 0:
+                                        main_video_speed = s_range["duration"] / t_range["duration"]
+
+                    if main_video_target_dur > 0:
+                        target_dur_us = main_video_target_dur
+                        video_speed = main_video_speed
+                    else:
+                        video_speed = float(item_config.get("speed") or item_config.get("video_speed") or 1.0)
+                        target_dur_us = int(round(vocal_dur_us / video_speed)) if video_speed > 0 else vocal_dur_us
 
                     speeds_list.append({
                         "curve_speed": None,
@@ -419,6 +435,57 @@ def patch_offline_tts_in_draft(
                         "type": "extract_music"
                     })
 
+                    # Calculate total target duration of main video track after smart splitting & anti-copyright
+                    total_video_target_dur = 0
+                    for tr in data.get("tracks", []):
+                        if tr.get("type") == "video":
+                            for seg in tr.get("segments", []):
+                                t_dur = seg.get("target_timerange", {}).get("duration", 0)
+                                total_video_target_dur += t_dur
+
+                    if total_video_target_dur <= 0:
+                        total_video_target_dur = vocal_dur_us
+
+                    vocal_speed = vocal_dur_us / total_video_target_dur if total_video_target_dur > 0 else 1.0
+
+                    speeds_list.append({
+                        "curve_speed": None,
+                        "id": vocal_speed_id,
+                        "mode": 0,
+                        "speed": vocal_speed,
+                        "type": "speed"
+                    })
+
+                    vocal_seg = {
+                        "caption_info": None,
+                        "clip": None,
+                        "common_keyframes": [],
+                        "enable_adjust": True,
+                        "extra_material_refs": [vocal_speed_id],
+                        "group_id": "",
+                        "hdr_settings": None,
+                        "id": vocal_seg_id,
+                        "intensifies_audio_path": "",
+                        "is_placeholder": False,
+                        "is_tone_modify": False,
+                        "keyframe_refs": [],
+                        "last_oper_type": 0,
+                        "material_id": vocal_mat_id,
+                        "render_index": 0,
+                        "responsive_layout": None,
+                        "reverse": False,
+                        "source_timerange": {"start": 0, "duration": vocal_dur_us},
+                        "speed_id": vocal_speed_id,
+                        "target_timerange": {"start": 0, "duration": total_video_target_dur},
+                        "template_id": "",
+                        "template_scene": "default",
+                        "track_attribute": 0,
+                        "track_render_index": 0,
+                        "uniform_scale": None,
+                        "visible": True,
+                        "volume": 1.0
+                    }
+
                     # Remove old filtered vocal track if exists
                     data["tracks"] = [tr for tr in data["tracks"] if not (tr.get("type") == "audio" and tr.get("name") == "audio_filtered_vocal")]
 
@@ -428,43 +495,7 @@ def patch_offline_tts_in_draft(
                         "id": str(uuid.uuid4()).upper(),
                         "is_contain_material_segment": True,
                         "name": "audio_filtered_vocal",
-                        "segments": [
-                            {
-                                "caption_info": None,
-                                "clip": None,
-                                "common_keyframes": [],
-                                "enable_adjust": True,
-                                "extra_material_refs": [],
-                                "group_id": "",
-                                "hdr_settings": None,
-                                "id": vocal_seg_id,
-                                "intensifies_audio_path": "",
-                                "is_placeholder": False,
-                                "is_tone_modify": False,
-                                "keyframe_refs": [],
-                                "last_oper_type": 0,
-                                "material_id": vocal_mat_id,
-                                "render_index": 0,
-                                "responsive_layout": None,
-                                "reverse": False,
-                                "source_timerange": {
-                                    "duration": vocal_dur_us,
-                                    "start": 0
-                                },
-                                "speed_id": vocal_speed_id,
-                                "target_timerange": {
-                                    "duration": target_dur_us,
-                                    "start": 0
-                                },
-                                "template_id": "",
-                                "template_scene": "default",
-                                "track_attribute": 0,
-                                "track_render_index": 0,
-                                "uniform_scale": None,
-                                "visible": True,
-                                "volume": 1.0
-                            }
-                        ],
+                        "segments": [vocal_seg],
                         "type": "audio"
                     }
                     data["tracks"].insert(0, vocal_track)

@@ -2,6 +2,7 @@
 import os
 # Tắt cơ chế spin-wait của ONNXRuntime trên CPU để tránh FULL CPU (100%) khi chờ GPU DirectML xử lý
 os.environ["ONNXRUNTIME_CPU_THREAD_ALLOW_SPINNING"] = "0"
+os.environ["PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION"] = "python"
 import sys
 import json
 import time
@@ -35,6 +36,7 @@ import pyautogui
 from pyJianYingDraft.capcut_controller import CapCutController, ExportResolution, ExportFramerate, capcut_process_ids, capcut_main_hwnd_and_rect
 from pyJianYingDraft.exceptions import AutomationError
 from offline_tts_patcher import patch_offline_tts_in_draft, clear_mini_draft_cache
+from anti_copyright_patcher import apply_full_anti_copyright_pipeline
 from settings import (
     TRANSLATION_ULTRA_SHORT_PROMPT_TEMPLATE,
     TRANSLATION_SYSTEM_PROMPT_TEMPLATE,
@@ -4056,6 +4058,8 @@ class QueueRunner:
                 # Resuming from a paused step, reuse its already claimed buffer if valid
                 assigned_buffer = pending_item["draft_id"]
                 with self.queue_lock:
+                    if not pending_item.get("started_at"):
+                        pending_item["started_at"] = time.time()
                     pending_item["status"] = "preprocessing"
                     pending_item["progress"] = max(5, int(pending_item.get("progress", 0) or 0))
                     pending_item["message"] = "Đang chuẩn bị (Preprocess)..."
@@ -4091,6 +4095,8 @@ class QueueRunner:
                         if assigned_buffer:
                             pending_item["draft_id"] = assigned_buffer
                             pending_item["project_folder"] = assigned_buffer
+                            if not pending_item.get("started_at"):
+                                pending_item["started_at"] = time.time()
                             pending_item["status"] = "preprocessing"
                             pending_item["progress"] = max(5, int(pending_item.get("progress", 0) or 0))
                             pending_item["message"] = "Đang chuẩn bị (Preprocess)..."
@@ -4157,6 +4163,7 @@ class QueueRunner:
 
         logger.info("Worker 2 (CapCut GUI) đã bắt đầu...")
         
+        last_waiting_video = None
         while self.is_processing:
             if self.pause_requested:
                 break
@@ -4186,12 +4193,15 @@ class QueueRunner:
                         None,
                     )
             if offline_preprocess_item is not None:
-                logger.info(
-                    "Worker 2 chờ vì Worker 1 đang tạo phụ đề offline "
-                    f"(OCR/Whisper) cho '{offline_preprocess_item.get('video') or offline_preprocess_item.get('draft_id')}'."
-                )
-                time.sleep(3)
+                current_video_name = str(offline_preprocess_item.get('video') or offline_preprocess_item.get('draft_id'))
+                if last_waiting_video != current_video_name:
+                    logger.info(f"Worker 2 tạm dừng chờ Worker 1 hoàn thành Preprocess cho video '{current_video_name}'...")
+                    last_waiting_video = current_video_name
+                time.sleep(2)
                 continue
+            elif last_waiting_video is not None:
+                logger.info(f"Worker 1 đã kết thúc Preprocess cho '{last_waiting_video}'. Worker 2 phát hiện và tiếp tục xử lý GUI.")
+                last_waiting_video = None
                 
             gui_item = None
             gui_idx = -1
@@ -4226,6 +4236,7 @@ class QueueRunner:
                 else:
                     with self.queue_lock:
                         gui_item["status"] = "success"
+                        gui_item["ended_at"] = time.time()
                         gui_item["progress"] = 100
                         gui_item["message"] = "Hoàn thành!"
                         gui_item["resume_from_step"] = None
@@ -4237,6 +4248,7 @@ class QueueRunner:
                 kill_capcut()
                 with self.queue_lock:
                     gui_item["status"] = "failed"
+                    gui_item["ended_at"] = time.time()
                     gui_item["message"] = "Hủy bỏ."
                     self.save_cache()
             except RuntimeError as e:
@@ -4247,6 +4259,7 @@ class QueueRunner:
                 kill_capcut()
                 with self.queue_lock:
                     gui_item["status"] = "failed"
+                    gui_item["ended_at"] = time.time()
                     gui_item["message"] = f"Lỗi GUI: {str(e)}"
                     self.save_cache()
             except Exception as e:
@@ -4508,10 +4521,6 @@ class QueueRunner:
                     width=int(canvas_width or 1920),
                     height=int(canvas_height or 1080),
                 )
-                patch_video_mirror_in_json(
-                    draft_full_path,
-                    mirror_horizontal=bool(item_config.get("mirror_video", True)),
-                )
                 patch_track_lock_in_json(draft_full_path, track_types=["video", "effect"], locked=True)
                 patch_track_lock_in_json(draft_full_path, track_types=["text", "audio"], locked=False)
             except Exception as e:
@@ -4618,6 +4627,17 @@ class QueueRunner:
                 font_name=font_name,
                 item_config=item_config
             )
+            _env_anti_cp = os.environ.get("ENABLE_ANTI_COPYRIGHT", "").lower()
+            _should_anti_cp = (_env_anti_cp in {"1", "true", "yes", "on"}) if _env_anti_cp else bool(item_config.get("enable_anti_copyright", True))
+            if _env_anti_cp in {"0", "false", "no", "off"}:
+                _should_anti_cp = False
+
+            if _should_anti_cp:
+                logger.info("[AntiCopyright] Đang thực thi quy trình Lách Bản Quyền Động (Cắt 30s theo Phụ Đề, Mirror, Zoom/Crop, Speed)...")
+                apply_full_anti_copyright_pipeline(draft_full_path, config=item_config)
+            else:
+                logger.info("Chế độ Lách bản quyền Content ID đang TẮT. Bỏ qua patch lách bản quyền.")
+
             patch_track_volume_in_json(draft_full_path, volume_db=volume_db, track_types=["video"])
             patch_track_lock_in_json(draft_full_path, track_types=["video", "effect"], locked=True)
             self._check_cancel(item)
@@ -4658,6 +4678,17 @@ class QueueRunner:
             font_name=font_name,
             item_config=item_config
         )
+        _env_anti_cp = os.environ.get("ENABLE_ANTI_COPYRIGHT", "").lower()
+        _should_anti_cp = (_env_anti_cp in {"1", "true", "yes", "on"}) if _env_anti_cp else bool(item_config.get("enable_anti_copyright", True))
+        if _env_anti_cp in {"0", "false", "no", "off"}:
+            _should_anti_cp = False
+
+        if _should_anti_cp:
+            logger.info("[AntiCopyright] Đang thực thi quy trình Lách Bản Quyền Động (Cắt 30s theo Phụ Đề, Mirror, Zoom/Crop, Speed)...")
+            apply_full_anti_copyright_pipeline(draft_full_path, config=item_config)
+        else:
+            logger.info("Chế độ Lách bản quyền Content ID đang TẮT. Bỏ qua patch lách bản quyền.")
+
         patch_track_volume_in_json(draft_full_path, volume_db=volume_db, track_types=["video"])
         patch_track_lock_in_json(draft_full_path, track_types=["video", "effect"], locked=True)
         self._check_cancel(item)
@@ -4706,6 +4737,22 @@ class QueueRunner:
                 
                 item["message"] = f"Bước 6: Đang gán âm thanh (TTS) offline NGHI-TTS với giọng '{voice_name}'..."
                 self.save_cache()
+                
+                # Guaranteed anti-copyright execution right before TTS & Audio Filter patching
+                _env_anti_cp = os.environ.get("ENABLE_ANTI_COPYRIGHT", "").lower()
+                _should_anti_cp = (_env_anti_cp in {"1", "true", "yes", "on"}) if _env_anti_cp else bool(item_config.get("enable_anti_copyright", True))
+                if _env_anti_cp in {"0", "false", "no", "off"}:
+                    _should_anti_cp = False
+
+                if _should_anti_cp:
+                    logger.info("[AntiCopyright] Kiểm tra và thực thi Lách Bản Quyền Động trước khi gán âm thanh TTS...")
+                    apply_full_anti_copyright_pipeline(draft_full_path, config=item_config)
+                    local_workspace_draft = os.path.join(os.path.dirname(os.path.abspath(__file__)), str(draft_id))
+                    if os.path.isdir(local_workspace_draft) and os.path.abspath(local_workspace_draft) != os.path.abspath(draft_full_path):
+                        apply_full_anti_copyright_pipeline(local_workspace_draft, config=item_config)
+                else:
+                    logger.info("Chế độ Lách bản quyền Content ID đang TẮT. Bỏ qua patch lách bản quyền.")
+
                 logger.info(f"Chạy NGHI-TTS offline patch cho draft {draft_full_path} với giọng '{voice_name}'...")
                 patch_offline_tts_in_draft(draft_full_path, voice_name=voice_name, item_config=item_config)
                 local_workspace_draft = os.path.join(os.path.dirname(os.path.abspath(__file__)), str(draft_id))
