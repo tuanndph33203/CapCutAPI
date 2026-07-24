@@ -1,0 +1,13 @@
+[
+    {
+        "id": "s1",
+        "ocr_source": {
+            "start": 1000000,
+            "duration": 2000000
+        },
+        "target": {
+            "start": 1000000,
+            "duration": 2000000
+        }
+    }
+]

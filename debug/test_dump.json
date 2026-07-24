@@ -1,0 +1,28 @@
+[
+    {
+        "id": "v1",
+        "material_id": "video_mat",
+        "source": {
+            "start": 0,
+            "duration": 10000000
+        },
+        "trim": {
+            "left": 0,
+            "right": 0
+        },
+        "speed": 1.0,
+        "target": {
+            "start": 0,
+            "duration": 10000000
+        },
+        "flip": {
+            "horizontal": false,
+            "vertical": false
+        },
+        "scale": {
+            "x": 1.0,
+            "y": 1.0
+        },
+        "color_adjustments": {}
+    }
+]

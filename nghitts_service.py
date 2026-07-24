@@ -101,9 +101,9 @@ def generate_nghitts(
     # 3. Load voice model (cached)
     voice = get_piper_voice(voice_name)
 
-    # 4. Configure speed via length_scale (inverse relationship)
+    # 4. Configure speed (always synthesize at 1.0 for VITS quality, then speed up with pydub)
     target_speed = max(0.2, min(5.0, float(speed or 1.0)))
-    syn_config = SynthesisConfig(length_scale=1.0 / target_speed)
+    syn_config = SynthesisConfig(length_scale=1.0)
 
     # 5. Synthesize speech directly into WAV file
     with wave.open(output_path, "wb") as wav_file:
@@ -116,6 +116,18 @@ def generate_nghitts(
 
     if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
         raise RuntimeError(f"Failed to generate audio at {output_path}")
+
+    # 6. Apply precise linear speedup using pydub if target_speed != 1.0
+    if abs(target_speed - 1.0) > 0.01:
+        try:
+            from pydub import AudioSegment
+            from pydub.effects import speedup
+            sound = AudioSegment.from_wav(output_path)
+            fast_sound = speedup(sound, playback_speed=target_speed)
+            fast_sound.export(output_path, format="wav")
+            print(f"[NghiTTS] Applied pydub linear speedup to {output_path} at {target_speed}x")
+        except Exception as e:
+            print(f"[NghiTTS] Failed to apply pydub speedup: {e}")
 
     return output_path
 
