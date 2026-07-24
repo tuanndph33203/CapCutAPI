@@ -2645,7 +2645,7 @@ def patch_track_volume_in_json(draft_path, volume_db=-15.5, track_types=None):
                 config["video_mute"] = False
                 updated_count += 1
         for track in data.get("tracks", []):
-            if track.get("type") not in track_types:
+            if track.get("type") not in track_types and track.get("name") not in track_types:
                 continue
             if track.get("type") == "video":
                 current_attr = int(track.get("attribute", 0) or 0)
@@ -4649,7 +4649,7 @@ class QueueRunner:
                 item_config=item_config
             )
 
-            patch_track_volume_in_json(draft_full_path, volume_db=volume_db, track_types=["video"])
+            patch_track_volume_in_json(draft_full_path, volume_db=volume_db, track_types=["video", "audio_filtered_vocal"])
             patch_track_lock_in_json(draft_full_path, track_types=["video", "effect"], locked=True)
             self._check_cancel(item)
 
@@ -4700,7 +4700,7 @@ class QueueRunner:
         else:
             logger.info("Chế độ Lách bản quyền Content ID đang TẮT. Bỏ qua patch lách bản quyền.")
 
-        patch_track_volume_in_json(draft_full_path, volume_db=volume_db, track_types=["video"])
+        patch_track_volume_in_json(draft_full_path, volume_db=volume_db, track_types=["video", "audio_filtered_vocal"])
         patch_track_lock_in_json(draft_full_path, track_types=["video", "effect"], locked=True)
         self._check_cancel(item)
         

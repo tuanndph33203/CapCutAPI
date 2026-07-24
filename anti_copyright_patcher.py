@@ -428,10 +428,10 @@ def apply_full_anti_copyright_pipeline(draft_path: str, config: Optional[Dict[st
     
     # 1. Cắt thông minh theo khoảng nghỉ phụ đề trước (nếu bật)
     if config.get("auto_splits", True) or config.get("smart_splits", True):
-        logger.info("[AntiCopyright 1/5] Tien hanh Cat Thong Minh theo Phu De (~30s intervals)...")
+        logger.info("[AntiCopyright 1/5] Tien hanh Cat Thong Minh theo Phu De (~15s intervals)...")
         results["smart_splits"] = patch_smart_subtitle_gaps(
             draft_path,
-            target_interval_sec=float(config.get("max_segment_sec", 30.0)),
+            target_interval_sec=float(config.get("max_segment_sec", 15.0)),
             micro_trim_ms=int(config.get("micro_trim_ms", 200))
         )
         

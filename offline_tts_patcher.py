@@ -487,6 +487,10 @@ def patch_offline_tts_in_draft(
                     vocal_seg_id = str(uuid.uuid4()).upper()
                     vocal_speed_id = str(uuid.uuid4()).upper()
 
+                    # Clean up any existing Original_Filtered_Vocal materials to avoid duplicate old extract_music entries
+                    audios_list = [a for a in materials.get("audios", []) if a.get("name") != "Original_Filtered_Vocal"]
+                    materials["audios"] = audios_list
+
                     vocal_filename = f"{vocal_mat_id}_filtered_vocal.wav"
                     dest_vocal = copy_wav_to_text_reading(filtered_vocal_wav, draft_path, vocal_filename)
                     vocal_path_abs = os.path.abspath(dest_vocal).replace("\\", "/")
@@ -522,12 +526,70 @@ def patch_offline_tts_in_draft(
                     })
 
                     audios_list.append({
+                        "app_id": 0,
+                        "category_id": "voice",
+                        "category_name": "voice",
+                        "check_flag": 1,
                         "duration": vocal_dur_us,
+                        "effect_id": "",
+                        "formula_id": "",
                         "id": vocal_mat_id,
+                        "intensifies_path": "",
+                        "is_ai_clone_tone": False,
+                        "is_ai_clone_tone_post": False,
+                        "is_text_edit_overdub": False,
+                        "is_ugc": False,
+                        "local_material_id": "",
+                        "lyric_type": 0,
+                        "mock_tone_speaker": ",".join(["Ngọc Huyền (mới)"] * 85),
+                        "moyin_emotion": "",
+                        "music_id": "",
+                        "music_source": "",
                         "name": "Original_Filtered_Vocal",
                         "path": vocal_path_abs,
-                        "type": "extract_music"
+                        "pgc_id": "",
+                        "pgc_name": "",
+                        "query": "",
+                        "request_id": "",
+                        "resource_id": "",
+                        "search_id": "",
+                        "similiar_music_info": {"original_song_id": "", "original_song_name": ""},
+                        "sound_separate_type": "",
+                        "source_from": "",
+                        "source_platform": 0,
+                        "team_id": "",
+                        "text_id": "",
+                        "third_resource_id": "",
+                        "tone_category_id": "",
+                        "tone_category_name": "",
+                        "tone_effect_id": "",
+                        "tone_effect_name": "Ngọc Huyền (mới)",
+                        "tone_emotion_name_key": "",
+                        "tone_emotion_role": "",
+                        "tone_emotion_scale": 0.0,
+                        "tone_emotion_selection": "",
+                        "tone_emotion_style": "",
+                        "tone_platform": "sami",
+                        "tone_second_category_id": "",
+                        "tone_second_category_name": "",
+                        "tone_speaker": "Ngọc Huyền (mới)",
+                        "tone_type": "Ngọc Huyền (mới)",
+                        "tts_benefit_info": {
+                            "benefit_amount": -1,
+                            "benefit_log_extra": "",
+                            "benefit_log_id": "",
+                            "benefit_type": "none"
+                        },
+                        "tts_generate_scene": "audio_panel",
+                        "tts_task_id": "",
+                        "type": "text_to_audio",
+                        "unique_id": "",
+                        "video_id": "",
+                        "wave_points": []
                     })
+
+                    v_vol_db = item_config.get("vocal_volume_db") if item_config and item_config.get("vocal_volume_db") is not None else (item_config.get("volume_db", -15.5) if item_config else -15.5)
+                    target_vocal_volume = 10.0 ** (float(v_vol_db) / 20.0)
 
                     # Build vocal audio segments matching main video segments 1-to-1 to guarantee 100% cut & speed sync
                     vocal_segments = []
@@ -565,7 +627,10 @@ def patch_offline_tts_in_draft(
                                         "track_render_index": 0,
                                         "uniform_scale": None,
                                         "visible": True,
-                                        "volume": 1.0
+                                        "volume": target_vocal_volume,
+                                        "speaker_id": "bv001_streaming",
+                                        "speaker_name": "Ngọc Huyền (mới)",
+                                        "_is_filtered_vocal": True
                                     }
                                     vocal_segments.append(v_seg_copy)
 
@@ -598,7 +663,10 @@ def patch_offline_tts_in_draft(
                             "track_render_index": 0,
                             "uniform_scale": None,
                             "visible": True,
-                            "volume": 1.0
+                            "volume": target_vocal_volume,
+                            "speaker_id": "bv001_streaming",
+                            "speaker_name": "Ngọc Huyền (mới)",
+                            "_is_filtered_vocal": True
                         }
                         vocal_segments.append(vocal_seg)
 
