@@ -36,7 +36,7 @@ import pyautogui
 from pyJianYingDraft.capcut_controller import CapCutController, ExportResolution, ExportFramerate, capcut_process_ids, capcut_main_hwnd_and_rect
 from pyJianYingDraft.exceptions import AutomationError
 from offline_tts_patcher import patch_offline_tts_in_draft, clear_mini_draft_cache
-from anti_copyright_patcher import apply_full_anti_copyright_pipeline
+from anti_copyright_patcher import apply_full_anti_copyright_pipeline, patch_video_speed_dynamic, resync_subtitles_and_audio_to_video_timeline
 from settings import (
     TRANSLATION_ULTRA_SHORT_PROMPT_TEMPLATE,
     TRANSLATION_SYSTEM_PROMPT_TEMPLATE,
@@ -2461,6 +2461,8 @@ def patch_subtitles_file(content_path, font_size=5.0, font_color=DEFAULT_SUBTITL
 
             target_timerange = segment.get("target_timerange") or {}
             start_us = int(target_timerange.get("start", 0) or 0)
+            if "_ocr_source_start" not in segment:
+                segment["_ocr_source_start"] = start_us
             old_duration = int(target_timerange.get("duration", 0) or 0)
             compact_len = len("".join(str(translated_text).split()))
             desired = max(min_display_us, compact_len * read_us_per_char)
@@ -3417,7 +3419,13 @@ def patch_audio_speed_in_json(draft_path, target_speed=1.0):
 
             for track in tracks:
                 if track.get("type") == "audio":
+                    if track.get("name") == "audio_filtered_vocal":
+                        continue
                     for seg in track.get("segments", []):
+                        mat_id = seg.get("material_id")
+                        is_vocal = any(m.get("id") == mat_id and "filtered_vocal" in str(m.get("name", "")).lower() for m in materials.get("audios", []))
+                        if is_vocal:
+                            continue
                         if not tts_material_ids or seg.get("material_id") in tts_material_ids:
                             curr_speed = float(seg.get("speed", 1.0))
                             source_timerange = seg.get("source_timerange") or {}
@@ -4620,6 +4628,19 @@ class QueueRunner:
             item["message"] = "Bước 4 & 5: Đang dịch phụ đề và chỉnh âm lượng trong draft..."
             logger.info("CapCut chưa được mở trong luồng Whisper local, patch draft trực tiếp.")
 
+            _env_anti_cp = os.environ.get("ENABLE_ANTI_COPYRIGHT", "").lower()
+            _should_anti_cp = (_env_anti_cp in {"1", "true", "yes", "on"}) if _env_anti_cp else bool(item_config.get("enable_anti_copyright", True))
+            if _env_anti_cp in {"0", "false", "no", "off"}:
+                _should_anti_cp = False
+
+            if _should_anti_cp:
+                logger.info("[AntiCopyright] [Bước 3.5] Thực thi Lách bản quyền ĐỘNG & Cắt thông minh (giữ speed 1.0x để làm TTS trước)...")
+                anti_cp_prep_config = {**item_config, "speed_patch": False, "video_speed": 1.0, "speed": 1.0}
+                apply_full_anti_copyright_pipeline(draft_full_path, config=anti_cp_prep_config)
+            else:
+                logger.info("Chế độ Lách bản quyền Content ID đang TẮT. Bỏ qua patch lách bản quyền.")
+
+            logger.info("[Bước 4] Tiến hành Dịch phụ đề sang tiếng Việt trên Timeline đã cắt & làm chậm chuẩn 100%...")
             patch_subtitles_in_json(
                 draft_full_path,
                 font_size=font_size,
@@ -4627,16 +4648,6 @@ class QueueRunner:
                 font_name=font_name,
                 item_config=item_config
             )
-            _env_anti_cp = os.environ.get("ENABLE_ANTI_COPYRIGHT", "").lower()
-            _should_anti_cp = (_env_anti_cp in {"1", "true", "yes", "on"}) if _env_anti_cp else bool(item_config.get("enable_anti_copyright", True))
-            if _env_anti_cp in {"0", "false", "no", "off"}:
-                _should_anti_cp = False
-
-            if _should_anti_cp:
-                logger.info("[AntiCopyright] Đang thực thi quy trình Lách Bản Quyền Động (Cắt 30s theo Phụ Đề, Mirror, Zoom/Crop, Speed)...")
-                apply_full_anti_copyright_pipeline(draft_full_path, config=item_config)
-            else:
-                logger.info("Chế độ Lách bản quyền Content ID đang TẮT. Bỏ qua patch lách bản quyền.")
 
             patch_track_volume_in_json(draft_full_path, volume_db=volume_db, track_types=["video"])
             patch_track_lock_in_json(draft_full_path, track_types=["video", "effect"], locked=True)
@@ -4711,6 +4722,7 @@ class QueueRunner:
         
         project_opened_this_run = False
         
+        # Anti-copyright pipeline runs 1-pass cleanly during Preprocess right after OCR
         if resume_from_step <= 5:
             self._check_cancel(item)
             item["progress"] = 72
@@ -4737,21 +4749,6 @@ class QueueRunner:
                 
                 item["message"] = f"Bước 6: Đang gán âm thanh (TTS) offline NGHI-TTS với giọng '{voice_name}'..."
                 self.save_cache()
-                
-                # Guaranteed anti-copyright execution right before TTS & Audio Filter patching
-                _env_anti_cp = os.environ.get("ENABLE_ANTI_COPYRIGHT", "").lower()
-                _should_anti_cp = (_env_anti_cp in {"1", "true", "yes", "on"}) if _env_anti_cp else bool(item_config.get("enable_anti_copyright", True))
-                if _env_anti_cp in {"0", "false", "no", "off"}:
-                    _should_anti_cp = False
-
-                if _should_anti_cp:
-                    logger.info("[AntiCopyright] Kiểm tra và thực thi Lách Bản Quyền Động trước khi gán âm thanh TTS...")
-                    apply_full_anti_copyright_pipeline(draft_full_path, config=item_config)
-                    local_workspace_draft = os.path.join(os.path.dirname(os.path.abspath(__file__)), str(draft_id))
-                    if os.path.isdir(local_workspace_draft) and os.path.abspath(local_workspace_draft) != os.path.abspath(draft_full_path):
-                        apply_full_anti_copyright_pipeline(local_workspace_draft, config=item_config)
-                else:
-                    logger.info("Chế độ Lách bản quyền Content ID đang TẮT. Bỏ qua patch lách bản quyền.")
 
                 logger.info(f"Chạy NGHI-TTS offline patch cho draft {draft_full_path} với giọng '{voice_name}'...")
                 patch_offline_tts_in_draft(draft_full_path, voice_name=voice_name, item_config=item_config)
@@ -4841,8 +4838,14 @@ class QueueRunner:
             self._check_cancel(item)
             item["progress"] = 85
             tts_speed = float(item_config.get("tts_speed", 1.17) or 1.17)
-            video_speed = float(item_config.get("speed", 0.77) or 0.77)
-            item["message"] = f"Bước 7: Đóng CapCut để chỉnh tốc độ TTS ({tts_speed}x) và video ({video_speed}x)..."
+            
+            _env_anti_cp = os.environ.get("ENABLE_ANTI_COPYRIGHT", "").lower()
+            _should_anti_cp = (_env_anti_cp in {"1", "true", "yes", "on"}) if _env_anti_cp else bool(item_config.get("enable_anti_copyright", True))
+            if _env_anti_cp in {"0", "false", "no", "off"}:
+                _should_anti_cp = False
+
+            video_speed = float(item_config.get("video_speed") or item_config.get("speed") or 0.85)
+            item["message"] = f"Bước 7: Đóng CapCut để chỉnh tốc độ TTS ({tts_speed}x) và Video ({video_speed}x)..."
             self.save_cache()
             
             kill_capcut()
@@ -4850,7 +4853,15 @@ class QueueRunner:
             project_opened_this_run = False
             
             patch_audio_speed_in_json(draft_full_path, target_speed=tts_speed)
-            patch_video_speed_in_json(draft_full_path, speed=video_speed)
+            if _should_anti_cp:
+                if config_bool(item_config.get("speed_patch", True), True) and video_speed != 1.0:
+                    logger.info(f"[Step 7 AntiCopyright] Áp dụng tốc độ video ({video_speed}x) và resync ở bước cuối trước khi xuất...")
+                    patch_video_speed_dynamic(draft_full_path, base_speed=video_speed, randomize=True)
+                    resync_subtitles_and_audio_to_video_timeline(draft_full_path)
+            elif video_speed != 1.0:
+                patch_video_speed_in_json(draft_full_path, speed=video_speed)
+                resync_subtitles_and_audio_to_video_timeline(draft_full_path)
+
             clear_mini_draft_cache(draft_full_path)
             logger.info(
                 f"Đã patch speed sau khi đóng CapCut: "

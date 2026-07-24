@@ -108,7 +108,8 @@ def extract_text_segments_from_draft(data: Dict[str, Any]) -> List[Dict[str, Any
                 "text": text.strip(),
                 "start_us": start_us,
                 "duration_us": dur_us,
-                "segment_id": seg.get("id")
+                "segment_id": seg.get("id"),
+                "_ocr_source_start": seg.get("_ocr_source_start")
             })
 
     # Sort segments strictly by start time
@@ -302,6 +303,91 @@ def extract_filtered_vocal_audio(video_path: str, output_audio_dir: str = "outpu
     return None
 
 
+def extract_audio_from_cut_video_segments(video_src: str, data: Dict[str, Any], output_dir: str = "output_audio") -> Optional[str]:
+    """Trích xuất và ghép chính xác luồng âm thanh từ các phân đoạn video ĐÃ CẮT (sau khi lách bản quyền)."""
+    if not video_src or not os.path.isfile(video_src):
+        return None
+
+    materials = data.get("materials", {})
+    from anti_copyright_patcher import _is_main_video_track
+
+    cut_ranges = []
+    for tr in data.get("tracks", []):
+        if _is_main_video_track(tr, materials):
+            for seg in tr.get("segments", []):
+                s_range = seg.get("source_timerange", {})
+                s_start = s_range.get("start", 0)
+                s_dur = s_range.get("duration", 0)
+                if s_dur > 0:
+                    cut_ranges.append((s_start, s_dur))
+
+    if not cut_ranges:
+        return video_src
+
+    os.makedirs(output_dir, exist_ok=True)
+    temp_files = []
+    concat_list_path = os.path.join(output_dir, f"concat_list_{uuid.uuid4().hex[:8]}.txt")
+
+    try:
+        # Extract each cut segment audio slice via FFmpeg
+        for idx, (start_us, dur_us) in enumerate(cut_ranges, start=1):
+            start_sec = start_us / 1_000_000.0
+            dur_sec = dur_us / 1_000_000.0
+            seg_wav = os.path.join(output_dir, f"cut_seg_{idx}_{uuid.uuid4().hex[:6]}.wav")
+            cmd = [
+                "ffmpeg", "-y",
+                "-ss", f"{start_sec:.6f}",
+                "-t", f"{dur_sec:.6f}",
+                "-i", video_src,
+                "-vn", "-ar", "44100", "-ac", "2",
+                seg_wav
+            ]
+            subprocess.run(cmd, capture_output=True, text=True, check=True)
+            if os.path.isfile(seg_wav):
+                temp_files.append(seg_wav)
+
+        if not temp_files:
+            return video_src
+
+        if not voice or voice == "default":
+            voice = "Ngọc Huyền (mới)"
+
+        # Write concat manifest
+        with open(concat_list_path, "w", encoding="utf-8") as f:
+            for tf in temp_files:
+                esc_path = os.path.abspath(tf).replace("\\", "/")
+                f.write(f"file '{esc_path}'\n")
+
+        combined_cut_wav = os.path.join(output_dir, f"combined_cut_audio_{uuid.uuid4().hex[:8]}.wav")
+        cmd_concat = [
+            "ffmpeg", "-y", "-f", "concat", "-safe", "0",
+            "-i", concat_list_path,
+            "-c", "copy",
+            combined_cut_wav
+        ]
+        subprocess.run(cmd_concat, capture_output=True, text=True, check=True)
+
+        if os.path.isfile(combined_cut_wav) and os.path.getsize(combined_cut_wav) > 0:
+            logger.info(f"[AudioFilter] Da ghep thanh cong {len(temp_files)} phan doan am thanh tu cac vet cat video thanh: {combined_cut_wav}")
+            return combined_cut_wav
+    except Exception as e:
+        logger.warning(f"[AudioFilter] Loi khi cat ghep am thanh tu video da cat: {e}")
+    finally:
+        for tf in temp_files:
+            if os.path.isfile(tf):
+                try:
+                    os.remove(tf)
+                except Exception:
+                    pass
+        if os.path.isfile(concat_list_path):
+            try:
+                os.remove(concat_list_path)
+            except Exception:
+                pass
+
+    return video_src
+
+
 def copy_wav_to_text_reading(wav_path: str, draft_path: str, filename: str) -> str:
     """Copy WAV file into textReading/ subfolder of draft and return the placeholder path."""
     text_reading_dir = os.path.join(draft_path, "textReading")
@@ -327,6 +413,9 @@ def patch_offline_tts_in_draft(
     if not json_paths:
         logger.error(f"No draft_content.json found in {draft_path}")
         return False
+
+    if not voice_name or voice_name == "default":
+        voice_name = "Ngọc Huyền (mới)"
 
     patched_any = False
 
@@ -388,7 +477,11 @@ def patch_offline_tts_in_draft(
                         break
 
             if video_src:
-                filtered_vocal_wav = extract_filtered_vocal_audio(video_src, output_audio_dir=output_audio_dir)
+                # 1. Trích xuất và ghép chính xác âm thanh từ các phân đoạn video ĐÃ CẮT (sau anti-copyright)
+                cut_video_audio_src = extract_audio_from_cut_video_segments(video_src, data, output_dir=output_audio_dir)
+                target_src = cut_video_audio_src if cut_video_audio_src and os.path.isfile(cut_video_audio_src) else video_src
+                
+                filtered_vocal_wav = extract_filtered_vocal_audio(target_src, output_audio_dir=output_audio_dir)
                 if filtered_vocal_wav and os.path.isfile(filtered_vocal_wav):
                     vocal_mat_id = str(uuid.uuid4()).upper()
                     vocal_seg_id = str(uuid.uuid4()).upper()
@@ -399,31 +492,32 @@ def patch_offline_tts_in_draft(
                     vocal_path_abs = os.path.abspath(dest_vocal).replace("\\", "/")
                     vocal_dur_us = get_wav_duration_us(dest_vocal)
 
-                    # Read actual target duration and speed from main video track to ensure 100% audio-video sync
-                    main_video_target_dur = 0
-                    main_video_speed = 1.0
+                    # Read main video speed directly from video segments AFTER anti-copyright processing
+                    from anti_copyright_patcher import _is_main_video_track
+                    post_anti_source_dur = 0
+                    post_anti_target_dur = 0
                     for tr in data.get("tracks", []):
-                        if tr.get("type") == "video":
+                        if _is_main_video_track(tr, materials):
                             for seg in tr.get("segments", []):
-                                t_range = seg.get("target_timerange", {})
-                                s_range = seg.get("source_timerange", {})
-                                if t_range.get("duration", 0) > 0:
-                                    main_video_target_dur += t_range["duration"]
-                                    if s_range.get("duration", 0) > 0:
-                                        main_video_speed = s_range["duration"] / t_range["duration"]
+                                s_dur = seg.get("source_timerange", {}).get("duration", 0)
+                                t_dur = seg.get("target_timerange", {}).get("duration", 0)
+                                if s_dur > 0 and t_dur > 0:
+                                    post_anti_source_dur += s_dur
+                                    post_anti_target_dur += t_dur
 
-                    if main_video_target_dur > 0:
-                        target_dur_us = main_video_target_dur
-                        video_speed = main_video_speed
+                    if post_anti_target_dur > 0 and post_anti_source_dur > 0:
+                        main_video_speed = post_anti_source_dur / post_anti_target_dur
                     else:
-                        video_speed = float(item_config.get("speed") or item_config.get("video_speed") or 1.0)
-                        target_dur_us = int(round(vocal_dur_us / video_speed)) if video_speed > 0 else vocal_dur_us
+                        main_video_speed = float(item_config.get("speed") or item_config.get("video_speed") or 1.0)
+
+                    vocal_speed = main_video_speed
+                    target_dur_us = int(round(vocal_dur_us / vocal_speed)) if vocal_speed > 0 else vocal_dur_us
 
                     speeds_list.append({
                         "curve_speed": None,
                         "id": vocal_speed_id,
                         "mode": 0,
-                        "speed": video_speed,
+                        "speed": vocal_speed,
                         "type": "speed"
                     })
 
@@ -435,56 +529,78 @@ def patch_offline_tts_in_draft(
                         "type": "extract_music"
                     })
 
-                    # Calculate total target duration of main video track after smart splitting & anti-copyright
-                    total_video_target_dur = 0
+                    # Build vocal audio segments matching main video segments 1-to-1 to guarantee 100% cut & speed sync
+                    vocal_segments = []
                     for tr in data.get("tracks", []):
-                        if tr.get("type") == "video":
-                            for seg in tr.get("segments", []):
-                                t_dur = seg.get("target_timerange", {}).get("duration", 0)
-                                total_video_target_dur += t_dur
+                        if _is_main_video_track(tr, materials):
+                            for v_seg in tr.get("segments", []):
+                                v_src = v_seg.get("source_timerange", {})
+                                v_tgt = v_seg.get("target_timerange", {})
+                                if v_src.get("duration", 0) > 0 and v_tgt.get("duration", 0) > 0:
+                                    v_seg_copy = {
+                                        "caption_info": None,
+                                        "clip": None,
+                                        "common_keyframes": [],
+                                        "enable_adjust": True,
+                                        "extra_material_refs": [vocal_speed_id],
+                                        "group_id": "",
+                                        "hdr_settings": None,
+                                        "id": str(uuid.uuid4()).upper(),
+                                        "intensifies_audio_path": "",
+                                        "is_placeholder": False,
+                                        "is_tone_modify": False,
+                                        "keyframe_refs": [],
+                                        "last_oper_type": 0,
+                                        "material_id": vocal_mat_id,
+                                        "render_index": 0,
+                                        "responsive_layout": None,
+                                        "reverse": False,
+                                        "source_timerange": {"start": v_src["start"], "duration": v_src["duration"]},
+                                        "speed_id": vocal_speed_id,
+                                        "speed": vocal_speed,
+                                        "target_timerange": {"start": v_tgt["start"], "duration": v_tgt["duration"]},
+                                        "template_id": "",
+                                        "template_scene": "default",
+                                        "track_attribute": 0,
+                                        "track_render_index": 0,
+                                        "uniform_scale": None,
+                                        "visible": True,
+                                        "volume": 1.0
+                                    }
+                                    vocal_segments.append(v_seg_copy)
 
-                    if total_video_target_dur <= 0:
-                        total_video_target_dur = vocal_dur_us
-
-                    vocal_speed = vocal_dur_us / total_video_target_dur if total_video_target_dur > 0 else 1.0
-
-                    speeds_list.append({
-                        "curve_speed": None,
-                        "id": vocal_speed_id,
-                        "mode": 0,
-                        "speed": vocal_speed,
-                        "type": "speed"
-                    })
-
-                    vocal_seg = {
-                        "caption_info": None,
-                        "clip": None,
-                        "common_keyframes": [],
-                        "enable_adjust": True,
-                        "extra_material_refs": [vocal_speed_id],
-                        "group_id": "",
-                        "hdr_settings": None,
-                        "id": vocal_seg_id,
-                        "intensifies_audio_path": "",
-                        "is_placeholder": False,
-                        "is_tone_modify": False,
-                        "keyframe_refs": [],
-                        "last_oper_type": 0,
-                        "material_id": vocal_mat_id,
-                        "render_index": 0,
-                        "responsive_layout": None,
-                        "reverse": False,
-                        "source_timerange": {"start": 0, "duration": vocal_dur_us},
-                        "speed_id": vocal_speed_id,
-                        "target_timerange": {"start": 0, "duration": total_video_target_dur},
-                        "template_id": "",
-                        "template_scene": "default",
-                        "track_attribute": 0,
-                        "track_render_index": 0,
-                        "uniform_scale": None,
-                        "visible": True,
-                        "volume": 1.0
-                    }
+                    if not vocal_segments:
+                        vocal_seg = {
+                            "caption_info": None,
+                            "clip": None,
+                            "common_keyframes": [],
+                            "enable_adjust": True,
+                            "extra_material_refs": [vocal_speed_id],
+                            "group_id": "",
+                            "hdr_settings": None,
+                            "id": vocal_seg_id,
+                            "intensifies_audio_path": "",
+                            "is_placeholder": False,
+                            "is_tone_modify": False,
+                            "keyframe_refs": [],
+                            "last_oper_type": 0,
+                            "material_id": vocal_mat_id,
+                            "render_index": 0,
+                            "responsive_layout": None,
+                            "reverse": False,
+                            "source_timerange": {"start": 0, "duration": vocal_dur_us},
+                            "speed_id": vocal_speed_id,
+                            "speed": vocal_speed,
+                            "target_timerange": {"start": 0, "duration": target_dur_us},
+                            "template_id": "",
+                            "template_scene": "default",
+                            "track_attribute": 0,
+                            "track_render_index": 0,
+                            "uniform_scale": None,
+                            "visible": True,
+                            "volume": 1.0
+                        }
+                        vocal_segments.append(vocal_seg)
 
                     # Remove old filtered vocal track if exists
                     data["tracks"] = [tr for tr in data["tracks"] if not (tr.get("type") == "audio" and tr.get("name") == "audio_filtered_vocal")]
@@ -495,11 +611,11 @@ def patch_offline_tts_in_draft(
                         "id": str(uuid.uuid4()).upper(),
                         "is_contain_material_segment": True,
                         "name": "audio_filtered_vocal",
-                        "segments": [vocal_seg],
+                        "segments": vocal_segments,
                         "type": "audio"
                     }
                     data["tracks"].insert(0, vocal_track)
-                    logger.info(f"[AudioFilter] Đã chèn track audio_filtered_vocal vào draft (Speed: {video_speed}x, Duration: {target_dur_us/1_000_000:.2f}s).")
+                    logger.info(f"[AudioFilter] Da chen track audio_filtered_vocal ({len(vocal_segments)} phan doan cat) vao draft (Speed: {vocal_speed:.3f}x).")
 
             # Always save draft JSON after audio filter modifications
             with open(json_path, "w", encoding="utf-8") as f:
@@ -511,7 +627,17 @@ def patch_offline_tts_in_draft(
             logger.warning(f"Không có phụ đề nào trong bản nháp {json_path} để tạo giọng đọc offline.")
             continue
 
-        logger.info(f"Found {len(text_segments)} subtitle segments. Generating NGHI-TTS audio (Voice: '{voice_name}', Speed: {tts_speed}x)...")
+        # Extract tts speed from item_config flexibly
+        raw_tts_speed = (
+            (item_config or {}).get("tts_speed")
+            or (item_config or {}).get("nghitts_speed")
+            or (item_config or {}).get("nghi_tts_speed")
+            or (item_config or {}).get("speed_tts")
+            or 1.17
+        )
+        tts_speed = float(raw_tts_speed or 1.17)
+
+        logger.info(f"Found {len(text_segments)} subtitle segments. Generating NGHI-TTS audio (Voice: '{voice_name}', Speed: {tts_speed:.2f}x)...")
 
         # Clean up stale/old TTS audio tracks to prevent duplicates or out-of-order tracks
         tracks = data.setdefault("tracks", [])
@@ -530,9 +656,6 @@ def patch_offline_tts_in_draft(
         tracks.append(tts_track)
 
         added_count = 0
-
-        # Extract tts speed from item_config
-        tts_speed = float((item_config or {}).get("tts_speed", 1.0) or 1.0)
 
         for seg in text_segments:
             text = seg["text"]
@@ -678,13 +801,15 @@ def patch_offline_tts_in_draft(
                         "duration": audio_dur_us,
                         "start": start_us
                     },
+                    "_ocr_source_start": seg.get("_ocr_source_start") if seg.get("_ocr_source_start") is not None else seg.get("start_us", start_us),
                     "template_id": "",
                     "template_scene": "default",
                     "track_attribute": 0,
                     "track_render_index": 0,
                     "uniform_scale": None,
                     "visible": True,
-                    "volume": 1.0
+                    "volume": 1.0,
+                    "_resynced": True   # Segment đã ở target space, không cần resync
                 }
                 tts_track["segments"].append(audio_segment)
                 added_count += 1
@@ -700,6 +825,9 @@ def patch_offline_tts_in_draft(
         patched_any = True
 
     if patched_any:
+        # Resync 100% Vietnamese Subtitles and TTS Audio clips to match post-anti video timeline
+        from anti_copyright_patcher import resync_subtitles_and_audio_to_video_timeline
+        resync_subtitles_and_audio_to_video_timeline(draft_path)
         clear_mini_draft_cache(draft_path)
 
     return patched_any

@@ -2,6 +2,7 @@ import os
 import json
 import logging
 import random
+import uuid
 from typing import Dict, List, Any, Optional
 
 logger = logging.getLogger("AntiCopyrightPatcher")
@@ -34,17 +35,20 @@ def _is_main_video_track(track: dict, materials: dict) -> bool:
     if track.get("type") != "video":
         return False
     tr_name = str(track.get("name", "")).lower()
-    if any(ext in tr_name for ext in [".gif", ".png", ".jpg", "sticker", "overlay", "logo"]):
+    if any(ext in tr_name for ext in [".gif", ".png", ".jpg", ".jpeg", ".webp", "sticker", "overlay", "logo"]):
         return False
     
-    mat_map = {m.get("id"): str(m.get("path", "")).lower() for m in materials.get("videos", []) if isinstance(m, dict)}
+    mat_map = {m.get("id"): str(m.get("path") or m.get("material_name") or "").lower() for m in materials.get("videos", []) if isinstance(m, dict)}
+    has_valid_video = False
     for seg in track.get("segments", []):
         mat_id = seg.get("material_id")
-        path = mat_map.get(mat_id, "")
-        if path and any(path.endswith(ext) for ext in [".gif", ".png", ".jpg", ".jpeg", ".webp"]):
+        path = mat_map.get(mat_id, "").lower()
+        if any(path.endswith(ext) or (ext in path) for ext in [".gif", ".png", ".jpg", ".jpeg", ".webp", ".bmp"]):
             return False
+        if any(path.endswith(ext) or (ext in path) for ext in [".mp4", ".mov", ".mkv", ".avi", ".webm", ".flv", ".m4v", ".ts"]):
+            has_valid_video = True
             
-    return True
+    return has_valid_video
 
 def patch_video_mirror(draft_path: str, mirror_horizontal: bool = True) -> int:
     """1. Lật ngang toàn bộ video chính (Horizontal Flip / Mirror)."""
@@ -140,13 +144,17 @@ def patch_video_speed_dynamic(draft_path: str, base_speed: float = 1.05, randomi
             speeds = materials.setdefault("speeds", [])
             speed_map = {s.get("id"): s for s in speeds if isinstance(s, dict)}
             
+            main_video_segments = []
             for track in data.get("tracks", []):
                 if not _is_main_video_track(track, materials):
                     continue
                     
                 current_time = 0
                 for segment in track.get("segments", []):
-                    spd = round(random.uniform(1.04, 1.07), 3) if randomize else float(base_speed)
+                    if randomize:
+                        spd = round(base_speed + random.uniform(-0.02, 0.02), 3)
+                    else:
+                        spd = float(base_speed)
                     
                     seg_speed_id = None
                     extra_refs = segment.get("extra_material_refs", [])
@@ -175,6 +183,27 @@ def patch_video_speed_dynamic(draft_path: str, base_speed: float = 1.05, randomi
                         
                     updated = True
                     patched_count += 1
+                main_video_segments = track.get("segments", [])
+
+            # Đồng bộ 1-to-1 tốc độ và mốc thời gian của audio_filtered_vocal theo video chính
+            if main_video_segments:
+                for track in data.get("tracks", []):
+                    if track.get("type") == "audio" and track.get("name") == "audio_filtered_vocal":
+                        a_segs = track.get("segments", [])
+                        for seg_idx, v_seg in enumerate(main_video_segments):
+                            if seg_idx < len(a_segs):
+                                a_seg = a_segs[seg_idx]
+                                v_src = v_seg.get("source_timerange", {})
+                                v_tgt = v_seg.get("target_timerange", {})
+                                a_seg["source_timerange"] = {"start": v_src.get("start", 0), "duration": v_src.get("duration", 0)}
+                                a_seg["target_timerange"] = {"start": v_tgt.get("start", 0), "duration": v_tgt.get("duration", 0)}
+                                spd = v_seg.get("speed", base_speed)
+                                a_seg["speed"] = spd
+                                
+                                speed_id = a_seg.get("speed_id")
+                                if speed_id and speed_id in speed_map:
+                                    speed_map[speed_id]["speed"] = spd
+                                updated = True
                     
             if updated:
                 with open(content_path, "w", encoding="utf-8") as f:
@@ -241,18 +270,20 @@ def patch_smart_subtitle_gaps(draft_path: str, target_interval_sec: float = 30.0
             if not text_tracks or not video_tracks:
                 continue
                 
-            # Lấy danh sách phụ đề có mốc thời gian
+            # Lấy danh sách phụ đề có mốc thời gian nguồn (_ocr_source_start)
             sub_segments = []
             for tr in text_tracks:
                 for seg in tr.get("segments", []):
                     trange = seg.get("target_timerange", {})
-                    start = trange.get("start", 0)
                     dur = trange.get("duration", 0)
                     if dur > 0:
+                        if "_ocr_source_start" not in seg:
+                            seg["_ocr_source_start"] = trange.get("start", 0)
+                        src_start = seg["_ocr_source_start"]
                         sub_segments.append({
                             "segment": seg,
-                            "start": start,
-                            "end": start + dur,
+                            "start": src_start,
+                            "end": src_start + dur,
                             "duration": dur
                         })
                         
@@ -301,43 +332,61 @@ def patch_smart_subtitle_gaps(draft_path: str, target_interval_sec: float = 30.0
                 
             logger.info(f"[AntiCopyright] [Buc 5/5 Cat Thong Minh] Phat hien {len(cut_points)} diem im lang -> CAN CAT VIDEO THANH {len(cut_points) + 1} PHAN DOAN!")
             
-            # Cắt các video segment theo cut_points
+            # Cắt các video segment theo cut_points chuẩn từ mốc 0 -> total_dur (không lặp gối)
             updated = False
             for vtrack in video_tracks:
                 orig_segs = vtrack.get("segments", [])
+                if not orig_segs:
+                    continue
+
+                total_src_dur = max(
+                    s.get("source_timerange", {}).get("start", 0) + s.get("source_timerange", {}).get("duration", 0)
+                    for s in orig_segs
+                )
+                if total_src_dur <= 0:
+                    continue
+
+                base_template = json.loads(json.dumps(orig_segs[0]))
                 new_vsegs = []
+                current_src_start = 0
                 cum_trimmed = 0
-                
-                for seg in orig_segs:
-                    v_start = seg.get("target_timerange", {}).get("start", 0)
-                    v_dur = seg.get("target_timerange", {}).get("duration", 0)
-                    v_end = v_start + v_dur
-                    
-                    current_sub_start = v_start
-                    for cp in cut_points:
-                        if v_start <= cp < v_end:
-                            sub_dur = cp - current_sub_start
-                            if sub_dur > 100_000:
-                                sub_seg = json.loads(json.dumps(seg))
-                                trimmed_dur = sub_dur - micro_trim_us if sub_dur > micro_trim_us else sub_dur
-                                sub_seg["target_timerange"] = {
-                                    "start": current_sub_start - cum_trimmed,
-                                    "duration": max(100_000, trimmed_dur)
-                                }
-                                new_vsegs.append(sub_seg)
-                                cum_trimmed += micro_trim_us
-                                current_sub_start = cp
-                                patched_count += 1
-                                
-                    remaining_dur = v_end - current_sub_start
-                    if remaining_dur > 0:
-                        sub_seg = json.loads(json.dumps(seg))
-                        sub_seg["target_timerange"] = {
-                            "start": current_sub_start - cum_trimmed,
-                            "duration": max(100_000, remaining_dur)
-                        }
-                        new_vsegs.append(sub_seg)
-                        
+                sorted_cut_points = sorted(list(set(cut_points)))
+
+                for cp in sorted_cut_points:
+                    if current_src_start < cp < total_src_dur:
+                        seg_src_dur = cp - current_src_start
+                        if seg_src_dur > 100_000:
+                            sub_seg = json.loads(json.dumps(base_template))
+                            sub_seg["id"] = str(uuid.uuid4()).upper()
+                            trimmed_dur = seg_src_dur - micro_trim_us if seg_src_dur > micro_trim_us else seg_src_dur
+                            
+                            sub_seg["source_timerange"] = {
+                                "start": current_src_start,
+                                "duration": max(100_000, seg_src_dur)
+                            }
+                            sub_seg["target_timerange"] = {
+                                "start": current_src_start - cum_trimmed,
+                                "duration": max(100_000, trimmed_dur)
+                            }
+                            new_vsegs.append(sub_seg)
+                            cum_trimmed += micro_trim_us
+                            current_src_start = cp
+                            patched_count += 1
+
+                remaining_dur = total_src_dur - current_src_start
+                if remaining_dur > 0:
+                    sub_seg = json.loads(json.dumps(base_template))
+                    sub_seg["id"] = str(uuid.uuid4()).upper()
+                    sub_seg["source_timerange"] = {
+                        "start": current_src_start,
+                        "duration": max(100_000, remaining_dur)
+                    }
+                    sub_seg["target_timerange"] = {
+                        "start": current_src_start - cum_trimmed,
+                        "duration": max(100_000, remaining_dur)
+                    }
+                    new_vsegs.append(sub_seg)
+
                 if new_vsegs:
                     vtrack["segments"] = new_vsegs
                     updated = True
@@ -398,13 +447,215 @@ def apply_full_anti_copyright_pipeline(draft_path: str, config: Optional[Dict[st
         
     if config.get("speed_patch", True):
         logger.info("[AntiCopyright 4/5] Tien hanh Chinh Toc Do Dong ngau nhien (Speed Matrix)...")
-        spd = float(config.get("video_speed", 1.05))
+        spd = float(config.get("video_speed") or config.get("speed") or 1.05)
         results["speed"] = patch_video_speed_dynamic(draft_path, base_speed=spd, randomize=True)
         
     if config.get("color_adjust", True):
         logger.info("[AntiCopyright 5/5] Tien hanh Phu Bo Loc Mau Dong (Color Adjustments)...")
         results["color_adjust"] = patch_video_color_adjustments_dynamic(draft_path, randomize=True)
         
+    # Tự động Resync mốc thời gian Phụ đề & TTS theo Video sau khi Cắt & Lách bản quyền
+    results["resynced_subs"] = resync_subtitles_and_audio_to_video_timeline(draft_path)
+        
     logger.info(f"=== DA HOAN THANH QUY TRINH LACH BAN QUYEN DONG (SMART DEFENSE) ===")
     logger.info(f"Thong ke chi tiet: {results}")
     return results
+
+def map_source_to_target_timeline(t_src: int, video_segs: List[Dict[str, Any]]) -> tuple:
+    """
+    Chuyển đổi mốc thời gian t_src từ Video Gốc (Source Space) sang Timeline Video Mới (Target Space).
+    Công thức đơn điệu (monotonic), không dồn ép, xử lý hoàn hảo khoảng hở (gaps) và phần vượt đuôi video.
+    """
+    if not video_segs:
+        return max(0, t_src), 1.0
+
+    # 1. Trước phân đoạn video đầu tiên
+    v0 = video_segs[0]
+    if t_src < v0["src_start"]:
+        offset = t_src - v0["src_start"]
+        t_tgt = v0["tgt_start"] + int(round(offset * v0["ratio"]))
+        return max(0, t_tgt), v0["ratio"]
+
+    # 2. Trong các phân đoạn video hoặc khoảng hở giữa các phân đoạn
+    for i in range(len(video_segs)):
+        vk = video_segs[i]
+        if vk["src_start"] <= t_src < vk["src_end"]:
+            # Rơi vào trong phân đoạn video vk
+            offset = t_src - vk["src_start"]
+            t_tgt = vk["tgt_start"] + int(round(offset * vk["ratio"]))
+            return max(0, t_tgt), vk["ratio"]
+
+        # Rơi vào khoảng hở giữa vk và vk+1 (khoảng bị cắt đi)
+        if i + 1 < len(video_segs):
+            v_next = video_segs[i + 1]
+            if vk["src_end"] <= t_src < v_next["src_start"]:
+                # Map mốc về đầu phân đoạn tiếp theo v_next
+                return v_next["tgt_start"], vk["ratio"]
+
+    # 3. Vượt qua đuôi phân đoạn video cuối cùng
+    vn = video_segs[-1]
+    offset = t_src - vn["src_end"]
+    t_tgt = vn["tgt_end"] + int(round(offset * vn["ratio"]))
+    return max(0, t_tgt), vn["ratio"]
+
+
+def resync_only_subtitles_to_video_timeline(draft_path: str) -> int:
+    """
+    Chỉ đồng bộ mốc thời gian của Phụ Đề (track type="text") theo Timeline Video sau khi Cắt & Lách bản quyền.
+    Tuyệt đối không can thiệp hay thay đổi audio, video hoặc logo sticker.
+    """
+    patched_count = 0
+    for content_path in find_draft_content_paths(draft_path):
+        try:
+            with open(content_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            materials = data.get("materials", {})
+            video_segs = []
+            for tr in data.get("tracks", []):
+                if _is_main_video_track(tr, materials):
+                    for s in tr.get("segments", []):
+                        s_src = s.get("source_timerange", {})
+                        s_tgt = s.get("target_timerange", {})
+                        src_start = s_src.get("start", 0)
+                        src_dur = s_src.get("duration", 0)
+                        tgt_start = s_tgt.get("start", 0)
+                        tgt_dur = s_tgt.get("duration", 0)
+                        if src_dur > 0 and tgt_dur > 0:
+                            video_segs.append({
+                                "src_start": src_start,
+                                "src_end": src_start + src_dur,
+                                "tgt_start": tgt_start,
+                                "tgt_end": tgt_start + tgt_dur,
+                                "ratio": tgt_dur / src_dur
+                            })
+
+            if not video_segs:
+                continue
+
+            video_segs.sort(key=lambda x: x["src_start"])
+            updated = False
+
+            for tr in data.get("tracks", []):
+                if tr.get("type") == "text":
+                    new_segs = []
+                    for seg in tr.get("segments", []):
+                        s_tgt = seg.setdefault("target_timerange", {})
+                        cur_start = s_tgt.get("start", 0)
+                        cur_dur = s_tgt.get("duration", 0)
+
+                        if "_ocr_source_start" not in seg:
+                            seg["_ocr_source_start"] = cur_start
+
+                        src_time = seg["_ocr_source_start"]
+                        new_start, ratio = map_source_to_target_timeline(src_time, video_segs)
+                        new_dur = max(50_000, int(round(cur_dur * ratio)))
+
+                        if s_tgt.get("start") != new_start or s_tgt.get("duration") != new_dur:
+                            s_tgt["start"] = new_start
+                            s_tgt["duration"] = new_dur
+                            updated = True
+                            patched_count += 1
+                        new_segs.append(seg)
+                    tr["segments"] = new_segs
+
+            if updated:
+                with open(content_path, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=4)
+        except Exception as e:
+            logger.error(f"Loi resync_only_subtitles_to_video_timeline tai {content_path}: {e}")
+    return patched_count
+
+
+def resync_subtitles_and_audio_to_video_timeline(draft_path: str) -> int:
+    """Tự động đồng bộ lại 100% mốc thời gian của Subtitle & Audio TTS theo Timeline Video sau khi Cắt & Lách bản quyền."""
+    patched_count = 0
+    for content_path in find_draft_content_paths(draft_path):
+        try:
+            with open(content_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            materials = data.get("materials", {})
+            video_segs = []
+            for tr in data.get("tracks", []):
+                if _is_main_video_track(tr, materials):
+                    for s in tr.get("segments", []):
+                        s_src = s.get("source_timerange", {})
+                        s_tgt = s.get("target_timerange", {})
+                        src_start = s_src.get("start", 0)
+                        src_dur = s_src.get("duration", 0)
+                        tgt_start = s_tgt.get("start", 0)
+                        tgt_dur = s_tgt.get("duration", 0)
+                        if src_dur > 0 and tgt_dur > 0:
+                            video_segs.append({
+                                "src_start": src_start,
+                                "src_end": src_start + src_dur,
+                                "tgt_start": tgt_start,
+                                "tgt_end": tgt_start + tgt_dur,
+                                "ratio": tgt_dur / src_dur
+                            })
+
+            if not video_segs:
+                continue
+
+            video_segs.sort(key=lambda x: x["src_start"])
+            updated = False
+
+            main_video_target_dur = max(vs["tgt_end"] for vs in video_segs) if video_segs else 0
+
+            for tr in data.get("tracks", []):
+                if tr.get("type") in ("text", "audio"):
+                    if tr.get("name") == "audio_filtered_vocal":
+                        continue
+                    new_segs = []
+                    for seg in tr.get("segments", []):
+                        s_tgt = seg.setdefault("target_timerange", {})
+                        cur_start = s_tgt.get("start", 0)
+                        cur_dur = s_tgt.get("duration", 0)
+
+                        # Lưu giữ mốc thời gian OCR ban đầu để đảm bảo tính Idempotent (không bị trôi lặp)
+                        if "_ocr_source_start" not in seg:
+                            seg["_ocr_source_start"] = cur_start
+
+                        src_time = seg["_ocr_source_start"]
+                        new_start, ratio = map_source_to_target_timeline(src_time, video_segs)
+                        new_dur = max(50_000, int(round(cur_dur * ratio)))
+
+                        # Giới hạn new_start và duration nằm trong mốc video chính (đảm bảo giữ nguyên 100% số lượng phụ đề)
+                        if main_video_target_dur > 0 and new_start >= main_video_target_dur:
+                            new_start = max(0, main_video_target_dur - 100_000)
+
+                        if main_video_target_dur > 0 and (new_start + new_dur) > main_video_target_dur:
+                            new_dur = max(50_000, main_video_target_dur - new_start)
+
+                        if s_tgt.get("start") != new_start or s_tgt.get("duration") != new_dur:
+                            s_tgt["start"] = new_start
+                            s_tgt["duration"] = new_dur
+                            updated = True
+                            patched_count += 1
+                        new_segs.append(seg)
+                    tr["segments"] = new_segs
+
+            # 4. Đồng bộ lại thời lượng hiển thị cho các logo sticker (GIF/PNG) khớp 100% độ dài video chính mới
+            main_video_target_dur = max(vs["tgt_end"] for vs in video_segs) if video_segs else 0
+            if main_video_target_dur > 0:
+                for tr in data.get("tracks", []):
+                    if tr.get("type") == "video" and not _is_main_video_track(tr, materials):
+                        for seg in tr.get("segments", []):
+                            s_tgt = seg.setdefault("target_timerange", {})
+                            s_tgt["start"] = 0
+                            s_tgt["duration"] = main_video_target_dur
+                            updated = True
+                            patched_count += 1
+
+            if updated:
+                data["_resync_version"] = int(data.get("_resync_version", 0)) + 1
+                with open(content_path, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=4)
+        except Exception as e:
+            logger.error(f"Loi resync_subtitles_and_audio_to_video_timeline tai {content_path}: {e}")
+
+    logger.info(f"Da dong bo lai Timeline Phu de & TTS cho {patched_count} phan doan theo Video moi.")
+    return patched_count
+
+

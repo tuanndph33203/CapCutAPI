@@ -496,8 +496,8 @@ def extract_hardsub_from_video(
                         frame_text = _parse_ocr_result(res)
                     except Exception as err:
                         frame_text = ""
-                    # Quy đổi mốc thời gian từ video gốc sang mốc thời gian trên Timeline đã làm chậm/tăng tốc
-                    timeline_ts = ts / timeline_speed
+                    # Giữ nguyên mốc thời gian mượt gốc của video (không nhân dãn trước)
+                    timeline_ts = ts
                     ocr_cache[round(float(timeline_ts), 3)] = frame_text
                     if frame_text:
                         raw_detections.append({"timestamp": timeline_ts, "text": frame_text})
@@ -547,7 +547,7 @@ def extract_hardsub_from_video(
                         frame_text = _parse_ocr_result(res)
                     except Exception:
                         frame_text = ""
-                    timeline_ts = ts / timeline_speed
+                    timeline_ts = ts
                     ocr_cache[round(float(timeline_ts), 3)] = frame_text
                     if frame_text:
                         raw_detections.append({"timestamp": timeline_ts, "text": frame_text})

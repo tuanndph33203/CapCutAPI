@@ -18,7 +18,7 @@
                     "material_id": "V1",
                     "target_timerange": {
                         "start": 0,
-                        "duration": 94607379
+                        "duration": 96153846
                     },
                     "source_timerange": {
                         "start": 0,
@@ -30,22 +30,22 @@
                             "vertical": false
                         },
                         "scale": {
-                            "x": 1.055,
-                            "y": 1.055
+                            "x": 1.091,
+                            "y": 1.091
                         }
                     },
-                    "speed": 1.057,
+                    "speed": 1.04,
                     "color_adjustments": {
-                        "brightness": 0.044,
-                        "contrast": 0.043,
-                        "saturation": 0.016
+                        "brightness": 0.034,
+                        "contrast": 0.052,
+                        "saturation": 0.024
                     }
                 },
                 {
                     "material_id": "V1",
                     "target_timerange": {
-                        "start": 94607379,
-                        "duration": 95057034
+                        "start": 96153846,
+                        "duration": 94250707
                     },
                     "source_timerange": {
                         "start": 0,
@@ -57,15 +57,15 @@
                             "vertical": false
                         },
                         "scale": {
-                            "x": 1.074,
-                            "y": 1.074
+                            "x": 1.092,
+                            "y": 1.092
                         }
                     },
-                    "speed": 1.052,
+                    "speed": 1.061,
                     "color_adjustments": {
-                        "brightness": 0.048,
-                        "contrast": 0.06,
-                        "saturation": 0.013
+                        "brightness": 0.027,
+                        "contrast": 0.048,
+                        "saturation": 0.026
                     }
                 }
             ]

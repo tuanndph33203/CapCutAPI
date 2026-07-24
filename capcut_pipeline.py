@@ -384,6 +384,11 @@ def restore_brand_overlay_snapshot(draft_path: Path, snapshot: dict | None) -> i
                 source = segment.setdefault("source_timerange", {})
                 source["start"] = int(source.get("start") or 0)
                 source["duration"] = duration
+                clip = segment.setdefault("clip", {})
+                scale = clip.setdefault("scale", {})
+                if float(scale.get("x", 1.0) or 1.0) > 0.4:
+                    scale["x"] = 0.25
+                    scale["y"] = 0.25
                 restored_segments.append(segment)
             if restored_segments:
                 restored_track["segments"] = restored_segments
