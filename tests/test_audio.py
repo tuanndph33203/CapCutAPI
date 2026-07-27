@@ -29,7 +29,8 @@ class TestAudio(unittest.TestCase):
         ]
         compile_audio(auds, segs)
         self.assertEqual(auds[0].target_start, 50000)
-        self.assertEqual(auds[0].target_duration, 50000)
+        self.assertEqual(auds[0].target_duration, 100000)
+        self.assertEqual(auds[0].speed, 1.0)
 
 if __name__ == "__main__":
     unittest.main()

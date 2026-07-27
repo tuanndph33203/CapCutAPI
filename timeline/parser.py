@@ -109,7 +109,9 @@ def parse_draft(data: dict) -> Tuple[List[VideoSegment], List[SubtitleSegment], 
                 ocr_start = seg.get("_ocr_source_start")
                 if ocr_start is None:
                     from .mapper import map_target_to_source
-                    ocr_start, _ = map_target_to_source(s_tgt.get("start", 0), video_segs)
+                    sorted_video_segs = sorted(video_segs, key=lambda x: x.target_start)
+                    mapped = map_target_to_source(s_tgt.get("start", 0), sorted_video_segs)
+                    ocr_start = mapped.source
                 
                 audio_segs.append(AudioSegment(
                     id=seg.get("id"),

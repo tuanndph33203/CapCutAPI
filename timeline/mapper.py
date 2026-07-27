@@ -1,25 +1,22 @@
 from typing import List, Tuple
-from .models import VideoSegment
+from .models import VideoSegment, MappingResult
 
-def map_source_to_target(t_src: int, video_segments: List[VideoSegment]) -> Tuple[int, float]:
+def map_source_to_target(t_src: int, sorted_segs: List[VideoSegment]) -> MappingResult:
     """
     Maps a timestamp from source space (original asset timeline) to target space (compiled timeline).
+    Assumes sorted_segs is already sorted by (src_start + trim_left).
     """
-    if not video_segments:
-        return max(0, t_src), 1.0
-
-    # Sort video segments by source start time
-    sorted_segs = sorted(video_segments, key=lambda x: x.src_start)
+    if not sorted_segs:
+        return MappingResult(target=max(0, t_src), source=t_src, ratio=1.0, offset=0, segment=None)
 
     # 1. Before first segment
     v0 = sorted_segs[0]
     played_src_start_0 = v0.src_start + v0.trim_left
     if t_src < played_src_start_0:
         offset = t_src - played_src_start_0
-        src_len = v0.src_duration - v0.trim_left - v0.trim_right
-        ratio = v0.target_duration / src_len if src_len > 0 else 1.0
+        ratio = v0.effective_ratio
         t_tgt = v0.target_start + int(round(offset * ratio))
-        return max(0, t_tgt), ratio
+        return MappingResult(target=max(0, t_tgt), source=t_src, ratio=ratio, offset=offset, segment=v0)
 
     # 2. Within segments or in gaps
     for i in range(len(sorted_segs)):
@@ -29,10 +26,9 @@ def map_source_to_target(t_src: int, video_segments: List[VideoSegment]) -> Tupl
         
         if played_src_start_k <= t_src < played_src_end_k:
             offset = t_src - played_src_start_k
-            src_len = played_src_end_k - played_src_start_k
-            ratio = vk.target_duration / src_len if src_len > 0 else 1.0
+            ratio = vk.effective_ratio
             t_tgt = vk.target_start + int(round(offset * ratio))
-            return max(0, t_tgt), ratio
+            return MappingResult(target=max(0, t_tgt), source=t_src, ratio=ratio, offset=offset, segment=vk)
 
         # Falls inside gap between vk and vk+1
         if i + 1 < len(sorted_segs):
@@ -40,54 +36,48 @@ def map_source_to_target(t_src: int, video_segments: List[VideoSegment]) -> Tupl
             played_src_start_next = v_next.src_start + v_next.trim_left
             if played_src_end_k <= t_src < played_src_start_next:
                 # Map to the start of the next segment
-                next_src_len = v_next.src_duration - v_next.trim_left - v_next.trim_right
-                ratio = v_next.target_duration / next_src_len if next_src_len > 0 else 1.0
-                return v_next.target_start, ratio
+                offset = t_src - played_src_start_next
+                ratio = v_next.effective_ratio
+                return MappingResult(target=v_next.target_start, source=t_src, ratio=ratio, offset=offset, segment=v_next)
 
     # 3. Exceeds end of the last segment
     vn = sorted_segs[-1]
     played_src_end_n = vn.src_start + vn.src_duration - vn.trim_right
     offset = t_src - played_src_end_n
-    src_len = vn.src_duration - vn.trim_left - vn.trim_right
-    ratio = vn.target_duration / src_len if src_len > 0 else 1.0
+    ratio = vn.effective_ratio
     t_tgt = (vn.target_start + vn.target_duration) + int(round(offset * ratio))
-    return max(0, t_tgt), ratio
+    return MappingResult(target=max(0, t_tgt), source=t_src, ratio=ratio, offset=offset, segment=vn)
 
 
-def map_target_to_source(t_tgt: int, video_segments: List[VideoSegment]) -> Tuple[int, float]:
+def map_target_to_source(t_tgt: int, sorted_segs: List[VideoSegment]) -> MappingResult:
     """
     Maps a timestamp from target space (compiled timeline) back to source space (original asset timeline).
+    Assumes sorted_segs is already sorted by target_start.
     """
-    if not video_segments:
-        return max(0, t_tgt), 1.0
-
-    # Sort video segments by target start time
-    sorted_segs = sorted(video_segments, key=lambda x: x.target_start)
+    if not sorted_segs:
+        return MappingResult(target=t_tgt, source=max(0, t_tgt), ratio=1.0, offset=0, segment=None)
 
     # 1. Before first segment
     v0 = sorted_segs[0]
     if t_tgt < v0.target_start:
         offset = t_tgt - v0.target_start
-        src_len = v0.src_duration - v0.trim_left - v0.trim_right
-        ratio = src_len / v0.target_duration if v0.target_duration > 0 else 1.0
+        ratio = 1.0 / v0.effective_ratio if v0.effective_ratio > 0 else 1.0
         t_src = (v0.src_start + v0.trim_left) + int(round(offset * ratio))
-        return max(0, t_src), ratio
+        return MappingResult(target=t_tgt, source=max(0, t_src), ratio=ratio, offset=offset, segment=v0)
 
     # 2. Within segments
     for vk in sorted_segs:
         tgt_end_k = vk.target_start + vk.target_duration
         if vk.target_start <= t_tgt < tgt_end_k:
             offset = t_tgt - vk.target_start
-            src_len = vk.src_duration - vk.trim_left - vk.trim_right
-            ratio = src_len / vk.target_duration if vk.target_duration > 0 else 1.0
+            ratio = 1.0 / vk.effective_ratio if vk.effective_ratio > 0 else 1.0
             t_src = (vk.src_start + vk.trim_left) + int(round(offset * ratio))
-            return max(0, t_src), ratio
+            return MappingResult(target=t_tgt, source=max(0, t_src), ratio=ratio, offset=offset, segment=vk)
 
     # 3. Exceeds end of the last segment
     vn = sorted_segs[-1]
     tgt_end_n = vn.target_start + vn.target_duration
     offset = t_tgt - tgt_end_n
-    src_len = vn.src_duration - vn.trim_left - vn.trim_right
-    ratio = src_len / vn.target_duration if vn.target_duration > 0 else 1.0
+    ratio = 1.0 / vn.effective_ratio if vn.effective_ratio > 0 else 1.0
     t_src = (vn.src_start + vn.src_duration - vn.trim_right) + int(round(offset * ratio))
-    return max(0, t_src), ratio
+    return MappingResult(target=t_tgt, source=max(0, t_src), ratio=ratio, offset=offset, segment=vn)

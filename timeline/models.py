@@ -21,6 +21,24 @@ class VideoSegment:
     speed_id: Optional[str] = None
     raw_dict: dict = field(default_factory=dict)
 
+    @property
+    def effective_source_duration(self) -> int:
+        return self.src_duration - self.trim_left - self.trim_right
+
+    @property
+    def effective_ratio(self) -> float:
+        if self.effective_source_duration <= 0:
+            return 1.0
+        return self.target_duration / self.effective_source_duration
+
+@dataclass
+class MappingResult:
+    target: int
+    source: int
+    ratio: float
+    offset: int
+    segment: VideoSegment
+
 @dataclass
 class SubtitleSegment:
     id: str

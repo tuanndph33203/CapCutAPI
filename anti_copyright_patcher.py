@@ -312,7 +312,9 @@ def map_source_to_target_timeline(t_src: int, video_segs: List[Dict[str, Any]]) 
             target_start=vk["tgt_start"],
             target_duration=vk["tgt_end"] - vk["tgt_start"]
         ))
-    return map_source_to_target(t_src, models)
+    sorted_models = sorted(models, key=lambda x: x.src_start + x.trim_left)
+    mapped = map_source_to_target(t_src, sorted_models)
+    return mapped.target, mapped.ratio
 
 def _resync_timeline_new(draft_path: str, sync_audio: bool) -> int:
     patched_count = 0

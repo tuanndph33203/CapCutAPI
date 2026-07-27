@@ -79,25 +79,25 @@ class TestTimelineCore(unittest.TestCase):
         ]
         
         # Test mapping source to target within seg 1
-        t_tgt, ratio = map_source_to_target(2000000, segs)
-        self.assertEqual(t_tgt, 2000000)
-        self.assertEqual(ratio, 1.0)
+        mapped_tgt = map_source_to_target(2000000, segs)
+        self.assertEqual(mapped_tgt.target, 2000000)
+        self.assertEqual(mapped_tgt.ratio, 1.0)
         
         # Test mapping source in trimmed gap (should map to start of next segment)
-        t_tgt, ratio = map_source_to_target(4500000, segs)
-        self.assertEqual(t_tgt, 4000000)
+        mapped_tgt = map_source_to_target(4500000, segs)
+        self.assertEqual(mapped_tgt.target, 4000000)
         
         # Test mapping source inside seg 2
         # source = 7000000 (which is start + trim_left + 1000000 offset)
         # target should be target_start + 1000000 / 2.0 = 4500000
-        t_tgt, ratio = map_source_to_target(7000000, segs)
-        self.assertEqual(t_tgt, 4500000)
-        self.assertEqual(ratio, 0.5)
+        mapped_tgt = map_source_to_target(7000000, segs)
+        self.assertEqual(mapped_tgt.target, 4500000)
+        self.assertEqual(mapped_tgt.ratio, 0.5)
 
         # Test reverse mapping
-        t_src, ratio = map_target_to_source(4500000, segs)
-        self.assertEqual(t_src, 7000000)
-        self.assertEqual(ratio, 2.0)
+        mapped_src = map_target_to_source(4500000, segs)
+        self.assertEqual(mapped_src.source, 7000000)
+        self.assertEqual(mapped_src.ratio, 2.0)
 
     def test_pipeline_phases_6_10(self):
         draft_mock = {

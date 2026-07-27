@@ -19,6 +19,52 @@ if not paths:
 p = paths[0]
 data_before = json.load(open(p, encoding='utf-8'))
 
+# Dump debug_before_resync.json baseline
+from anti_copyright_patcher import _is_main_video_track
+video_segments = []
+subtitle_segments = []
+audio_segments = []
+materials = data_before.get("materials", {})
+
+for tr in data_before.get("tracks", []):
+    tr_type = tr.get("type")
+    tr_name = tr.get("name", "")
+    for seg in tr.get("segments", []):
+        seg_info = {
+            "id": seg.get("id"),
+            "material_id": seg.get("material_id"),
+            "source_timerange": seg.get("source_timerange"),
+            "target_timerange": seg.get("target_timerange"),
+            "speed_id": seg.get("speed_id"),
+            "extra_material_refs": seg.get("extra_material_refs"),
+            "speed": seg.get("speed", 1.0)
+        }
+        if _is_main_video_track(tr, materials):
+            video_segments.append(seg_info)
+        elif tr_type == "text":
+            subtitle_segments.append({
+                "id": seg.get("id"),
+                "ocr_source_start": seg.get("_ocr_source_start", seg.get("target_timerange", {}).get("start", 0)),
+                "ocr_source_duration": seg.get("_ocr_source_duration", seg.get("target_timerange", {}).get("duration", 0)),
+                "target_start": seg.get("target_timerange", {}).get("start", 0),
+                "target_duration": seg.get("target_timerange", {}).get("duration", 0)
+            })
+        elif tr_type == "audio" and tr_name != "audio_filtered_vocal":
+            audio_segments.append(seg_info)
+            
+materials_speed = materials.get("speeds", [])
+
+debug_before = {
+    "video_segments": video_segments,
+    "subtitle_segments": subtitle_segments,
+    "audio_segments": audio_segments,
+    "materials_speed": materials_speed
+}
+
+os.makedirs("debug", exist_ok=True)
+with open("debug/debug_before_resync.json", "w", encoding="utf-8") as f_dbg:
+    json.dump(debug_before, f_dbg, ensure_ascii=False, indent=4)
+
 sub_before = []
 audio_before = []
 video_before = []
