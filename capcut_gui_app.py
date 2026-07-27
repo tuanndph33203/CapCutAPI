@@ -35,7 +35,7 @@ import pyautogui
 
 from pyJianYingDraft.capcut_controller import CapCutController, ExportResolution, ExportFramerate, capcut_process_ids, capcut_main_hwnd_and_rect
 from pyJianYingDraft.exceptions import AutomationError
-from offline_tts_patcher import patch_offline_tts_in_draft, clear_mini_draft_cache
+from offline_tts_patcher import patch_offline_tts_in_draft, clear_mini_draft_cache, cleanup_output_audio_dir
 from anti_copyright_patcher import apply_full_anti_copyright_pipeline, patch_video_speed_dynamic, resync_subtitles_and_audio_to_video_timeline
 from settings import (
     TRANSLATION_ULTRA_SHORT_PROMPT_TEMPLATE,
@@ -3992,14 +3992,22 @@ class QueueRunner:
                                     pass
                 
                 if not os.path.exists(target_path):
-                    shutil.copytree(backup_path, target_path)
+                    shutil.copytree(
+                        backup_path, 
+                        target_path, 
+                        ignore=shutil.ignore_patterns('assets', 'textReading', '*.wav', '*.mp4', '*.m4a')
+                    )
                 else:
                     for root, dirs, files in os.walk(backup_path):
+                        if any(ignored in root for ignored in ('assets', 'textReading')):
+                            continue
                         rel_path = os.path.relpath(root, backup_path)
                         target_dir = target_path if rel_path == "." else os.path.join(target_path, rel_path)
                         os.makedirs(target_dir, exist_ok=True)
                         for file in files:
-                            shutil.copy2(os.path.join(root, file), os.path.join(target_dir, file))
+                            if not file.endswith(('.wav', '.mp4', '.m4a')):
+                                shutil.copy2(os.path.join(root, file), os.path.join(target_dir, file))
+
             except Exception as e:
                 logger.error(f"Lỗi khi copy backup sang buffer {target_path}: {e}")
 
@@ -4722,6 +4730,9 @@ class QueueRunner:
         
         project_opened_this_run = False
         
+        # Dọn dẹp tự động các file audio cũ trong output_audio khi chạy dự án mới
+        cleanup_output_audio_dir()
+        
         # Anti-copyright pipeline runs 1-pass cleanly during Preprocess right after OCR
         if resume_from_step <= 5:
             self._check_cancel(item)
@@ -5290,13 +5301,19 @@ def create_project_backup(folder_name):
     source_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, folder_name)
     backup_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, f"{folder_name}_backup")
     if os.path.exists(source_path):
-        logger.info(f"Tạo/Cập nhật bản sao lưu cho dự án {folder_name} tại {backup_path}...")
+        logger.info(f"Tạo/Cập nhật bản sao lưu cấu hình (siêu nhẹ) cho dự án {folder_name} tại {backup_path}...")
         try:
             if os.path.exists(backup_path):
-                shutil.rmtree(backup_path)
-            shutil.copytree(source_path, backup_path)
+                shutil.rmtree(backup_path, ignore_errors=True)
+            # Chỉ sao lưu cấu hình JSON, bỏ qua các file video/audio nặng trong assets/ và textReading/
+            shutil.copytree(
+                source_path,
+                backup_path,
+                ignore=shutil.ignore_patterns('assets', 'textReading', '*.wav', '*.mp4', '*.m4a')
+            )
         except Exception as e:
             logger.error(f"Lỗi khi sao lưu dự án {folder_name}: {e}")
+
 
 @app.route('/api/queue/add', methods=['POST'])
 def add_to_queue():

@@ -34,7 +34,29 @@ def get_draft_json_paths(draft_path: str) -> List[str]:
     paths.sort(key=lambda p: (0 if ("draft_content.json" in p or p.endswith(".tmp")) else 1, p))
     return paths
 
+def cleanup_output_audio_dir(output_audio_dir: str = "output_audio") -> None:
+    """
+    Dọn dẹp sạch toàn bộ file audio cũ (.wav, .mp3, htdemucs, etc.) trong thư mục output_audio 
+    khi khởi chạy dự án mới để tiết kiệm dung lượng ổ đĩa.
+    """
+    try:
+        abs_dir = os.path.abspath(output_audio_dir)
+        if os.path.exists(abs_dir):
+            for item in os.listdir(abs_dir):
+                item_path = os.path.join(abs_dir, item)
+                try:
+                    if os.path.isfile(item_path) or os.path.islink(item_path):
+                        os.unlink(item_path)
+                    elif os.path.isdir(item_path):
+                        shutil.rmtree(item_path, ignore_errors=True)
+                except Exception as e:
+                    logger.warning(f"[AudioCleanup] Không thể xóa file audio cũ {item_path}: {e}")
+            logger.info(f"[AudioCleanup] Đã tự động dọn dẹp thư mục {abs_dir} cho dự án mới.")
+    except Exception as e:
+        logger.error(f"[AudioCleanup] Lỗi dọn dẹp {output_audio_dir}: {e}")
+
 def get_wav_duration_us(wav_path: str) -> int:
+
     """Get WAV audio duration in microseconds."""
     with wave.open(wav_path, "rb") as wf:
         frames = wf.getnframes()
@@ -729,10 +751,20 @@ def patch_offline_tts_in_draft(
             text = seg["text"]
             start_us = seg["start_us"]
 
+            # Skip subtitles with no speakable text (e.g. "...", "-", "?")
+            import re
+            cleaned_text = re.sub(r'[^\w\sàáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđĐ]', '', text).strip()
+            if not cleaned_text:
+                logger.info(f"Bỏ qua dòng phụ đề không chứa từ đọc thoại: '{text}'")
+                continue
+
             try:
                 # 1. Generate audio WAV via NGHI-TTS with configured speed
                 wav_path = generate_nghitts(text, voice_name=voice_name, speed=tts_speed)
                 audio_dur_us = get_wav_duration_us(wav_path)
+                if audio_dur_us <= 0:
+                    logger.warning(f"File audio TTS có thời lượng 0s cho câu '{text}', bỏ qua.")
+                    continue
 
                 audio_mat_id = str(uuid.uuid4()).upper()
                 audio_seg_id = str(uuid.uuid4()).upper()
@@ -898,7 +930,18 @@ def patch_offline_tts_in_draft(
         resync_subtitles_and_audio_to_video_timeline(draft_path)
         clear_mini_draft_cache(draft_path)
 
+    # Free memory (JSON dicts & TTS voice cache)
+    try:
+        from nghitts_service import unload_voice_cache
+        unload_voice_cache()
+    except Exception:
+        pass
+
+    import gc
+    gc.collect()
+
     return patched_any
+
 
 
 def clear_mini_draft_cache(draft_path: str):

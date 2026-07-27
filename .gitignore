@@ -23,6 +23,7 @@ scratch/
 00000000000/
 111111111111111111/
 output_audio/
+models_cache/
 
 # nghitts: binary/model files (too large for git)
 nghitts/**/*.onnx

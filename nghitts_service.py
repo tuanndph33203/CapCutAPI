@@ -65,6 +65,17 @@ def get_piper_voice(voice_name: str = "Ngọc Huyền (mới)") -> PiperVoice:
     _VOICE_CACHE[voice_name] = voice
     return voice
 
+def unload_voice_cache() -> None:
+    """
+    Clear cached Piper ONNX models from RAM and trigger Python garbage collection.
+    """
+    global _VOICE_CACHE
+    import gc
+    _VOICE_CACHE.clear()
+    gc.collect()
+    print("[NghiTTS] Voice cache unloaded from RAM.")
+
+
 from piper.config import SynthesisConfig
 
 def generate_nghitts(
@@ -88,6 +99,9 @@ def generate_nghitts(
     # 1. Normalize text (Convert numbers, dates, abbreviations to full Vietnamese text)
     normalizer = _get_normalizer()
     normalized_text = normalizer.normalize(text)
+    import re
+    if not re.sub(r'[^\w\sàáảãạâầấẩẫậăằắẳẵặèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđĐ]', '', normalized_text).strip():
+        raise ValueError(f"Text '{text}' contains no speakable words after normalization.")
 
     # 2. Get output filepath
     if not output_path:
