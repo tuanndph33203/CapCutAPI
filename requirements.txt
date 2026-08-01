@@ -15,3 +15,7 @@ nvidia-cudnn-cu12==8.9.7.29
 nvidia-cublas-cu11==11.11.3.6
 numpy<2.0.0
 faster-whisper==1.2.1
+rapidocr-onnxruntime
+python-telegram-bot>=20.0
+yt-dlp
+pymongo
