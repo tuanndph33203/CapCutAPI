@@ -10,3 +10,6 @@ pygetwindow
 pywin32
 uiautomation
 rapidocr-onnxruntime
+python-telegram-bot>=20.0
+yt-dlp
+pymongo
