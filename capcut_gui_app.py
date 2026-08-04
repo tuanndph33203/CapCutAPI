@@ -127,6 +127,8 @@ DEFAULT_CAPCUT_DRAFTS = os.environ.get(
     "CAPCUT_DRAFTS_DIR",
     os.path.join(os.environ.get("LOCALAPPDATA", ""), "CapCut", "User Data", "Projects", "com.lveditor.draft"),
 )
+# Thư mục lưu trữ "pipeline projects" — cấu hình riêng của người dùng, KHÔNG phải CapCut folder
+PIPELINE_PROJECTS_DIR = Path(__file__).resolve().parent / "projects"
 QUEUE_CACHE_PATH = Path(__file__).with_name("queue_cache.json")
 FIRST_PROJECT_FALLBACK_X = 285
 FIRST_PROJECT_FALLBACK_Y = 583
@@ -189,6 +191,21 @@ def get_draft_parent_and_full_path(draft_id):
         os.makedirs(temp_dir, exist_ok=True)
         return temp_dir, os.path.join(temp_dir, draft_id)
     return DEFAULT_CAPCUT_DRAFTS, os.path.join(DEFAULT_CAPCUT_DRAFTS, draft_id)
+
+
+def _get_buffer_ids() -> list:
+    """Đọc danh sách buffer ID dự án CapCut từ global_pipeline_settings.json.
+    Fallback về tên buffer cũ nếu config chưa khai báo.
+    """
+    try:
+        data = json.loads(GLOBAL_SETTINGS_PATH.read_text(encoding="utf-8"))
+        buffers = data.get("capcut_draft_buffers")
+        if isinstance(buffers, list) and buffers:
+            return [str(b) for b in buffers if b]
+    except Exception:
+        pass
+    # fallback: giữ tương thích ngược với tên cũ
+    return ["00000000000", "111111111111111111"]
 
 # --- Helper RPA Functions ---
 
@@ -647,7 +664,8 @@ def open_project_in_gui(controller, project_name, cancel_check=None):
         from capcut_rpa import click_template
 
         template_file = PROJECT_TITLE_MARKER_TEMPLATE
-        if str(project_name) == "111111111111111111" or "111111111111111111" in str(project_name):
+        _buffer_ids = _get_buffer_ids()
+        if len(_buffer_ids) > 1 and str(project_name) in _buffer_ids[1:]:
             template_file = PROJECT_TITLE_MARKER_TEMPLATE.parent / "project_title_marker_2.png"
 
         click_above_px = -int(PROJECT_TITLE_MARKER_CLICK_ABOVE_CM / 2.54 * PROJECT_TITLE_MARKER_DPI)
@@ -3597,7 +3615,7 @@ class QueueRunner:
                 self.queue = cached_queue
                 
                 # Dynamic buffer owners tracking to resolve conflicts on load
-                buffer_owners = {"00000000000": None, "111111111111111111": None}
+                buffer_owners = {buf_id: None for buf_id in _get_buffer_ids()}
                 for item in self.queue:
                     # Nếu là item success, pending hoặc bị lỗi trước bước 5, giải phóng buffer về None để cấp phát động lại
                     if item.get("status") == "success" or item.get("status") == "pending" or (item.get("status") == "failed" and int(item.get("resume_from_step", 1) or 1) < 5):
@@ -3682,7 +3700,7 @@ class QueueRunner:
         return changed
 
     def _get_buffer_owners(self):
-        owners = {"00000000000": None, "111111111111111111": None}
+        owners = {buf_id: None for buf_id in _get_buffer_ids()}
         with self.queue_lock:
             changed = self._release_stale_pending_buffers_locked()
             for item in self.queue:
@@ -4116,7 +4134,7 @@ class QueueRunner:
                 while self.is_processing and not self.pause_requested:
                     with self.queue_lock:
                         self._release_stale_pending_buffers_locked()
-                        owners = {"00000000000": None, "111111111111111111": None}
+                        owners = {buf_id: None for buf_id in _get_buffer_ids()}
                         for item in self.queue:
                             buf = item.get("draft_id")
                             if buf in owners and self._item_owns_buffer(item) and item != pending_item:
@@ -5580,6 +5598,188 @@ def get_logs():
             except Exception:
                 break
     return Response(log_stream(), mimetype="text/event-stream")
+
+# =====================================================================
+# Pipeline Projects API — danh sach du an do nguoi dung tu quan ly
+# Luu tai: PIPELINE_PROJECTS_DIR (projects/ trong repo)
+# KHONG lien quan toi CapCut User Data folder
+# =====================================================================
+
+@app.route('/api/pipeline-projects', methods=['GET'])
+def list_pipeline_projects():
+    """Liet ke tat ca pipeline projects tu thu muc projects/ trong repo."""
+    try:
+        PIPELINE_PROJECTS_DIR.mkdir(parents=True, exist_ok=True)
+        projects = []
+        for entry in sorted(PIPELINE_PROJECTS_DIR.iterdir()):
+            if not entry.is_dir():
+                continue
+            meta_path = entry / "meta.json"
+            config_path = entry / "pipeline_config.json"
+            meta = {}
+            if meta_path.exists():
+                try:
+                    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+                except Exception:
+                    pass
+            projects.append({
+                "id": entry.name,
+                "name": meta.get("name", entry.name),
+                "created_at": meta.get("created_at", 0),
+                "updated_at": meta.get("updated_at", 0),
+                "has_config": config_path.exists(),
+                "description": meta.get("description", ""),
+            })
+        projects.sort(key=lambda x: x["updated_at"], reverse=True)
+        return jsonify({"projects": projects})
+    except Exception as e:
+        logger.error(f"Loi liet ke pipeline projects: {e}")
+        return jsonify({"projects": []}), 500
+
+
+@app.route('/api/pipeline-projects/create', methods=['POST'])
+def create_pipeline_project():
+    """Tao pipeline project moi voi ten do nguoi dung dat."""
+    try:
+        data = request.get_json() or {}
+        name = (data.get("name") or "").strip()
+        if not name:
+            return jsonify({"error": "Ten du an khong duoc de trong"}), 400
+
+        import re as _re
+        slug = _re.sub(r'[^\w\-]', '_', name)[:40].strip('_') or "project"
+        project_id = f"{slug}_{int(time.time())}"
+
+        project_dir = PIPELINE_PROJECTS_DIR / project_id
+        project_dir.mkdir(parents=True, exist_ok=True)
+
+        now = int(time.time() * 1000)
+        meta = {
+            "name": name,
+            "id": project_id,
+            "created_at": now,
+            "updated_at": now,
+            "description": data.get("description", ""),
+        }
+        (project_dir / "meta.json").write_text(
+            json.dumps(meta, ensure_ascii=False, indent=4), encoding="utf-8"
+        )
+
+        global_settings = load_global_settings()
+        default_config = apply_global_settings_to_config({
+            "project_name": name,
+            "speed": 0.77,
+            "volume_db": -15.5,
+            "tts_speed": 1.17,
+            "font_size": 5.0,
+            "font_color": DEFAULT_SUBTITLE_COLOR_HEX,
+            "font_name": DEFAULT_SUBTITLE_FONT_PATH,
+            "mirror_video": True,
+            "translation_method": "ai",
+            "translation_ai_profile_id": global_settings.get("default_translation_ai_profile_id"),
+            "context_ai_profile_id": global_settings.get("default_context_ai_profile_id"),
+            "source_language": "Chinese",
+            "target_language": "Vietnamese",
+            "ai_tone": "natural and fluent",
+            "video_context": "Short fantasy game online videos, MMORPG gameplay review, PvP server war",
+            "ai_temperature": 0.0,
+            "ai_glossary": {},
+            "translation_branch": "A",
+            "auto_asr_context": True,
+            "asr_suggested_fixes": [],
+            "video_path": "",
+            "ocr_crop_mode": "auto",
+        })
+        (project_dir / "pipeline_config.json").write_text(
+            json.dumps(default_config, ensure_ascii=False, indent=4), encoding="utf-8"
+        )
+
+        return jsonify({"ok": True, "project": {
+            "id": project_id,
+            "name": name,
+            "created_at": now,
+            "updated_at": now,
+            "has_config": True,
+            "description": meta.get("description", ""),
+        }})
+    except Exception as e:
+        logger.error(f"Loi tao pipeline project: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route('/api/pipeline-projects/<project_id>/config', methods=['GET', 'POST'])
+def pipeline_project_config(project_id):
+    """Doc hoac luu config cua mot pipeline project."""
+    project_dir = PIPELINE_PROJECTS_DIR / project_id
+    config_path = project_dir / "pipeline_config.json"
+    meta_path = project_dir / "meta.json"
+
+    if not project_dir.exists():
+        return jsonify({"error": "Pipeline project khong ton tai"}), 404
+
+    if request.method == 'POST':
+        try:
+            data = request.get_json() or {}
+            if data.get("ai_base_url"):
+                data["ai_base_url"] = normalize_ai_base_url(data.get("ai_base_url"))
+            config_path.write_text(json.dumps(data, ensure_ascii=False, indent=4), encoding="utf-8")
+            if meta_path.exists():
+                try:
+                    meta = json.loads(meta_path.read_text(encoding="utf-8"))
+                    meta["updated_at"] = int(time.time() * 1000)
+                    meta_path.write_text(json.dumps(meta, ensure_ascii=False, indent=4), encoding="utf-8")
+                except Exception:
+                    pass
+            return jsonify({"ok": True})
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+    else:
+        global_settings = load_global_settings()
+        default_config = apply_global_settings_to_config({
+            "speed": 0.77,
+            "volume_db": -15.5,
+            "tts_speed": 1.17,
+            "font_size": 5.0,
+            "font_color": DEFAULT_SUBTITLE_COLOR_HEX,
+            "font_name": DEFAULT_SUBTITLE_FONT_PATH,
+            "mirror_video": True,
+            "translation_method": "ai",
+            "translation_ai_profile_id": global_settings.get("default_translation_ai_profile_id"),
+            "context_ai_profile_id": global_settings.get("default_context_ai_profile_id"),
+            "source_language": "Chinese",
+            "target_language": "Vietnamese",
+            "ai_tone": "natural and fluent",
+            "video_context": "Short fantasy game online videos, MMORPG gameplay review, PvP server war",
+            "ai_temperature": 0.0,
+            "ai_glossary": {},
+            "translation_branch": "A",
+            "auto_asr_context": True,
+            "asr_suggested_fixes": [],
+            "video_path": "",
+            "ocr_crop_mode": "auto",
+        })
+        if config_path.exists():
+            try:
+                saved = json.loads(config_path.read_text(encoding="utf-8"))
+                default_config.update(saved)
+                default_config = apply_global_settings_to_config(default_config)
+            except Exception:
+                pass
+        return jsonify(default_config)
+
+
+@app.route('/api/pipeline-projects/<project_id>', methods=['DELETE'])
+def delete_pipeline_project(project_id):
+    """Xoa mot pipeline project."""
+    import shutil as _shutil
+    project_dir = PIPELINE_PROJECTS_DIR / project_id
+    if not project_dir.exists():
+        return jsonify({"error": "Pipeline project khong ton tai"}), 404
+    try:
+        _shutil.rmtree(project_dir)
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     # Ensure port 5000 is used

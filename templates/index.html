@@ -1194,9 +1194,11 @@
             <div
                 style="margin-top: 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
                 <h2 style="font-weight: 600; font-size: 1.4rem;">Projects</h2>
-                <div style="display: flex; gap: 10px;">
+                <div style="display: flex; gap: 10px; flex-wrap: nowrap; align-items: center;">
                     <button class="btn btn-secondary" id="btn-refresh-projects"
-                        style="width: auto; padding: 8px 12px; font-size: 0.85rem;">🔄 Làm mới</button>
+                        style="width: auto !important; padding: 8px 12px; font-size: 0.85rem; white-space: nowrap;">🔄 Làm mới</button>
+                    <button class="btn btn-primary" id="btn-new-pipeline-project"
+                        style="width: auto !important; padding: 8px 16px; font-size: 0.85rem; font-weight: 700; white-space: nowrap;">+ Tạo mới</button>
                 </div>
             </div>
 
@@ -1664,90 +1666,21 @@
 
         <!-- Modal 1: Create Project -->
         <div class="modal" id="modal-create-project">
-            <div class="modal-content">
+            <div class="modal-content" style="max-width: 420px;">
                 <span class="close-modal" id="close-create-modal">&times;</span>
-                <h3 style="margin-bottom: 20px; font-size: 1.3rem; font-weight: 600; color: var(--accent-cyan);">Tạo dự
-                    án mới</h3>
+                <h3 style="margin-bottom: 20px; font-size: 1.3rem; font-weight: 600; color: var(--accent-cyan);">📂 Tạo Pipeline Project mới</h3>
+                <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 0.9rem; line-height: 1.5;">
+                    Đặt tên cho dự án. Cấu hình chi tiết (video, phụ đề, AI...) có thể chỉnh sau khi tạo.
+                </p>
                 <form id="form-create-project">
                     <div class="form-group">
-                        <label for="create-video-path">Đường dẫn Video đầu vào (tuyệt đối)</label>
-                        <div style="display: flex; gap: 10px;">
-                            <input type="text" id="create-video-path" placeholder="C:\Users\PC\Videos\input.mp4"
-                                required>
-                            <button class="btn btn-secondary" id="btn-browse-create-video" type="button"
-                                style="width: auto; padding: 0 15px;">📂</button>
-                        </div>
+                        <label for="create-project-name">Tên dự án <span style="color:var(--accent-cyan)">*</span></label>
+                        <input type="text" id="create-project-name" placeholder="VD: Phim kiếm hiệp - Tập 1" autofocus required
+                            style="font-size: 1rem; padding: 10px 14px;">
                     </div>
-                    <div class="form-group">
-                        <label for="create-project-name">Tên dự án (Không bắt buộc)</label>
-                        <input type="text" id="create-project-name" placeholder="Để trống để lấy tên file">
-                    </div>
-
-                    <h4
-                        style="margin: 20px 0 10px; color: var(--text-muted); font-size: 0.95rem; border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">
-                        Cấu hình Pipeline</h4>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="create-speed">Tốc độ Video (Step 1)</label>
-                            <input type="number" id="create-speed" step="0.01" value="0.77">
-                        </div>
-                        <div class="form-group">
-                            <label for="create-volume">Âm lượng (dB) (Step 1)</label>
-                            <input type="number" id="create-volume" step="0.1" value="-15.5">
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="create-tts-engine">Engine TTS (Step 6)</label>
-                            <select id="create-tts-engine">
-                                <option value="local">Local NGHI-TTS (Mặc định)</option>
-                                <option value="capcut">CapCut GUI TTS</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="create-mirror-video">Mirror video mặc định</label>
-                            <label style="display:flex;align-items:center;gap:8px;height:38px;">
-                                <input type="checkbox" id="create-mirror-video" checked>
-                                <span>Lật ngang video khi patch</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="create-tts-speed">Tốc độ Đọc (Step 7)</label>
-                            <input type="number" id="create-tts-speed" step="0.01" value="1.17">
-                        </div>
-                        <div class="form-group">
-                            <label for="create-font-size">Cỡ chữ Sub (Step 5)</label>
-                            <input type="number" id="create-font-size" step="0.5" value="15.0">
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="create-font-color">Màu chữ Sub</label>
-                            <select id="create-font-color">
-                                <option value="#f0ff00" selected>Màu Vàng preset</option>
-                                <option value="#FFFF00">Màu Vàng</option>
-                                <option value="#FFFFFF">Màu Trắng</option>
-                                <option value="#FF0000">Màu Đỏ</option>
-                                <option value="#00FF00">Màu Xanh Lá</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="create-font-name">Font chữ</label>
-                            <input type="text" id="create-font-name"
-                                value="C:/Users/nguye/AppData/Local/CapCut/Apps/8.9.1.3802/Resources/Font/SystemFont/en.ttf">
-                        </div>
-                    </div>
-
-                    <div style="display: flex; gap: 15px; margin-top: 30px;">
-                        <button type="button" class="btn btn-secondary" id="btn-create-only" style="flex: 1;">Chỉ tạo dự
-                            án</button>
-                        <button type="submit" class="btn btn-primary" style="flex: 1.2;">Tạo & Chạy Pipeline</button>
+                    <div style="display: flex; gap: 12px; margin-top: 24px;">
+                        <button type="submit" class="btn btn-primary" style="flex: 1; font-size: 1rem; padding: 12px;">✅ Tạo & Mở cấu hình</button>
+                        <button type="button" class="btn btn-secondary" id="btn-create-only" style="flex: 0.6;">Chỉ tạo</button>
                     </div>
                 </form>
             </div>
@@ -1816,6 +1749,7 @@
             const btnTestUI = document.getElementById('btn-test-ui');
             const btnAutoShutdown = document.getElementById('btn-auto-shutdown');
             const btnRefreshProjects = document.getElementById('btn-refresh-projects');
+            const btnNewPipelineProject = document.getElementById('btn-new-pipeline-project');
             const btnOpenSettings = document.getElementById('btn-open-settings');
 
             // Modals & Forms (Create Project)
@@ -1824,8 +1758,7 @@
             const closeCreateModal = document.getElementById('close-create-modal');
             const formCreateProject = document.getElementById('form-create-project');
             const btnCreateOnly = document.getElementById('btn-create-only');
-            const btnBrowseCreateVideo = document.getElementById('btn-browse-create-video');
-            const createVideoPathInput = document.getElementById('create-video-path');
+            const createVideoPathInput = null; // legacy - not used for pipeline projects
             const modalSettings = document.getElementById('modal-settings');
             const closeSettingsModal = document.getElementById('close-settings-modal');
             const formSettings = document.getElementById('form-settings');
@@ -1967,6 +1900,14 @@
             // Event Listeners for Modals
             if (bannerCreateProject) {
                 bannerCreateProject.addEventListener('click', () => openModal(modalCreateProject));
+            }
+            if (btnNewPipelineProject) {
+                btnNewPipelineProject.addEventListener('click', () => {
+                    const nameEl = document.getElementById('create-project-name');
+                    if (nameEl) nameEl.value = '';
+                    openModal(modalCreateProject);
+                    setTimeout(() => { if (nameEl) nameEl.focus(); }, 100);
+                });
             }
             closeCreateModal.addEventListener('click', () => closeModal(modalCreateProject));
             if (btnOpenSettings) {
@@ -2597,18 +2538,18 @@
                 document.body.classList.remove('detail-mode');
             });
 
-            // Load and render projects grid
+            // Load and render pipeline projects grid
             function loadProjects() {
                 document.body.classList.remove('detail-mode');
-                log('Đang tải danh sách dự án CapCut...');
-                fetch('/api/projects')
+                fetch('/api/pipeline-projects')
                     .then(res => res.json())
                     .then(data => {
                         projectsGrid.innerHTML = '';
                         if (!data.projects || data.projects.length === 0) {
                             projectsGrid.innerHTML = `
-                        <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 40px;">
-                            Không tìm thấy dự án nào trong thư mục CapCut Drafts. Hãy tạo dự án mới để bắt đầu.
+                        <div style="grid-column: 1/-1; text-align: center; color: var(--text-muted); padding: 60px 40px;">
+                            <div style="font-size:2.5rem; margin-bottom:12px;">📂</div>
+                            <div style="font-size:1rem; margin-bottom:18px;">Chưa có dự án nào. Bấm <strong>+ Tạo mới</strong> để bắt đầu.</div>
                         </div>
                     `;
                             return;
@@ -2618,82 +2559,84 @@
                             const card = document.createElement('div');
                             card.className = 'project-card';
 
-                            // Config badge if saved
                             const badge = p.has_config ? `<div class="project-has-config-badge">Configured</div>` : '';
                             const firstChar = p.name ? p.name.charAt(0).toUpperCase() : 'P';
-
-                            // Canvas ratio badge
-                            const RATIO_ICONS = { '16:9': '🖥️', '9:16': '📱', '1:1': '⬛', '4:3': '📺' };
-                            const RATIO_COLORS = {
-                                '16:9': 'rgba(0,242,254,0.85)',
-                                '9:16': 'rgba(155,81,224,0.85)',
-                                '1:1': 'rgba(242,153,74,0.85)',
-                                '4:3': 'rgba(39,174,96,0.85)'
-                            };
-                            const ratioBadge = p.canvas_ratio ? `<div style="position:absolute; top:8px; right:8px; background:${RATIO_COLORS[p.canvas_ratio] || 'rgba(0,242,254,0.85)'}; border-radius:5px; padding:2px 7px; font-size:0.65rem; font-weight:800; color:#0b0a10; z-index:3; pointer-events:none; letter-spacing:0.3px;">${RATIO_ICONS[p.canvas_ratio] || ''} ${p.canvas_ratio}</div>` : '';
+                            const updatedDate = p.updated_at ? new Date(p.updated_at).toLocaleDateString('vi-VN') : '';
 
                             card.innerHTML = `
                         ${badge}
-                        ${ratioBadge}
                         <div class="project-cover-container">
-                            <img class="project-cover" src="/api/projects/${encodeURIComponent(p.folder)}/cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
-                            <div class="project-placeholder-cover">${firstChar}</div>
+                            <div class="project-placeholder-cover" style="display:flex; font-size:2rem; background: linear-gradient(135deg,#1a1a2e,#16213e);">${firstChar}</div>
                             <div class="project-card-actions">
-                                <button class="project-card-btn project-card-btn-run" title="Đưa vào Hàng chờ & Chạy" data-folder="${p.folder}">▶️</button>
+                                <button class="project-card-btn project-card-btn-run" title="Mở cấu hình & thêm vào Queue" data-id="${p.id}">▶️</button>
+                                <button class="project-card-btn" title="Xóa dự án" data-delete-id="${p.id}" style="background:rgba(220,38,38,0.75);">🗑️</button>
                             </div>
                         </div>
                         <div class="project-details">
                             <div class="project-name" title="${p.name}">${p.name}</div>
                             <div class="project-stats">
-                                <span>${p.size}</span>
-                                <span>${p.duration}</span>
+                                <span>Pipeline Project</span>
+                                <span>${updatedDate}</span>
                             </div>
                         </div>
                     `;
 
-                            // Run button listener
+                            // Run button → open detail config screen
                             card.querySelector('.project-card-btn-run').addEventListener('click', (e) => {
                                 e.stopPropagation();
-                                addProjectToQueue(p.folder, true);
+                                showProjectDetails(p.id, p.name, 'Pipeline Project', updatedDate);
                             });
 
-                            // Clicking the card itself opens Project Details Screen
+                            // Delete button
+                            const deleteBtn = card.querySelector('[data-delete-id]');
+                            if (deleteBtn) {
+                                deleteBtn.addEventListener('click', (e) => {
+                                    e.stopPropagation();
+                                    if (!confirm(`Xóa dự án "${p.name}"?`)) return;
+                                    fetch(`/api/pipeline-projects/${encodeURIComponent(p.id)}`, { method: 'DELETE' })
+                                        .then(r => r.json())
+                                        .then(d => {
+                                            if (d.ok) { log(`Đã xóa dự án "${p.name}".`, 'success'); loadProjects(); }
+                                            else log('Lỗi xóa: ' + d.error, 'error');
+                                        });
+                                });
+                            }
+
+                            // Clicking card body opens detail screen
                             card.addEventListener('click', () => {
-                                showProjectDetails(p.folder, p.name, p.size, p.duration);
+                                showProjectDetails(p.id, p.name, 'Pipeline Project', updatedDate);
                             });
 
                             projectsGrid.appendChild(card);
                         });
-                        log(`Đã tải ${data.projects.length} dự án CapCut thành công.`, 'success');
+                        log(`Đã tải ${data.projects.length} pipeline project thành công.`, 'success');
                     })
                     .catch(err => {
                         log('Lỗi khi tải danh sách dự án: ' + err, 'error');
                     });
             }
 
-            // Open project details view
-            function showProjectDetails(folder, name, size, duration) {
+            // Open pipeline project details view
+            function showProjectDetails(projectId, name, size, duration) {
                 log(`Đang tải cấu hình chi tiết cho dự án: ${name}...`);
-                fetch(`/api/projects/${encodeURIComponent(folder)}/config`)
+                fetch(`/api/pipeline-projects/${encodeURIComponent(projectId)}/config`)
                     .then(res => res.json())
                     .then(config => {
                         detailProjectTitle.innerText = `Chi tiết dự án: ${name}`;
 
-                        // Load cover path & reset fallbacks
-                        detailProjectCover.style.display = 'block';
-                        detailProjectCover.src = `/api/projects/${encodeURIComponent(folder)}/cover`;
-
+                        // Hide cover (pipeline projects don't have covers), show placeholder
+                        detailProjectCover.style.display = 'none';
                         const firstChar = name ? name.charAt(0).toUpperCase() : 'P';
                         detailProjectPlaceholder.innerText = firstChar;
-                        detailProjectPlaceholder.style.display = 'none';
+                        detailProjectPlaceholder.style.display = 'flex';
 
                         // Bind metadata fields
-                        detailProjectFolder.innerText = folder;
+                        detailProjectFolder.innerText = projectId;
                         detailProjectSize.innerText = size;
                         detailProjectDuration.innerText = duration;
 
                         // Form fields
-                        document.getElementById('detail-config-folder').value = folder;
+                        document.getElementById('detail-config-folder').value = projectId;
                         detailVideoPathInput.value = Array.isArray(config.video_paths)
                             ? config.video_paths.join('\n')
                             : (config.video_path || '');
@@ -2809,7 +2752,7 @@
                 const folder = document.getElementById('detail-config-folder').value;
                 const config = getDetailProjectConfigPayload();
 
-                fetch(`/api/projects/${encodeURIComponent(folder)}/config`, {
+                fetch(`/api/pipeline-projects/${encodeURIComponent(folder)}/config`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(config)
@@ -2836,7 +2779,7 @@
                 // Save first then add
                 const config = getDetailProjectConfigPayload();
 
-                fetch(`/api/projects/${encodeURIComponent(folder)}/config`, {
+                fetch(`/api/pipeline-projects/${encodeURIComponent(folder)}/config`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(config)
@@ -2879,43 +2822,27 @@
                     });
             }
 
-            // Submit Create Project Form
+            // Submit Create Pipeline Project Form (chỉ cần tên)
             function handleCreateProject(shouldRun) {
-                const video_path = createVideoPathInput.value;
-                const project_name = document.getElementById('create-project-name').value;
+                const nameEl = document.getElementById('create-project-name');
+                const name = (nameEl ? nameEl.value : '').trim();
+                if (!name) { log('Vui lòng nhập tên dự án.', 'error'); return; }
 
-                const config = {
-                    video_path: video_path,
-                    project_name: project_name,
-                    speed: parseFloat(document.getElementById('create-speed').value),
-                    volume_db: parseFloat(document.getElementById('create-volume').value),
-                    tts_speed: parseFloat(document.getElementById('create-tts-speed').value),
-                    tts_engine: document.getElementById('create-tts-engine').value,
-                    font_size: parseFloat(document.getElementById('create-font-size').value),
-                    font_color: document.getElementById('create-font-color').value,
-                    font_name: document.getElementById('create-font-name').value
-                };
-
-                log('Đang tiến hành khởi tạo thư mục và cấu hình cho dự án mới...');
-                fetch('/api/projects/create', {
+                log(`Đang tạo pipeline project: "${name}"...`);
+                fetch('/api/pipeline-projects/create', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(config)
+                    body: JSON.stringify({ name: name })
                 })
                     .then(res => res.json())
                     .then(data => {
                         if (data.ok) {
-                            log(`Đã tạo dự án mới: "${data.project.name}" thành công!`, 'success');
+                            log(`Đã tạo pipeline project: "${data.project.name}" thành công!`, 'success');
                             closeModal(modalCreateProject);
                             loadProjects();
-
-                            // Clear create form
-                            createVideoPathInput.value = '';
-                            document.getElementById('create-project-name').value = '';
-
-                            if (shouldRun) {
-                                addProjectToQueue(data.project.folder, true);
-                            }
+                            if (nameEl) nameEl.value = '';
+                            // Mở màn hình config ngay cho project vừa tạo
+                            setTimeout(() => showProjectDetails(data.project.id, data.project.name, 'Pipeline Project', ''), 300);
                         } else {
                             log('Không thể tạo dự án: ' + data.error, 'error');
                         }
