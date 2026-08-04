@@ -625,7 +625,8 @@ def detect_first_project_card(
     }
 
 
-def run_workflow(config_path: Path, dry_run: bool) -> dict[str, Any]:
+def run_workflow(config_path: Path | str, dry_run: bool) -> dict[str, Any]:
+    config_path = Path(config_path)
     config = json.loads(config_path.read_text(encoding="utf-8"))
     base = config_path.parent
     steps = []
@@ -806,6 +807,25 @@ def run_workflow(config_path: Path, dry_run: bool) -> dict[str, Any]:
             if not dry_run:
                 time.sleep(seconds)
             result = {"action": "sleep", "seconds": seconds, "dry_run": dry_run}
+        elif action == "hotkey":
+            keys = step.get("keys", [])
+            if not dry_run:
+                pyautogui.hotkey(*keys)
+            result = {"action": "hotkey", "keys": keys, "dry_run": dry_run}
+        elif action == "click_ratio":
+            rx = float(step.get("ratio_x", 0.5))
+            ry = float(step.get("ratio_y", 0.5))
+            target = find_capcut_window()
+            cx = target.left + int(target.width * rx)
+            cy = target.top + int(target.height * ry)
+            if not dry_run:
+                pyautogui.click(cx, cy)
+            result = {"action": "click_ratio", "ratio_x": rx, "ratio_y": ry, "x": cx, "y": cy, "dry_run": dry_run}
+        elif action == "key":
+            k = step.get("key", "enter")
+            if not dry_run:
+                pyautogui.press(k)
+            result = {"action": "key", "key": k, "dry_run": dry_run}
         else:
             raise ValueError(f"Unsupported action: {action}")
         result["step"] = index

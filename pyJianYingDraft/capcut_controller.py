@@ -17,6 +17,7 @@ from enum import Enum
 from logging.handlers import RotatingFileHandler
 from typing import Callable, Literal, Optional
 
+import psutil
 import uiautomation as uia
 import win32con
 import win32gui
@@ -55,7 +56,21 @@ def capcut_process_ids() -> set[int]:
         return set()
 
 
+def dismiss_environment_testing_window() -> bool:
+    """Tự động diệt VEDetector.exe gây treo mở CapCut (không đóng bậy cửa sổ CapCut)."""
+    dismissed = False
+    for p in psutil.process_iter(["pid", "name"]):
+        try:
+            if "vedetector" in (p.info.get("name") or "").lower():
+                p.kill()
+                dismissed = True
+        except Exception:
+            pass
+    return dismissed
+
+
 def capcut_main_hwnd_and_rect() -> tuple[int, tuple[int, int, int, int]] | None:
+    dismiss_environment_testing_window()
     pids = capcut_process_ids()
     best: tuple[int, tuple[int, int, int, int], int] | None = None
 
@@ -95,7 +110,11 @@ def activate_capcut_main_window() -> tuple[int, int, int, int] | None:
         return None
     hwnd, rect = found
     try:
-        win32gui.ShowWindow(hwnd, win32con.SW_MAXIMIZE)
+        import ctypes
+        ctypes.windll.user32.AllowSetForegroundWindow(-1)
+        win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+        win32gui.ShowWindow(hwnd, win32con.SW_SHOW)
+        win32gui.BringWindowToTop(hwnd)
         win32gui.SetForegroundWindow(hwnd)
     except Exception:
         pass

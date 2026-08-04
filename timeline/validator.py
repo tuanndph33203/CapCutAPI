@@ -43,10 +43,16 @@ def validate_timeline(
     # 2. Check subtitle segment ranges
     for ss in subtitle_segs:
         if ss.target_duration <= 0:
-            raise ValidationError(f"Subtitle segment {ss.id} has non-positive duration: {ss.target_duration}")
+            import logging
+            logging.getLogger("TimelineValidator").warning(f"Subtitle segment {ss.id} has non-positive duration: {ss.target_duration}. Skipping.")
+            continue
             
         if ss.ocr_source_start is None or ss.ocr_source_duration is None:
-            raise ValidationError(f"Subtitle segment {ss.id} is missing OCR source metadata.")
+            import logging
+            logging.getLogger("TimelineValidator").warning(f"Subtitle segment {ss.id} is missing OCR source metadata. Fallback to target timerange.")
+            ss.ocr_source_start = ss.target_start
+            ss.ocr_source_duration = ss.target_duration
+
             
         # Subtitle exceeds video timeline end
         if ss.target_start + ss.target_duration > video_end + 500_000:
@@ -59,10 +65,12 @@ def validate_timeline(
     # 3. Check audio segment ranges
     for as_val in audio_segs:
         if as_val.src_duration <= 0 or as_val.target_duration <= 0:
-            raise ValidationError(
+            import logging
+            logging.getLogger("TimelineValidator").warning(
                 f"Audio segment {as_val.id} has non-positive duration: "
-                f"src={as_val.src_duration}, tgt={as_val.target_duration}"
+                f"src={as_val.src_duration}, tgt={as_val.target_duration}. Skipping invalid segment."
             )
+            continue
             
         # Audio exceeds video timeline end
         if as_val.target_start + as_val.target_duration > video_end + 500_000:

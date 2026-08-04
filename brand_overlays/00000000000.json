@@ -65,7 +65,7 @@
                 "source": 0,
                 "source_platform": 0,
                 "formula_id": "",
-                "check_flag": 1698756607,
+                "check_flag": 1824585727,
                 "video_algorithm": {
                     "algorithms": [],
                     "time_range": null,
@@ -218,7 +218,7 @@
                 "source": 0,
                 "source_platform": 0,
                 "formula_id": "",
-                "check_flag": 1698756607,
+                "check_flag": 1824585727,
                 "video_algorithm": {
                     "algorithms": [],
                     "time_range": null,
@@ -312,14 +312,14 @@
         ],
         "speeds": [
             {
-                "id": "5D0B2219-9F82-42fe-BCCA-B23A6D966E85",
+                "id": "88243D86-E134-4677-8CBA-D15588B9B4C4",
                 "type": "speed",
                 "mode": 0,
                 "speed": 1.0,
                 "curve_speed": null
             },
             {
-                "id": "66CBF1E8-A6B6-4aac-8B1D-31B239FD3139",
+                "id": "04300059-565C-425e-97B5-DAC40880BBE6",
                 "type": "speed",
                 "mode": 0,
                 "speed": 1.0,
@@ -328,7 +328,7 @@
         ],
         "placeholder_infos": [
             {
-                "id": "59FC0087-3676-4884-9358-686BF2CC9EEC",
+                "id": "18F2FFF8-7E07-4ea4-AD5F-E41405CBF2E1",
                 "type": "placeholder_info",
                 "meta_type": "none",
                 "res_path": "",
@@ -337,7 +337,7 @@
                 "error_text": ""
             },
             {
-                "id": "950E52EA-0264-43d2-AC6A-070C24C554B6",
+                "id": "0A15FF80-B60B-4fa7-99F8-38BD29A99063",
                 "type": "placeholder_info",
                 "meta_type": "none",
                 "res_path": "",
@@ -348,7 +348,7 @@
         ],
         "canvases": [
             {
-                "id": "0ACA0734-EE9F-44be-893E-06ED63BDC14E",
+                "id": "D3B42187-9D2D-49ea-90F2-D8BDB8ACD94D",
                 "type": "canvas_color",
                 "color": "",
                 "blur": 0.0,
@@ -360,7 +360,7 @@
                 "team_id": ""
             },
             {
-                "id": "9A1933A5-9090-47d0-8D2F-9DAAD30A7F05",
+                "id": "E4798BBC-3E39-46b1-B177-09908F41CAEE",
                 "type": "canvas_color",
                 "color": "",
                 "blur": 0.0,
@@ -374,13 +374,13 @@
         ],
         "sound_channel_mappings": [
             {
-                "id": "B50DCDE9-17F0-4fd1-A805-A9D00D23F6AC",
+                "id": "8AE6709B-1A67-4d04-B9B8-84ABDBA782F9",
                 "type": "none",
                 "audio_channel_mapping": 0,
                 "is_config_open": false
             },
             {
-                "id": "84113D2C-50C9-40ee-9255-4094C7D4F243",
+                "id": "7714F9BC-5A0D-41d8-A611-D94771A6147C",
                 "type": "none",
                 "audio_channel_mapping": 0,
                 "is_config_open": false
@@ -388,7 +388,7 @@
         ],
         "material_colors": [
             {
-                "id": "25E534BF-6570-4cbf-B100-52EBB42AFA7C",
+                "id": "0C38B613-61CD-41e7-99BF-9AF0508C5AA1",
                 "is_color_clip": false,
                 "is_gradient": false,
                 "solid_color": "",
@@ -399,7 +399,7 @@
                 "height": 0.0
             },
             {
-                "id": "AC5AF180-AA03-4000-8386-51F4AF132503",
+                "id": "C64C2630-1D1F-4fde-84DB-193FB6801B95",
                 "is_color_clip": false,
                 "is_gradient": false,
                 "solid_color": "",
@@ -412,7 +412,7 @@
         ],
         "loudnesses": [
             {
-                "id": "31B5E5B3-8C8B-4e76-9667-21235F9C8555",
+                "id": "86E860CE-6D36-4aa5-90FD-B68A82A36BE1",
                 "enable": false,
                 "time_range": null,
                 "file_id": "",
@@ -420,7 +420,7 @@
                 "loudness_param": null
             },
             {
-                "id": "3A658868-13DA-43a5-982F-1CAA28BEB553",
+                "id": "F208C550-F38B-4f65-9C32-B89E368C2878",
                 "enable": false,
                 "time_range": null,
                 "file_id": "",
@@ -430,7 +430,7 @@
         ],
         "vocal_separations": [
             {
-                "id": "71C59834-74F8-4283-A135-884476FB2048",
+                "id": "3B6DEADC-7761-41ea-BD89-6467D39DD02C",
                 "type": "vocal_separation",
                 "choice": 0,
                 "removed_sounds": [],
@@ -440,7 +440,7 @@
                 "enter_from": ""
             },
             {
-                "id": "E21818DD-C658-43e6-9157-DC0F30C4310B",
+                "id": "1FEE545F-0A46-445e-91A3-168C105A2835",
                 "type": "vocal_separation",
                 "choice": 0,
                 "removed_sounds": [],
@@ -457,14 +457,14 @@
             "type": "video",
             "segments": [
                 {
-                    "id": "ed86b2b073944111bac7557e77d3da5c",
+                    "id": "113204eb65a64fd18e21b8641170dc18",
                     "source_timerange": {
                         "start": 0,
-                        "duration": 8355833333
+                        "duration": 41233333
                     },
                     "target_timerange": {
                         "start": 0,
-                        "duration": 8355833333
+                        "duration": 48033333
                     },
                     "render_timerange": {
                         "start": 0,
@@ -479,7 +479,7 @@
                     "intensifies_audio": false,
                     "cartoon": false,
                     "volume": 0.0,
-                    "last_nonzero_volume": 0.09440608762859236,
+                    "last_nonzero_volume": 0.16788040181225602,
                     "clip": {
                         "scale": {
                             "x": 0.3375974748974797,
@@ -502,13 +502,13 @@
                     },
                     "material_id": "205B0FC0-CBC4-45f0-BE9B-A3DBBDBD7A6D",
                     "extra_material_refs": [
-                        "5D0B2219-9F82-42fe-BCCA-B23A6D966E85",
-                        "59FC0087-3676-4884-9358-686BF2CC9EEC",
-                        "0ACA0734-EE9F-44be-893E-06ED63BDC14E",
-                        "B50DCDE9-17F0-4fd1-A805-A9D00D23F6AC",
-                        "25E534BF-6570-4cbf-B100-52EBB42AFA7C",
-                        "31B5E5B3-8C8B-4e76-9667-21235F9C8555",
-                        "71C59834-74F8-4283-A135-884476FB2048"
+                        "88243D86-E134-4677-8CBA-D15588B9B4C4",
+                        "18F2FFF8-7E07-4ea4-AD5F-E41405CBF2E1",
+                        "D3B42187-9D2D-49ea-90F2-D8BDB8ACD94D",
+                        "8AE6709B-1A67-4d04-B9B8-84ABDBA782F9",
+                        "0C38B613-61CD-41e7-99BF-9AF0508C5AA1",
+                        "86E860CE-6D36-4aa5-90FD-B68A82A36BE1",
+                        "3B6DEADC-7761-41ea-BD89-6467D39DD02C"
                     ],
                     "render_index": 1,
                     "keyframe_refs": [],
@@ -565,14 +565,14 @@
             "type": "video",
             "segments": [
                 {
-                    "id": "9beaf0ef275d4ea2b6e096c677d64b7d",
+                    "id": "d2f43e5652da42eea3156d0f813e6ff7",
                     "source_timerange": {
                         "start": 0,
-                        "duration": 8355833333
+                        "duration": 41233333
                     },
                     "target_timerange": {
                         "start": 0,
-                        "duration": 8355833333
+                        "duration": 48033333
                     },
                     "render_timerange": {
                         "start": 0,
@@ -587,7 +587,7 @@
                     "intensifies_audio": false,
                     "cartoon": false,
                     "volume": 0.0,
-                    "last_nonzero_volume": 0.09440608762859236,
+                    "last_nonzero_volume": 0.16788040181225602,
                     "clip": {
                         "scale": {
                             "x": 0.17223650385604114,
@@ -610,13 +610,13 @@
                     },
                     "material_id": "9D84B894-1A60-40f7-B78F-38F5A8E8C6B2",
                     "extra_material_refs": [
-                        "66CBF1E8-A6B6-4aac-8B1D-31B239FD3139",
-                        "950E52EA-0264-43d2-AC6A-070C24C554B6",
-                        "9A1933A5-9090-47d0-8D2F-9DAAD30A7F05",
-                        "84113D2C-50C9-40ee-9255-4094C7D4F243",
-                        "AC5AF180-AA03-4000-8386-51F4AF132503",
-                        "3A658868-13DA-43a5-982F-1CAA28BEB553",
-                        "E21818DD-C658-43e6-9157-DC0F30C4310B"
+                        "04300059-565C-425e-97B5-DAC40880BBE6",
+                        "0A15FF80-B60B-4fa7-99F8-38BD29A99063",
+                        "E4798BBC-3E39-46b1-B177-09908F41CAEE",
+                        "7714F9BC-5A0D-41d8-A611-D94771A6147C",
+                        "C64C2630-1D1F-4fde-84DB-193FB6801B95",
+                        "F208C550-F38B-4f65-9C32-B89E368C2878",
+                        "1FEE545F-0A46-445e-91A3-168C105A2835"
                     ],
                     "render_index": 2,
                     "keyframe_refs": [],

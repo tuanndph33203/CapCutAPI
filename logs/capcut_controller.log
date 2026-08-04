@@ -1,0 +1,3 @@
+2026-08-02 20:30:26,251 - capcut_controller - INFO - Đang tìm dự án đầu tiên...
+2026-08-02 20:33:50,586 - capcut_controller - INFO - UIA export button not found; clicking fallback coordinates (1773, 10).
+2026-08-02 20:33:55,823 - capcut_controller - INFO - UIA final export button not found; clicking fallback coordinates (1823, 985).

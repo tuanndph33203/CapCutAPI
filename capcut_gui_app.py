@@ -33,7 +33,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 import uiautomation as auto
 import pyautogui
 
-from pyJianYingDraft.capcut_controller import CapCutController, ExportResolution, ExportFramerate, capcut_process_ids, capcut_main_hwnd_and_rect
+from pyJianYingDraft.capcut_controller import CapCutController, ExportResolution, ExportFramerate, capcut_process_ids, capcut_main_hwnd_and_rect, dismiss_environment_testing_window
 from pyJianYingDraft.exceptions import AutomationError
 from offline_tts_patcher import patch_offline_tts_in_draft, clear_mini_draft_cache, cleanup_output_audio_dir
 from anti_copyright_patcher import apply_full_anti_copyright_pipeline, patch_video_speed_dynamic, resync_subtitles_and_audio_to_video_timeline
@@ -472,13 +472,29 @@ def launch_capcut(connect_ui=True, cancel_check=None):
         shortcut = next((path for path in CAPCUT_SHORTCUT_CANDIDATES if path and os.path.exists(path)), None)
         if shortcut:
             logger.info(f"Khởi chạy CapCut từ shortcut: {shortcut}")
-            subprocess.Popen(["explorer.exe", shortcut])
-        else:
-            logger.info("Không tìm thấy shortcut CapCut. Thử khởi chạy bằng App Execution Alias/URI...")
             try:
-                subprocess.Popen(["CapCut.exe"])
+                os.startfile(shortcut)
             except Exception:
+                subprocess.Popen(["explorer.exe", shortcut])
+        else:
+            logger.info("Không tìm thấy shortcut CapCut. Thử khởi chạy bằng CapCut.exe...")
+            exe_path = r"C:\Users\nguye\AppData\Local\CapCut\Apps\CapCut.exe"
+            if os.path.exists(exe_path):
+                os.startfile(exe_path)
+            else:
                 subprocess.Popen(["powershell", "-NoProfile", "-Command", "Start-Process 'capcut://'"])
+
+        time.sleep(1)
+        try:
+            import psutil, win32api, win32process, win32con
+            for p in psutil.process_iter(['pid', 'name']):
+                if 'capcut' in (p.info.get('name') or '').lower():
+                    try:
+                        h = win32api.OpenProcess(win32con.PROCESS_SET_INFORMATION | win32con.PROCESS_QUERY_INFORMATION, False, p.pid)
+                        win32process.SetPriorityClass(h, win32process.HIGH_PRIORITY_CLASS)
+                        win32api.CloseHandle(h)
+                    except Exception: pass
+        except Exception: pass
         for _ in range(30):
             if cancel_check:
                 cancel_check()
@@ -505,6 +521,7 @@ def launch_capcut(connect_ui=True, cancel_check=None):
     for i in range(25):
         if cancel_check:
             cancel_check()
+        dismiss_environment_testing_window()
         try:
             controller = CapCutController()
             if controller.app and controller.app.Exists(0):
@@ -644,12 +661,13 @@ def open_project_in_gui(controller, project_name, cancel_check=None):
         last_marker_error = None
         for marker_attempt in range(1, 241):
             try:
+                current_threshold = 0.82 if marker_attempt < 10 else 0.65
                 click_result = click_template(
                     template_file,
-                    threshold=0.82,
+                    threshold=current_threshold,
                     dry_run=False,
                     timeout=0.5,
-                    click_offset_y=click_above_px,
+                    click_offset_y=-10,
                     search_region=[0.0, 0.12, 1.0, 0.85],
                 )
                 break
@@ -679,7 +697,8 @@ def open_project_in_gui(controller, project_name, cancel_check=None):
             f"Da chan fallback sang project dau tien. Chi tiet: {str(e)}."
         ) from e
 
-    logger.info("Clicked project marker. Continue workflow.")
+    logger.info("Clicked project marker. Waiting 3.5s for editor window to open...")
+    time.sleep(3.5)
     return controller
 
 def run_auto_captions(controller):
@@ -3677,6 +3696,19 @@ class QueueRunner:
     def repair_runtime_state(self):
         pp_alive = bool(self.preprocess_thread and self.preprocess_thread.is_alive())
         gui_alive = bool(self.gui_thread and self.gui_thread.is_alive())
+        
+        if self.is_processing and not gui_alive:
+            with self.queue_lock:
+                has_ready = any(
+                    item.get("status") in ("ready_for_capcut", "gui_processing") or (item.get("status") == "paused" and int(item.get("resume_from_step", 1) or 1) >= 5)
+                    for item in self.queue
+                )
+            if has_ready:
+                logger.info("Tự động khôi phục Worker 2 (GUI) để xử lý mục ready_for_capcut...")
+                self.gui_thread = threading.Thread(target=self._gui_loop, daemon=True)
+                self.gui_thread.start()
+                gui_alive = True
+
         thread_alive = pp_alive or gui_alive
         
         changed = False
@@ -5484,14 +5516,16 @@ def retry_queue_item():
             item["resume_from_step"] = 1
             item.pop("cancel_requested", None)
             item.pop("stopped_after_patch", None)
+            runner.pause_requested = False
+            runner.is_paused = False
+            runner.is_processing = False
             runner.save_cache()
-
-            # Start queue runner if it's currently idle
-            if not runner.is_processing:
-                runner.start(data)
+            runner.resume()
             return jsonify(runner.get_state())
         return jsonify({"error": "Invalid index"}), 400
     except Exception as e:
+        import traceback
+        logger.error(f"Error in retry_queue_item: {e}\n{traceback.format_exc()}")
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/queue/delete', methods=['POST'])
