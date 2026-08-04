@@ -797,6 +797,114 @@
                 max-height: calc(100vh - 16px);
             }
         }
+
+        /* BrightBean Studio Style - Social Media Publishing UI */
+        .social-auto-bar {
+            background: linear-gradient(135deg, rgba(20, 18, 33, 0.9), rgba(11, 10, 16, 0.9));
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        }
+
+        .platform-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .platform-card {
+            background: #141221;
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+
+        .platform-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-cyan);
+            box-shadow: 0 8px 24px rgba(0, 242, 254, 0.15);
+        }
+
+        .platform-card-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 12px;
+        }
+
+        .platform-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .icon-tiktok { background: #010101; color: #00f2fe; border: 1px solid #222; }
+        .icon-youtube { background: #ff0000; color: #ffffff; }
+        .icon-facebook { background: #1877f2; color: #ffffff; }
+        .icon-instagram { background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); color: #ffffff; }
+        .icon-linkedin { background: #0a66c2; color: #ffffff; }
+        .icon-threads { background: #18181b; color: #ffffff; border: 1px solid #3f3f46; }
+
+        .platform-title {
+            font-size: 0.98rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .platform-desc {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .platform-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.74rem;
+            font-weight: 600;
+        }
+
+        .badge-connected {
+            background: rgba(39, 174, 96, 0.15);
+            color: #27ae60;
+            border: 1px solid rgba(39, 174, 96, 0.3);
+        }
+
+        .badge-disabled {
+            background: rgba(141, 133, 161, 0.15);
+            color: #8d85a1;
+            border: 1px solid rgba(141, 133, 161, 0.3);
+        }
+
+        .platform-card-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 14px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255,255,255,0.06);
+        }
     </style>
 </head>
 <body>
@@ -808,6 +916,7 @@
             <p>Hệ thống tự động hóa sản xuất & dịch thuật từng dự án riêng biệt</p>
         </div>
         <div class="header-actions">
+        <button class="btn btn-secondary" id="btn-open-social-settings" type="button" style="padding: 6px 12px; font-size: 0.8rem; width: auto; margin-right: 8px; background: linear-gradient(135deg, rgba(0, 242, 254, 0.1), rgba(155, 81, 224, 0.1)); border-color: rgba(0, 242, 254, 0.3);">🌐 Mạng xã hội</button>
         <button class="btn btn-secondary" id="btn-open-settings" type="button" style="padding: 6px 12px; font-size: 0.8rem; width: auto;">Setting</button>
         <div class="status-badge">
             <button class="btn btn-secondary" id="btn-test-ui" type="button" style="padding: 6px 12px; font-size: 0.8rem; width: auto; margin-right: 10px;">🔌 Test connection</button>
@@ -1167,6 +1276,44 @@
         </div>
     </div>
 
+    <!-- Modal: Social Media Publishing Settings (BrightBean Studio style) -->
+    <div class="modal" id="modal-social-settings">
+        <div class="modal-content" style="max-width: 920px; width: 95%; max-height: 90vh; overflow-y: auto;">
+            <span class="close-modal" id="close-social-modal">&times;</span>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+                <h3 style="font-size: 1.35rem; font-weight: 700; color: var(--accent-cyan);">🌐 Quản lý Đăng Mạng Xã Hội (Social Accounts)</h3>
+            </div>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 20px;">
+                Cấu hình API Key, Access Token & Tự động xuất bản video lên các nền tảng (TikTok, YouTube, Facebook, LinkedIn, Instagram, Threads).
+            </p>
+
+            <form id="form-social-settings">
+                <!-- Auto Publish Bar -->
+                <div class="social-auto-bar">
+                    <div style="display: flex; align-items: center; gap: 14px;">
+                        <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; user-select: none;">
+                            <input type="checkbox" id="social-auto-enabled" style="width: 18px; height: 18px; accent-color: var(--accent-cyan);">
+                            <span style="font-weight: 700; font-size: 0.95rem; color: #fff;">Bật Tự động đăng (Auto Publish)</span>
+                        </label>
+                    </div>
+                    <div style="flex: 1; max-width: 480px;">
+                        <input type="text" id="social-auto-caption" placeholder="Caption mặc định (VD: Video tự động khởi tạo bởi CapCutAPI!)" style="padding: 7px 12px; font-size: 0.82rem;">
+                    </div>
+                </div>
+
+                <!-- Platform Cards Grid -->
+                <div class="platform-grid" id="social-platform-grid">
+                    <!-- Populated dynamically via JS -->
+                </div>
+
+                <div style="display: flex; gap: 15px; margin-top: 25px; border-top: 1px solid var(--border-color); padding-top: 18px;">
+                    <button type="button" class="btn btn-secondary" id="btn-social-cancel" style="flex: 1;">Đóng</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1.2;">💾 Lưu cấu hình Mạng Xã Hội</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
 <script>
     const systemStatusDot = document.getElementById('system-status-dot');
     const systemStatusText = document.getElementById('system-status-text');
@@ -1199,6 +1346,172 @@
     const settingsDefaultContextAi = document.getElementById('settings-default-context-ai');
     const settingsOpenreelApiKey = document.getElementById('settings-openreel-api-key');
     const settingsOpenreelReferenceKeys = document.getElementById('settings-openreel-reference-keys');
+
+    // Social Settings Elements (BrightBean Studio Style)
+    const btnOpenSocialSettings = document.getElementById('btn-open-social-settings');
+    const modalSocialSettings = document.getElementById('modal-social-settings');
+    const closeSocialModal = document.getElementById('close-social-modal');
+    const btnSocialCancel = document.getElementById('btn-social-cancel');
+    const formSocialSettings = document.getElementById('form-social-settings');
+    const socialPlatformGrid = document.getElementById('social-platform-grid');
+    const socialAutoEnabled = document.getElementById('social-auto-enabled');
+    const socialAutoCaption = document.getElementById('social-auto-caption');
+
+    let currentSocialData = null;
+
+    const SOCIAL_PLATFORMS_META = {
+        tiktok: { name: 'TikTok', desc: 'Đăng Video ngắn & Shorts', iconClass: 'icon-tiktok', icon: '🎵', fields: [{ key: 'access_token', label: 'Access Token' }, { key: 'refresh_token', label: 'Refresh Token' }, { key: 'client_key', label: 'Client Key' }, { key: 'client_secret', label: 'Client Secret' }] },
+        youtube: { name: 'YouTube', desc: 'Đăng Video chuẩn & Shorts', iconClass: 'icon-youtube', icon: '▶', fields: [{ key: 'access_token', label: 'Access Token' }, { key: 'refresh_token', label: 'Refresh Token' }, { key: 'client_id', label: 'Client ID' }, { key: 'client_secret', label: 'Client Secret' }] },
+        facebook: { name: 'Facebook', desc: 'Đăng Trang Fanpage & Reels', iconClass: 'icon-facebook', icon: 'f', fields: [{ key: 'access_token', label: 'Access Token' }, { key: 'page_id', label: 'Page ID' }] },
+        instagram: { name: 'Instagram', desc: 'Đăng Reels & Bài viết', iconClass: 'icon-instagram', icon: '📸', fields: [{ key: 'access_token', label: 'Access Token' }, { key: 'instagram_account_id', label: 'Instagram Account ID' }] },
+        linkedin: { name: 'LinkedIn', desc: 'Đăng Video Trang Cá nhân & Công ty', iconClass: 'icon-linkedin', icon: 'in', fields: [{ key: 'access_token', label: 'Access Token' }, { key: 'author_urn', label: 'Author URN' }] },
+        threads: { name: 'Threads', desc: 'Đăng Bài viết & Video', iconClass: 'icon-threads', icon: '@', fields: [{ key: 'access_token', label: 'Access Token' }, { key: 'user_id', label: 'User ID' }] }
+    };
+
+    function loadSocialSettings() {
+        fetch('/api/social_settings')
+        .then(res => res.json())
+        .then(data => {
+            if (data.ok) {
+                currentSocialData = data;
+                socialAutoEnabled.checked = !!data.auto_publish?.enabled;
+                socialAutoCaption.value = data.auto_publish?.default_caption || '';
+                renderSocialPlatforms(data.social_credentials || {});
+            }
+        })
+        .catch(err => log('Lỗi khi tải cấu hình mạng xã hội: ' + err, 'error'));
+    }
+
+    function renderSocialPlatforms(creds) {
+        socialPlatformGrid.innerHTML = '';
+        Object.keys(SOCIAL_PLATFORMS_META).forEach(key => {
+            const meta = SOCIAL_PLATFORMS_META[key];
+            const pdata = creds[key] || { enabled: false };
+            const isEnabled = !!pdata.enabled;
+
+            const card = document.createElement('div');
+            card.className = 'platform-card';
+            
+            let fieldsHtml = '';
+            meta.fields.forEach(f => {
+                const rawVal = pdata[f.key] || '';
+                const val = String(rawVal).replace(/^["']|["']$/g, '').replace(/"/g, '&quot;');
+                fieldsHtml += `
+                    <div class="form-group" style="margin-bottom: 8px;">
+                        <label style="font-size: 0.72rem; color: var(--text-muted);">${f.label}</label>
+                        <input type="text" class="social-input" data-platform="${key}" data-field="${f.key}" value="${val}" placeholder="${f.label}..." style="font-size: 0.76rem; padding: 5px 8px;">
+                    </div>
+                `;
+            });
+
+            card.innerHTML = `
+                <div>
+                    <div class="platform-card-header">
+                        <div class="platform-icon ${meta.iconClass}">${meta.icon}</div>
+                        <div class="platform-info">
+                            <div class="platform-title">${meta.name}</div>
+                            <div class="platform-desc">${meta.desc}</div>
+                        </div>
+                        <div class="platform-badge ${isEnabled ? 'badge-connected' : 'badge-disabled'}">
+                            ${isEnabled ? '● Đã bật' : '○ Tắt'}
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 10px;">
+                        <label style="display: flex; align-items: center; gap: 8px; font-size: 0.8rem; margin-bottom: 10px; cursor: pointer; color: #fff;">
+                            <input type="checkbox" class="social-enable-check" data-platform="${key}" ${isEnabled ? 'checked' : ''} style="width: 16px; height: 16px;">
+                            <span>Kích hoạt nền tảng ${meta.name}</span>
+                        </label>
+                        <div class="fields-container" style="${isEnabled ? '' : 'opacity: 0.6;'}">
+                            ${fieldsHtml}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="platform-card-footer">
+                    <button type="button" class="btn btn-secondary" onclick="testSocialConnection('${key}')" style="font-size: 0.75rem; padding: 4px 10px; width: auto;">🧪 Kiểm tra</button>
+                    <span style="font-size: 0.7rem; color: var(--text-muted);">${isEnabled ? 'Sẵn sàng tự động đăng' : 'Chưa kích hoạt'}</span>
+                </div>
+            `;
+            socialPlatformGrid.appendChild(card);
+        });
+    }
+
+    if (btnOpenSocialSettings) {
+        btnOpenSocialSettings.addEventListener('click', () => {
+            loadSocialSettings();
+            openModal(modalSocialSettings);
+        });
+    }
+
+    if (closeSocialModal) {
+        closeSocialModal.addEventListener('click', () => closeModal(modalSocialSettings));
+    }
+    if (btnSocialCancel) {
+        btnSocialCancel.addEventListener('click', () => closeModal(modalSocialSettings));
+    }
+
+    if (formSocialSettings) {
+        formSocialSettings.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const auto_publish = {
+                enabled: socialAutoEnabled.checked,
+                default_platforms: [],
+                default_caption: socialAutoCaption.value
+            };
+
+            const social_credentials = {};
+            Object.keys(SOCIAL_PLATFORMS_META).forEach(key => {
+                const meta = SOCIAL_PLATFORMS_META[key];
+                const enableCheck = document.querySelector(`.social-enable-check[data-platform="${key}"]`);
+                const isEnabled = enableCheck ? enableCheck.checked : false;
+                
+                if (isEnabled) {
+                    auto_publish.default_platforms.push(key);
+                }
+
+                social_credentials[key] = { enabled: isEnabled };
+                meta.fields.forEach(f => {
+                    const inp = document.querySelector(`.social-input[data-platform="${key}"][data-field="${f.key}"]`);
+                    social_credentials[key][f.key] = inp ? inp.value.trim().replace(/^["']|["']$/g, '') : '';
+                });
+            });
+
+            fetch('/api/social_settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ auto_publish, social_credentials })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.ok) {
+                    log('Đã lưu cấu hình mạng xã hội thành công!', 'success');
+                    closeModal(modalSocialSettings);
+                } else {
+                    log('Lỗi lưu cấu hình mạng xã hội: ' + data.error, 'error');
+                }
+            })
+            .catch(err => log('Lỗi lưu cấu hình: ' + err, 'error'));
+        });
+    }
+
+    window.testSocialConnection = function(platform) {
+        fetch('/api/social_settings/test_publish', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ platform })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.ok) {
+                alert(`[${platform.toUpperCase()}] ${data.message}`);
+                log(`Kiểm tra ${platform}: ${data.message}`, 'info');
+            } else {
+                alert(`Lỗi: ${data.error}`);
+            }
+        })
+        .catch(err => alert(`Lỗi kết nối: ${err}`));
+    };
 
     // Details Screen Elements
     const projectsGridContainer = document.getElementById('projects-grid-container');

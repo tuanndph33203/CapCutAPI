@@ -35,7 +35,20 @@ import re
 
 # Paths
 BASE_DIR = Path(__file__).parent.resolve()
+sys.path.append(str(BASE_DIR))
+
+try:
+    from social_publisher import (
+        publish_video_auto,
+        is_auto_publish_enabled,
+        set_auto_publish_enabled,
+        get_enabled_platforms
+    )
+except ImportError:
+    pass
+
 CONFIG_FILE = BASE_DIR / "config.json"
+
 VIDEOS_BASE_DIR = BASE_DIR / "Videos"
 OUTPUTS_DIR = BASE_DIR / "outputs"
 
@@ -99,7 +112,9 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"• `/status` - Kiểm tra trạng thái hệ thống CapCut\n"
         f"• `/new_draft <tên>` - Tạo dự án CapCut nháp mới\n"
         f"• `/pipeline` - Chạy quy trình dựng video tự động\n"
-        f"• `/rpa_export` - Gọi CapCut GUI xuất video tự động\n\n"
+        f"• `/rpa_export` - Gọi CapCut GUI xuất video tự động\n"
+        f"• `/publish <file/url>` - Đẩy video lên đa nền tảng MXH\n"
+        f"• `/autopublish <on/off>` - Bật/tắt tự động đăng bài\n\n"
         f"📂 *Mẹo:* Gửi trực tiếp **Link Douyin/TikTok/YouTube** hoặc **Video/Audio**, Bot sẽ tự lưu vào `Videos/{current_folder}`!"
     )
 
@@ -113,6 +128,10 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton("🖥️ Xuất Video (RPA)", callback_data="btn_rpa_export"),
         ],
         [
+            InlineKeyboardButton("🚀 Đẩy bài Đa Nền tảng", callback_data="btn_publish_menu"),
+            InlineKeyboardButton("⚙️ Auto Publish", callback_data="btn_autopublish_menu"),
+        ],
+        [
             InlineKeyboardButton("🗄️ Tra cứu MongoDB", callback_data="btn_history"),
             InlineKeyboardButton("📊 Kiểm tra Status", callback_data="btn_status"),
         ],
@@ -120,6 +139,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton("❓ Hướng dẫn Chi tiết", callback_data="btn_help"),
         ],
     ]
+
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(welcome_text, parse_mode="Markdown", reply_markup=reply_markup)
@@ -204,15 +224,25 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "Gửi lệnh: `/rpa_export` để bắt đầu quy trình tự động mở project & export video.",
             parse_mode="Markdown"
         )
+    elif data == "btn_publish_menu":
+        await query.message.reply_text(
+            "🚀 **ĐẨY BÀI ĐA NỀN TẢNG**\n\n"
+            "Dùng lệnh: `/publish <đường_dẫn_file_hoặc_url>`\n"
+            "Ví dụ: `/publish C:/Projects/CapCutAPI/outputs/my_video.mp4`",
+            parse_mode="Markdown"
+        )
+    elif data == "btn_autopublish_menu":
+        await autopublish_command(update, context)
     elif data == "btn_help":
         help_detail = (
-            "📖 **HƯỚNG DẪN CHI TIẾT TỰ ĐỘNG HÓA CAPCUT**\n\n"
+            "📖 **HƯỚNG DẪN CHI TIẾT TỰ ĐỘNG HÓA CAPCUT & DỰNG DÂN ĐA NỀN TẢNG**\n\n"
             "1️⃣ **Chọn Thư Mục**: Dùng lệnh `/folder tên_folder` để chọn/tạo thư mục lưu trong `Videos/`.\n"
             "2️⃣ **Gửi Link / Media**: Gửi bất kỳ link Douyin/YouTube/TikTok hoặc file media qua chat Telegram.\n"
             "3️⃣ **Tạo Draft & Pipeline**: Bot tự động lưu MongoDB `video_logger_db`, tải video vào `Videos/<folder>` và nạp vào Timeline CapCut.\n"
-            "4️⃣ **Xuất Video (RPA)**: Lệnh `/rpa_export` điều khiển CapCut xuất file `.mp4` và gửi lại Telegram."
+            "4️⃣ **Đẩy bài Đa Nền tảng**: Bot tự động đẩy video lên TikTok, YouTube, Facebook, LinkedIn... nếu bật `/autopublish on`."
         )
         await query.message.reply_text(help_detail, parse_mode="Markdown")
+
 
 
 async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -568,6 +598,75 @@ async def history_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.effective_message.reply_text(msg, parse_mode="Markdown")
 
 
+async def publish_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler for /publish <file_or_url> command"""
+    msg = update.effective_message
+    args = context.args
+    video_target = " ".join(args) if args else ""
+
+    if not video_target:
+        await msg.reply_text(
+            "🚀 **CÚ PHÁP ĐẨY BÀI ĐA NỀN TẢNG:**\n"
+            "`/publish <đường_dẫn_file_hoặc_url>`\n\n"
+            "Ví dụ:\n"
+            "`/publish C:/Projects/CapCutAPI/outputs/render.mp4`\n"
+            "`/publish https://your-domain.com/video.mp4`",
+            parse_mode="Markdown"
+        )
+        return
+
+    status_msg = await msg.reply_text(f"🌐 *Đang tiến hành đẩy bài lên các nền tảng MXH...*\n`{video_target}`", parse_mode="Markdown")
+
+    loop = asyncio.get_running_loop()
+    res = await loop.run_in_executor(None, lambda: publish_video_auto(video_target))
+
+    if res.get("success"):
+        res_text = f"🎉 **ĐÃ ĐẨY BÀI THÀNH CÔNG!** ({res.get('success_count')}/{res.get('total_requested')} nền tảng)\n\n"
+        for p, r in res.get("results", {}).items():
+            if r.get("success"):
+                res_text += f"• ✅ **{p.upper()}**: Post ID `{r.get('post_id')}`\n"
+            else:
+                res_text += f"• ❌ **{p.upper()}**: Lỗi - {r.get('error')}\n"
+        await status_msg.edit_text(res_text, parse_mode="Markdown")
+    else:
+        await status_msg.edit_text(
+            f"⚠️ **Thông báo đẩy bài:** `{res.get('error', 'Chưa có nền tảng nào được bật token')}`\n\n"
+            f"💡 *Vui lòng cấu hình token trong file `config.json` dưới mục `social_credentials`.*",
+            parse_mode="Markdown"
+        )
+
+
+async def autopublish_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Handler for /autopublish <on/off> command"""
+    msg = update.effective_message
+    args = context.args
+
+    if args:
+        val = args[0].lower().strip()
+        if val in ["on", "true", "1", "bat", "bật"]:
+            set_auto_publish_enabled(True)
+            await msg.reply_text("🟢 **Đã BẬT chế độ Tự động Đẩy bài Đa Nền tảng** sau khi dựng video!", parse_mode="Markdown")
+            return
+        elif val in ["off", "false", "0", "tat", "tắt"]:
+            set_auto_publish_enabled(False)
+            await msg.reply_text("🔴 **Đã TẮT chế độ Tự động Đẩy bài.**", parse_mode="Markdown")
+            return
+
+    status = "🟢 BẬT" if is_auto_publish_enabled() else "🔴 TẮT"
+    platforms = get_enabled_platforms()
+    plat_str = ", ".join(platforms) if platforms else "Chưa có token nền tảng nào được bật trong `config.json`"
+
+    await msg.reply_text(
+        f"⚙️ **CẤU HÌNH TỰ ĐỘNG ĐẨY BÀI (AUTO PUBLISH)**\n\n"
+        f"• **Trạng thái hiện tại**: {status}\n"
+        f"• **Nền tảng sẵn sàng**: `{plat_str}`\n\n"
+        f"📌 **Cú pháp bật/tắt:**\n"
+        f"• `/autopublish on` - Bật tự động đăng\n"
+        f"• `/autopublish off` - Tắt tự động đăng",
+        parse_mode="Markdown"
+    )
+
+
 async def pipeline_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Handler for /pipeline command"""
     args = context.args
@@ -584,10 +683,13 @@ async def pipeline_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 
+
 def main():
     """Main function to run Telegram Bot"""
+    sys.stdout.reconfigure(encoding="utf-8")
     config = load_config()
     token = config.get("telegram_bot_token", "")
+
 
     if not token or token == "YOUR_TELEGRAM_BOT_TOKEN_HERE":
         print("\n" + "=" * 70)
@@ -608,7 +710,10 @@ def main():
     app.add_handler(CommandHandler("new_draft", new_draft_command))
     app.add_handler(CommandHandler("pipeline", pipeline_command))
     app.add_handler(CommandHandler("rpa_export", rpa_export_command))
+    app.add_handler(CommandHandler(["publish", "pub"], publish_command))
+    app.add_handler(CommandHandler(["autopublish", "autopub"], autopublish_command))
     app.add_handler(CommandHandler(["folder", "setfolder"], folder_command))
+
     app.add_handler(CommandHandler(["history", "db"], history_command))
     app.add_handler(CallbackQueryHandler(button_callback))
     

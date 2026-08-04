@@ -239,6 +239,8 @@ def get_recent_videos(limit: int = 10, folder_name: Optional[str] = None) -> Lis
 
 
 if __name__ == "__main__":
+    import sys
+    sys.stdout.reconfigure(encoding="utf-8")
     print("Testing MongoDB connection...")
     coll = get_videos_collection()
     if coll is not None:
@@ -247,3 +249,4 @@ if __name__ == "__main__":
         print(f"Found {len(recent)} recent videos in DB.")
     else:
         print("❌ MongoDB service is not running or connection failed.")
+

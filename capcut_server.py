@@ -1354,5 +1354,41 @@ def get_video_character_effect_types():
         return jsonify(result)
 
 
+@app.route('/publish', methods=['POST'])
+def publish_video_endpoint():
+    try:
+        data = request.get_json() or {}
+        video_path = data.get("video_path") or data.get("video_url")
+        if not video_path:
+            return jsonify({"success": False, "error": "Thiếu đường dẫn video (video_path hoặc video_url)"}), 400
+            
+        title = data.get("title")
+        caption = data.get("caption") or data.get("description")
+        platforms = data.get("platforms")
+        privacy_status = data.get("privacy_status", "public")
+        thumbnail_file = data.get("thumbnail_file") or data.get("thumbnail_path")
+        tags = data.get("tags")
+        category_id = data.get("category_id", "22")
+        made_for_kids = data.get("made_for_kids", False)
+        
+        from social_publisher import SocialPublisherManager
+        manager = SocialPublisherManager()
+        result = manager.publish_video(
+            video_path_or_url=video_path,
+            caption=caption,
+            title=title,
+            platforms=platforms,
+            privacy_status=privacy_status,
+            thumbnail_file=thumbnail_file,
+            tags=tags,
+            category_id=category_id,
+            made_for_kids=made_for_kids,
+            extra=data.get("extra")
+        )
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=PORT)
