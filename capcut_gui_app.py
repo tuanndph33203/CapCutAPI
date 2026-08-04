@@ -5578,6 +5578,85 @@ def test_connection():
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)})
 
+CONFIG_JSON_PATH = Path(__file__).resolve().parent / "config.json"
+
+@app.route('/api/social_settings', methods=['GET', 'POST'])
+def handle_social_settings():
+    if request.method == 'GET':
+        try:
+            if CONFIG_JSON_PATH.exists():
+                with open(CONFIG_JSON_PATH, "r", encoding="utf-8") as f:
+                    cfg = json.load(f)
+            else:
+                cfg = {}
+            auto_publish = cfg.get("auto_publish", {
+                "enabled": True,
+                "default_platforms": ["tiktok", "youtube", "facebook"],
+                "default_caption": "Video được tự động khởi tạo bởi CapCutAPI!"
+            })
+            social_credentials = cfg.get("social_credentials", {
+                "tiktok": {"enabled": False, "access_token": "", "refresh_token": "", "client_key": "", "client_secret": ""},
+                "youtube": {"enabled": False, "access_token": "", "refresh_token": "", "client_id": "", "client_secret": ""},
+                "facebook": {"enabled": False, "access_token": "", "page_id": ""},
+                "linkedin": {"enabled": False, "access_token": "", "author_urn": ""},
+                "instagram": {"enabled": False, "access_token": "", "instagram_account_id": ""},
+                "threads": {"enabled": False, "access_token": "", "user_id": ""}
+            })
+            return jsonify({
+                "ok": True,
+                "auto_publish": auto_publish,
+                "social_credentials": social_credentials
+            })
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+    else:
+        try:
+            data = request.get_json() or {}
+            new_auto_publish = data.get("auto_publish")
+            new_social_credentials = data.get("social_credentials")
+            
+            if CONFIG_JSON_PATH.exists():
+                with open(CONFIG_JSON_PATH, "r", encoding="utf-8") as f:
+                    cfg = json.load(f)
+            else:
+                cfg = {}
+                
+            if new_auto_publish is not None:
+                cfg["auto_publish"] = new_auto_publish
+            if new_social_credentials is not None:
+                cfg["social_credentials"] = new_social_credentials
+                
+            with open(CONFIG_JSON_PATH, "w", encoding="utf-8") as f:
+                json.dump(cfg, f, ensure_ascii=False, indent=2)
+                
+            return jsonify({"ok": True, "message": "Đã cập nhật cấu hình mạng xã hội thành công!"})
+        except Exception as e:
+            return jsonify({"ok": False, "error": str(e)}), 500
+
+@app.route('/api/social_settings/test_publish', methods=['POST'])
+def test_social_publish():
+    try:
+        data = request.get_json() or {}
+        platform = data.get("platform")
+        if not platform:
+            return jsonify({"ok": False, "error": "Thiếu tham số platform"}), 400
+            
+        try:
+            from social_publisher import SocialPublisherManager
+            manager = SocialPublisherManager()
+            creds = manager.creds.get(platform, {})
+            is_enabled = creds.get("enabled", False)
+            return jsonify({
+                "ok": True,
+                "platform": platform,
+                "configured": is_enabled,
+                "message": f"Nền tảng {platform.capitalize()} {'đã được bật' if is_enabled else 'chưa được bật trong cấu hình'}"
+            })
+        except Exception as err:
+            return jsonify({"ok": False, "error": f"Lỗi khởi tạo publisher: {err}"})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
 @app.route('/api/logs')
 def get_logs():
     def log_stream():
@@ -5782,8 +5861,10 @@ def delete_pipeline_project(project_id):
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
+    sys.stdout.reconfigure(encoding="utf-8")
     # Ensure port 5000 is used
     logger.info("Khởi động server CapCut Automation Studio tại http://127.0.0.1:5000")
     debug_enabled = str(os.environ.get("CAPCUT_DEBUG", "")).lower() in {"1", "true", "yes", "on"}
     app.run(host="0.0.0.0", port=5000, debug=debug_enabled, use_reloader=False)
+
 
