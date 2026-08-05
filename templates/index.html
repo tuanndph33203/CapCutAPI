@@ -1667,12 +1667,9 @@
                 </div>
 
                 <!-- BOTTOM ACTION BUTTONS -->
-                <div style="display: flex; gap: 16px; margin-top: 20px;">
-                    <button type="submit" class="btn btn-primary" style="flex: 1; padding: 12px; font-size: 0.9rem;">
-                        💾 Lưu cấu hình
-                    </button>
+                <div style="display: flex; margin-top: 20px;">
                     <button type="button" class="btn btn-warning" id="btn-detail-run"
-                        style="background: linear-gradient(135deg,#f2994a,#e67e22); color:#fff; border:none; flex: 1.2; padding: 12px; font-size: 0.9rem;">
+                        style="background: linear-gradient(135deg,#f2994a,#e67e22); color:#fff; border:none; width: 100%; padding: 14px; font-size: 1rem; font-weight: 700; border-radius: 10px; cursor: pointer;">
                         ▶ Chạy Pipeline ngay
                     </button>
                 </div>
@@ -1844,13 +1841,6 @@
             </div>
         </div>
 
-        <script>
-            const systemStatusDot = document.getElementById('system-status-dot');
-            const systemStatusText = document.getElementById('system-status-text');
-            const terminalOut = document.getElementById('terminal-out');
-            const queueTbody = document.getElementById('queue-tbody');
-            const queueStatusTabs = document.getElementById('queue-status-tabs');
-
     <!-- Modal: Social Media Publishing Settings (BrightBean Studio style) -->
     <div class="modal" id="modal-social-settings">
         <div class="modal-content" style="max-width: 920px; width: 95%; max-height: 90vh; overflow-y: auto;">
@@ -1889,23 +1879,23 @@
         </div>
     </div>
 
-<script>
-    const systemStatusDot = document.getElementById('system-status-dot');
-    const systemStatusText = document.getElementById('system-status-text');
-    const terminalOut = document.getElementById('terminal-out');
-    const queueTbody = document.getElementById('queue-tbody');
-    const queueStatusTabs = document.getElementById('queue-status-tabs');
+    <script>
+        const systemStatusDot = document.getElementById('system-status-dot');
+        const systemStatusText = document.getElementById('system-status-text');
+        const terminalOut = document.getElementById('terminal-out');
+        const queueTbody = document.getElementById('queue-tbody');
+        const queueStatusTabs = document.getElementById('queue-status-tabs');
 
-    const btnStart = document.getElementById('btn-start');
-    const btnPause = document.getElementById('btn-pause');
-    const btnResume = document.getElementById('btn-resume');
-    const btnClear = document.getElementById('btn-clear');
-    const btnTestUI = document.getElementById('btn-test-ui');
-    const btnAutoShutdown = document.getElementById('btn-auto-shutdown');
-    const btnRefreshProjects = document.getElementById('btn-refresh-projects');
-    const btnNewPipelineProject = document.getElementById('btn-new-pipeline-project');
-    const btnOpenSettings = document.getElementById('btn-open-settings');
-    const btnOpenSocialSettings = document.getElementById('btn-open-social-settings');
+        const btnStart = document.getElementById('btn-start');
+        const btnPause = document.getElementById('btn-pause');
+        const btnResume = document.getElementById('btn-resume');
+        const btnClear = document.getElementById('btn-clear');
+        const btnTestUI = document.getElementById('btn-test-ui');
+        const btnAutoShutdown = document.getElementById('btn-auto-shutdown');
+        const btnRefreshProjects = document.getElementById('btn-refresh-projects');
+        const btnNewPipelineProject = document.getElementById('btn-new-pipeline-project');
+        const btnOpenSettings = document.getElementById('btn-open-settings');
+        const btnOpenSocialSettings = document.getElementById('btn-open-social-settings');
 
             // Modals & Forms (Create Project)
             const bannerCreateProject = document.getElementById('banner-create-project');
@@ -1942,7 +1932,6 @@
             const btnDetailRun = document.getElementById('btn-detail-run');
             const detailVideoPathInput = document.getElementById('detail-video-path');
     // Social Settings Elements (BrightBean Studio Style)
-    const btnOpenSocialSettings = document.getElementById('btn-open-social-settings');
     const modalSocialSettings = document.getElementById('modal-social-settings');
     const closeSocialModal = document.getElementById('close-social-modal');
     const btnSocialCancel = document.getElementById('btn-social-cancel');
@@ -2106,18 +2095,6 @@
         })
         .catch(err => alert(`Lỗi kết nối: ${err}`));
     };
-
-    // Details Screen Elements
-    const projectsGridContainer = document.getElementById('projects-grid-container');
-    const projectDetailsContainer = document.getElementById('project-details-container');
-    const btnBackToProjects = document.getElementById('btn-back-to-projects');
-    const detailProjectTitle = document.getElementById('detail-project-title');
-    const detailProjectCover = document.getElementById('detail-project-cover');
-    const detailProjectPlaceholder = document.getElementById('detail-project-placeholder');
-    const detailProjectFolder = document.getElementById('detail-project-folder');
-    const detailProjectSize = document.getElementById('detail-project-size');
-    const detailProjectDuration = document.getElementById('detail-project-duration');
-
 
             const projectsGrid = document.getElementById('projects-grid');
 
@@ -2736,17 +2713,19 @@
             }
 
             // Tkinter Native file dialogs for Absolute Paths
-            btnBrowseCreateVideo.addEventListener('click', () => {
-                log('Đang mở hộp thoại chọn file video cho dự án mới...');
-                fetch('/api/select_files', { method: 'POST' })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.files && data.files.length > 0) {
-                            createVideoPathInput.value = data.files[0];
-                            log(`Đã chọn video: ${data.files[0]}`, 'success');
-                        }
-                    });
-            });
+            if (typeof btnBrowseCreateVideo !== 'undefined' && btnBrowseCreateVideo) {
+                btnBrowseCreateVideo.addEventListener('click', () => {
+                    log('Đang mở hộp thoại chọn file video cho dự án mới...');
+                    fetch('/api/select_files', { method: 'POST' })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.files && data.files.length > 0 && createVideoPathInput) {
+                                createVideoPathInput.value = data.files[0];
+                                log(`Đã chọn video: ${data.files[0]}`, 'success');
+                            }
+                        });
+                });
+            }
 
             // Visual Scrollable Video List Implementation
             const detailVideoListContainer = document.getElementById('detail-video-list-container');
@@ -3078,31 +3057,36 @@
             }
 
 
-            // Save project configuration form from details screen
-            formDetailConfig.addEventListener('submit', (e) => {
-                e.preventDefault();
-                const folder = document.getElementById('detail-config-folder').value;
+            // Auto-save project configuration when user inputs or changes any field
+            let detailConfigAutoSaveTimeout = null;
+            function triggerDetailConfigAutoSave() {
+                if (detailConfigAutoSaveTimeout) clearTimeout(detailConfigAutoSaveTimeout);
+                detailConfigAutoSaveTimeout = setTimeout(() => {
+                    saveDetailProjectConfigAuto();
+                }, 400);
+            }
+
+            function saveDetailProjectConfigAuto() {
+                const folderInput = document.getElementById('detail-config-folder');
+                if (!folderInput || !folderInput.value) return;
+                const folder = folderInput.value;
                 const config = getDetailProjectConfigPayload();
 
                 fetch(`/api/pipeline-projects/${encodeURIComponent(folder)}/config`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(config)
-                })
-                    .then(res => res.json())
-                    .then(data => {
-                        if (data.ok) {
-                            log(`Đã lưu cấu hình pipeline cho dự án thành công.`, 'success');
-                            // Fix bug: hide detail view and show grid BEFORE calling loadProjects
-                            projectDetailsContainer.style.display = 'none';
-                            projectsGridContainer.style.display = 'block';
-                            document.body.classList.remove('detail-mode');
-                            loadProjects();
-                        } else {
-                            log('Lỗi khi lưu cấu hình: ' + data.error, 'error');
-                        }
-                    });
-            });
+                }).catch(() => {});
+            }
+
+            if (formDetailConfig) {
+                formDetailConfig.addEventListener('input', triggerDetailConfigAutoSave);
+                formDetailConfig.addEventListener('change', triggerDetailConfigAutoSave);
+                formDetailConfig.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    saveDetailProjectConfigAuto();
+                });
+            }
 
             // Run pipeline from details screen
             btnDetailRun.addEventListener('click', () => {

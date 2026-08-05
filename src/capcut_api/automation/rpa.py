@@ -1,0 +1,871 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import ctypes
+import json
+import logging
+import sys
+import time
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Callable
+
+import cv2
+import numpy as np
+import psutil
+import pyautogui
+import win32con
+import win32gui
+import win32process
+import win32ui
+from PIL import Image, ImageGrab
+
+try:
+    from pyJianYingDraft.capcut_controller import capcut_main_hwnd_and_rect
+except Exception:
+    capcut_main_hwnd_and_rect = None
+
+
+pyautogui.FAILSAFE = False
+pyautogui.PAUSE = 0.05
+FAILSAFE_EDGE_MARGIN = 8
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class WindowBox:
+    hwnd: int
+    title: str
+    left: int
+    top: int
+    right: int
+    bottom: int
+
+    @property
+    def width(self) -> int:
+        return self.right - self.left
+
+    @property
+    def height(self) -> int:
+        return self.bottom - self.top
+
+
+def list_window_candidates() -> list[dict[str, Any]]:
+    candidates: list[dict[str, Any]] = []
+
+    def enum_window(hwnd: int, _: Any) -> None:
+        if not win32gui.IsWindowVisible(hwnd):
+            return
+        title = win32gui.GetWindowText(hwnd)
+        class_name = win32gui.GetClassName(hwnd)
+        left, top, right, bottom = win32gui.GetWindowRect(hwnd)
+        width = max(0, right - left)
+        height = max(0, bottom - top)
+        try:
+            _, pid = win32process.GetWindowThreadProcessId(hwnd)
+            proc = psutil.Process(pid)
+            process_name = proc.name()
+            process_path = proc.exe()
+        except Exception as exc:
+            pid = -1
+            process_name = ""
+            process_path = f"<error: {exc}>"
+        haystack = f"{title} {class_name} {process_name} {process_path}".lower()
+        if "capcut" not in haystack:
+            return
+        candidates.append({
+            "hwnd": hwnd,
+            "pid": pid,
+            "title": title,
+            "class_name": class_name,
+            "process_name": process_name,
+            "process_path": process_path,
+            "rect": [left, top, right, bottom],
+            "width": width,
+            "height": height,
+            "area": width * height,
+        })
+
+    win32gui.EnumWindows(enum_window, None)
+    candidates.sort(key=lambda item: item["area"], reverse=True)
+    return candidates
+
+
+def write_window_debug_report(debug_report: Path, *, selected: WindowBox | None = None, reason: str | None = None) -> None:
+    debug_report.parent.mkdir(parents=True, exist_ok=True)
+    payload: dict[str, Any] = {
+        "reason": reason,
+        "selected": None,
+        "candidates": list_window_candidates(),
+    }
+    if selected is not None:
+        payload["selected"] = {
+            "hwnd": selected.hwnd,
+            "title": selected.title,
+            "rect": [selected.left, selected.top, selected.right, selected.bottom],
+            "width": selected.width,
+            "height": selected.height,
+        }
+    debug_report.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def is_capcut_hwnd(hwnd: int) -> bool:
+    try:
+        _, pid = win32process.GetWindowThreadProcessId(hwnd)
+        proc = psutil.Process(pid)
+        process_name = (proc.name() or "").lower()
+        process_path = (proc.exe() or "").lower()
+        return process_name == "capcut.exe" or process_path.endswith("\\capcut.exe")
+    except Exception:
+        return False
+
+
+def find_capcut_window(debug_report: Path | None = None) -> WindowBox:
+    deadline = time.time() + 20.0
+    last_reason = "no matching CapCut.exe window found"
+
+    while True:
+        if capcut_main_hwnd_and_rect is not None:
+            try:
+                found = capcut_main_hwnd_and_rect()
+                if found is not None:
+                    hwnd, rect = found
+                    if not is_capcut_hwnd(hwnd):
+                        last_reason = "capcut_main_hwnd_and_rect returned a non-CapCut window"
+                        raise RuntimeError(last_reason)
+                    title = win32gui.GetWindowText(hwnd) or "CapCut"
+                    selected = WindowBox(hwnd, title, rect[0], rect[1], rect[2], rect[3])
+                    if debug_report:
+                        write_window_debug_report(debug_report, selected=selected, reason="selected via capcut_main_hwnd_and_rect")
+                    return selected
+            except Exception as exc:
+                last_reason = f"capcut_main_hwnd_and_rect failed: {exc}"
+
+        matches: list[WindowBox] = []
+
+        def enum_window(hwnd: int, _: Any) -> None:
+            if not win32gui.IsWindow(hwnd):
+                return
+            title = win32gui.GetWindowText(hwnd)
+            try:
+                _, pid = win32process.GetWindowThreadProcessId(hwnd)
+                proc = psutil.Process(pid)
+                process_name = proc.name().lower()
+                process_path = (proc.exe() or "").lower()
+                if process_name != "capcut.exe" and not process_path.endswith("\\capcut.exe"):
+                    return
+            except Exception:
+                return
+            left, top, right, bottom = win32gui.GetWindowRect(hwnd)
+            if right - left < 600 or bottom - top < 400:
+                return
+            if not win32gui.IsWindowVisible(hwnd):
+                return
+            matches.append(WindowBox(hwnd, title or "CapCut", left, top, right, bottom))
+
+        try:
+            win32gui.EnumWindows(enum_window, None)
+        except Exception as enum_exc:
+            last_reason = f"EnumWindows failed: {enum_exc}"
+        if matches:
+            selected = sorted(matches, key=lambda box: box.width * box.height, reverse=True)[0]
+            if debug_report:
+                write_window_debug_report(debug_report, selected=selected, reason="selected via win32 enumeration fallback")
+            return selected
+
+        if time.time() >= deadline:
+            if debug_report:
+                write_window_debug_report(debug_report, reason=last_reason)
+            raise RuntimeError("CapCut window not found")
+        time.sleep(0.25)
+
+
+def activate_window(window: WindowBox) -> None:
+    try:
+        win32gui.ShowWindow(window.hwnd, 5)
+        win32gui.SetForegroundWindow(window.hwnd)
+    except Exception:
+        pass
+    time.sleep(0.25)
+
+
+def screenshot_window(window: WindowBox) -> np.ndarray:
+    errors: list[str] = []
+    try:
+        image = ImageGrab.grab(bbox=(window.left, window.top, window.right, window.bottom), all_screens=True)
+        return cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+    except Exception as exc:
+        errors.append(f"ImageGrab: {exc}")
+
+    width = max(1, window.right - window.left)
+    height = max(1, window.bottom - window.top)
+    try:
+        image = pyautogui.screenshot(region=(window.left, window.top, width, height))
+        return cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+    except Exception as exc:
+        errors.append(f"pyautogui: {exc}")
+
+    hwnd_dc = None
+    mfc_dc = None
+    save_dc = None
+    bitmap = None
+    try:
+        hwnd_dc = win32gui.GetWindowDC(window.hwnd)
+        mfc_dc = win32ui.CreateDCFromHandle(hwnd_dc)
+        save_dc = mfc_dc.CreateCompatibleDC()
+        bitmap = win32ui.CreateBitmap()
+        bitmap.CreateCompatibleBitmap(mfc_dc, width, height)
+        save_dc.SelectObject(bitmap)
+
+        # PW_RENDERFULLCONTENT helps with modern Chromium/DirectComposition
+        # windows; fall back to a plain BitBlt if the app refuses PrintWindow.
+        rendered = False
+        try:
+            rendered = ctypes.windll.user32.PrintWindow(window.hwnd, save_dc.GetSafeHdc(), 2) != 0
+        except Exception:
+            rendered = False
+        if not rendered:
+            save_dc.BitBlt((0, 0), (width, height), mfc_dc, (0, 0), win32con.SRCCOPY)
+
+        info = bitmap.GetInfo()
+        bits = bitmap.GetBitmapBits(True)
+        image = Image.frombuffer(
+            "RGB",
+            (info["bmWidth"], info["bmHeight"]),
+            bits,
+            "raw",
+            "BGRX",
+            0,
+            1,
+        )
+        return cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+    except Exception as exc:
+        errors.append(f"PrintWindow: {exc}")
+        raise OSError("screen grab failed; " + "; ".join(errors)) from exc
+    finally:
+        try:
+            if bitmap is not None:
+                win32gui.DeleteObject(bitmap.GetHandle())
+        except Exception:
+            pass
+        try:
+            if save_dc is not None:
+                save_dc.DeleteDC()
+        except Exception:
+            pass
+        try:
+            if mfc_dc is not None:
+                mfc_dc.DeleteDC()
+        except Exception:
+            pass
+        try:
+            if hwnd_dc is not None:
+                win32gui.ReleaseDC(window.hwnd, hwnd_dc)
+        except Exception:
+            pass
+
+
+def ensure_cursor_safe(window: WindowBox | None = None) -> None:
+    x, y = pyautogui.position()
+    screen_w, screen_h = pyautogui.size()
+    near_edge = (
+        x <= FAILSAFE_EDGE_MARGIN
+        or y <= FAILSAFE_EDGE_MARGIN
+        or x >= screen_w - 1 - FAILSAFE_EDGE_MARGIN
+        or y >= screen_h - 1 - FAILSAFE_EDGE_MARGIN
+    )
+    if not near_edge:
+        return
+
+    if window is not None:
+        target_x = max(window.left + 80, min(window.right - 80, window.left + window.width // 2))
+        target_y = max(window.top + 80, min(window.bottom - 80, window.top + window.height // 2))
+    else:
+        target_x = screen_w // 2
+        target_y = screen_h // 2
+
+    # Temporarily disable PyAutoGUI's failsafe only while nudging the cursor
+    # away from the screen corner that would otherwise abort all automation.
+    previous_failsafe = pyautogui.FAILSAFE
+    pyautogui.FAILSAFE = False
+    try:
+        pyautogui.moveTo(target_x, target_y, duration=0.1)
+    finally:
+        pyautogui.FAILSAFE = previous_failsafe
+
+
+def click_abs(x: int, y: int, dry_run: bool) -> dict[str, Any]:
+    if not dry_run:
+        ensure_cursor_safe()
+        pyautogui.click(x, y)
+    return {"x": x, "y": y, "dry_run": dry_run}
+
+
+def select_all_timeline(
+    dry_run: bool,
+    click_x_ratio: float = 0.5,
+    click_y_from_bottom: int = 150,
+    pause_after_click: float = 0.5,
+    pause_after_hotkey: float = 1.0,
+    verify_template: Path | None = None,
+    verify_threshold: float = 0.68,
+) -> dict[str, Any]:
+    window = find_capcut_window()
+    activate_window(window)
+    x = int(window.left + window.width * click_x_ratio)
+    y = int(window.bottom - click_y_from_bottom)
+
+    attempts = 10
+    success = False
+    last_score = 0.0
+    attempt = 1
+
+    for attempt in range(1, attempts + 1):
+        if not dry_run:
+            ensure_cursor_safe(window)
+            pyautogui.click(x, y)
+            time.sleep(pause_after_click)
+            pyautogui.hotkey("ctrl", "a")
+            time.sleep(pause_after_hotkey)
+
+        if not verify_template or dry_run:
+            success = True
+            break
+
+        try:
+            match = best_template_score(verify_template)
+            last_score = float(match["score"])
+            if last_score >= verify_threshold:
+                logger.info(f"Verify template {verify_template.name} thành công với score {last_score:.4f} ở lần thử {attempt}")
+                success = True
+                break
+            else:
+                logger.warning(
+                    f"Verify template {verify_template.name} chưa xuất hiện (score {last_score:.4f} < {verify_threshold}) ở lần thử {attempt}/{attempts}"
+                )
+        except Exception as e:
+            logger.warning(f"Lỗi khi verify template: {e}")
+
+        if attempt == 5:
+            # "SAU 5 LẦN KHÔNG ĐƯỢC BÁO LỖI"
+            logger.error(
+                f"CẢNH BÁO LỖI: Đã thử 5 lần click timeline + Ctrl+A nhưng vẫn không xuất hiện {verify_template.name} (score gần nhất: {last_score:.4f})!"
+            )
+
+        if attempt < attempts:
+            logger.info("Đợi 1 giây rồi thử lại click timeline và nhấn Ctrl+A...")
+            time.sleep(1.0)
+
+    if not success:
+        # "10 LẦN KHÔNG ĐƯỢC THÌ LÀ LỖI"
+        raise RuntimeError(
+            f"LỖI HỆ THỐNG: Đã thử 10 lần click timeline + Ctrl+A nhưng vẫn không xuất hiện {verify_template.name} (score gần nhất: {last_score:.4f})!"
+        )
+
+    return {
+        "action": "select_all_timeline",
+        "window": window.title,
+        "window_rect": [window.left, window.top, window.right, window.bottom],
+        "x": x,
+        "y": y,
+        "click_x_ratio": click_x_ratio,
+        "click_y_from_bottom": click_y_from_bottom,
+        "verify_template": str(verify_template) if verify_template else None,
+        "verify_score": last_score if verify_template else None,
+        "attempts_used": attempt,
+        "dry_run": dry_run,
+    }
+
+
+
+def click_template(
+    template_path: Path,
+    threshold: float,
+    dry_run: bool,
+    timeout: float,
+    click_offset_x: int = 0,
+    click_offset_y: int = 0,
+    search_region: list[float] | None = None,
+    fallback_fn: Callable[[], Any] | None = None,
+    max_fallback: int = 10,
+    fallback_delay: float = 2.0,
+) -> dict[str, Any]:
+    start = time.time()
+    template = cv2.imread(str(template_path), cv2.IMREAD_COLOR)
+    if template is None:
+        raise FileNotFoundError(f"template not found or unreadable: {template_path}")
+
+    fallback_count = 0
+
+    while True:
+        window = find_capcut_window()
+        activate_window(window)
+        screen = screenshot_window(window)
+        crop_left = 0
+        crop_top = 0
+        search_screen = screen
+        if search_region:
+            sh, sw = screen.shape[:2]
+            x1 = max(0, min(sw - 1, int(sw * search_region[0])))
+            y1 = max(0, min(sh - 1, int(sh * search_region[1])))
+            x2 = max(x1 + 1, min(sw, int(sw * search_region[2])))
+            y2 = max(y1 + 1, min(sh, int(sh * search_region[3])))
+            search_screen = screen[y1:y2, x1:x2]
+            crop_left = x1
+            crop_top = y1
+
+        result = cv2.matchTemplate(search_screen, template, cv2.TM_CCOEFF_NORMED)
+        _, score, _, max_loc = cv2.minMaxLoc(result)
+        if score >= threshold:
+            h, w = template.shape[:2]
+            x = window.left + crop_left + max_loc[0] + w // 2 + click_offset_x
+            y = window.top + crop_top + max_loc[1] + h // 2 + click_offset_y
+            clicked = click_abs(x, y, dry_run)
+            res = {
+                "action": "click_template",
+                "template": str(template_path),
+                "score": float(score),
+                "window": window.title,
+                "search_region": search_region,
+                **clicked,
+            }
+            if fallback_count > 0:
+                res["fallback_used"] = fallback_count
+            return res
+
+        if time.time() - start > timeout:
+            if fallback_fn is not None and fallback_count < max_fallback:
+                fallback_count += 1
+                logger.warning(
+                    f"Máy lag: Nút tiếp theo '{template_path.name}' chưa xuất hiện (score {score:.4f} < {threshold}). "
+                    f"Thực hiện fallback click lại nút cũ (Lần {fallback_count}/{max_fallback})..."
+                )
+                try:
+                    fallback_fn()
+                except Exception as exc:
+                    logger.warning(f"Lỗi khi thực hiện fallback_fn click nút cũ: {exc}")
+                if fallback_delay > 0 and not dry_run:
+                    time.sleep(fallback_delay)
+                start = time.time()
+                continue
+
+            err_msg = f"template not found above threshold {threshold}: {template_path}, last score={score:.4f}"
+            if fallback_count > 0:
+                err_msg += f" (đã fallback click lại nút cũ {fallback_count} lần)"
+            raise TimeoutError(err_msg)
+        time.sleep(0.3)
+
+
+def best_template_score(template_path: Path) -> dict[str, Any]:
+    template = cv2.imread(str(template_path), cv2.IMREAD_COLOR)
+    if template is None:
+        raise FileNotFoundError(f"template not found or unreadable: {template_path}")
+    window = find_capcut_window()
+    screen = screenshot_window(window)
+    result = cv2.matchTemplate(screen, template, cv2.TM_CCOEFF_NORMED)
+    _, score, _, max_loc = cv2.minMaxLoc(result)
+    h, w = template.shape[:2]
+    return {
+        "score": float(score),
+        "x": window.left + max_loc[0] + w // 2,
+        "y": window.top + max_loc[1] + h // 2,
+        "window": window.title,
+    }
+
+
+def wait_action(
+    timeout: float,
+    template_path: Path | None = None,
+    threshold: float = 0.82,
+    mode: str = "present",
+    interval: float = 0.5,
+    dry_run: bool = False,
+    require_seen: bool = False,
+    fallback_fn: Callable[[], Any] | None = None,
+    max_fallback: int = 10,
+    fallback_delay: float = 2.0,
+) -> dict[str, Any]:
+    start = time.time()
+    last_score: float | None = None
+    seen_once = False
+    fallback_count = 0
+
+    if template_path is None:
+        if not dry_run:
+            time.sleep(timeout)
+        return {"action": "wait", "mode": "sleep", "seconds": timeout, "dry_run": dry_run}
+
+    if mode not in {"present", "gone"}:
+        raise ValueError("wait mode must be 'present' or 'gone'")
+
+    while True:
+        match = best_template_score(template_path)
+        last_score = float(match["score"])
+        found = last_score >= threshold
+        if found:
+            seen_once = True
+
+        if (mode == "present" and found) or (mode == "gone" and not found and (not require_seen or seen_once)):
+            res = {
+                "action": "wait",
+                "mode": mode,
+                "template": str(template_path),
+                "threshold": threshold,
+                "score": last_score,
+                "elapsed": round(time.time() - start, 3),
+                "dry_run": dry_run,
+                "require_seen": require_seen,
+                "seen_once": seen_once,
+            }
+            if fallback_count > 0:
+                res["fallback_used"] = fallback_count
+            return res
+
+        if timeout > 0 and time.time() - start > timeout:
+            if mode == "present" and fallback_fn is not None and fallback_count < max_fallback:
+                fallback_count += 1
+                logger.warning(
+                    f"Máy lag: Nút/giao diện chờ '{template_path.name}' chưa xuất hiện. "
+                    f"Thực hiện fallback click lại nút cũ (Lần {fallback_count}/{max_fallback})..."
+                )
+                try:
+                    fallback_fn()
+                except Exception as exc:
+                    logger.warning(f"Lỗi khi thực hiện fallback_fn click nút cũ: {exc}")
+                if fallback_delay > 0 and not dry_run:
+                    time.sleep(fallback_delay)
+                start = time.time()
+                continue
+
+            err_msg = f"wait timeout: mode={mode}, template={template_path}, threshold={threshold}, last score={last_score:.4f}, seen_once={seen_once}"
+            if fallback_count > 0:
+                err_msg += f" (đã fallback click lại nút cũ {fallback_count} lần)"
+            raise TimeoutError(err_msg)
+
+        if dry_run:
+            return {
+                "action": "wait",
+                "mode": mode,
+                "template": str(template_path),
+                "threshold": threshold,
+                "score": last_score,
+                "dry_run": dry_run,
+                "require_seen": require_seen,
+                "seen_once": seen_once,
+            }
+
+        time.sleep(interval)
+
+def detect_first_project_card(
+    min_area: int = 1500,
+    dry_run: bool = False,
+    debug_image: Path | None = None,
+) -> dict[str, Any]:
+    window = find_capcut_window()
+    activate_window(window)
+    screen = screenshot_window(window)
+    h, w = screen.shape[:2]
+
+    # CapCut Home has project cards in the lower central area. This crop is
+    # relative to the CapCut window, so it survives resizing and multi-monitor.
+    crop_x1 = int(w * 0.10)
+    crop_y1 = int(h * 0.42)
+    crop_x2 = int(w * 0.96)
+    crop_y2 = int(h * 0.86)
+    crop = screen[crop_y1:crop_y2, crop_x1:crop_x2]
+
+    gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+    # Project thumbnails are brighter / more textured than the dark background.
+    _, mask = cv2.threshold(gray, 24, 255, cv2.THRESH_BINARY)
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (7, 7))
+    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel, iterations=2)
+
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cards: list[tuple[int, int, int, int, int]] = []
+    for contour in contours:
+        x, y, cw, ch = cv2.boundingRect(contour)
+        area = cw * ch
+        if area < min_area:
+            continue
+        if cw < 45 or ch < 45:
+            continue
+        if cw > w * 0.20 or ch > h * 0.25:
+            continue
+        cards.append((x, y, cw, ch, area))
+
+    if not cards:
+        if debug_image:
+            cv2.imwrite(str(debug_image), crop)
+        raise RuntimeError("No project card detected. Open CapCut Home with Projects visible.")
+
+    # Choose the top row first, then the left-most card in that row.
+    cards.sort(key=lambda item: (item[1], item[0]))
+    first = cards[0]
+    x, y, cw, ch, area = first
+    abs_x = window.left + crop_x1 + x + cw // 2
+    abs_y = window.top + crop_y1 + y + ch // 2
+
+    if debug_image:
+        debug = crop.copy()
+        for bx, by, bw, bh, _ in cards[:20]:
+            cv2.rectangle(debug, (bx, by), (bx + bw, by + bh), (0, 255, 255), 2)
+        cv2.rectangle(debug, (x, y), (x + cw, y + ch), (0, 0, 255), 3)
+        cv2.imwrite(str(debug_image), debug)
+
+    clicked = click_abs(abs_x, abs_y, dry_run)
+    return {
+        "action": "open_first_project",
+        "window": window.title,
+        "window_rect": [window.left, window.top, window.right, window.bottom],
+        "crop": [crop_x1, crop_y1, crop_x2, crop_y2],
+        "detected_cards": len(cards),
+        "card": {"x": x, "y": y, "width": cw, "height": ch, "area": area},
+        **clicked,
+    }
+
+
+def run_workflow(config_path: Path | str, dry_run: bool) -> dict[str, Any]:
+    config_path = Path(config_path)
+    config = json.loads(config_path.read_text(encoding="utf-8"))
+    base = config_path.parent
+    steps = []
+    last_click_executor: Callable[[], Any] | None = None
+
+    for index, step in enumerate(config.get("steps", []), start=1):
+        action = step["action"]
+        max_fallback = int(step.get("max_fallback", step.get("fallback_attempts", 10)))
+        fallback_delay = float(step.get("fallback_delay", 2.0))
+        enable_fallback = bool(step.get("enable_fallback", True))
+        current_fallback_fn = last_click_executor if enable_fallback else None
+
+        if action == "open_first_project":
+            min_area = int(step.get("min_area", 1500))
+            debug_img = Path(step["debug_image"]) if step.get("debug_image") else None
+            result = detect_first_project_card(
+                min_area=min_area,
+                dry_run=dry_run,
+                debug_image=debug_img,
+            )
+            saved_min_area = min_area
+            saved_debug_img = debug_img
+            last_click_executor = lambda: detect_first_project_card(
+                min_area=saved_min_area,
+                dry_run=dry_run,
+                debug_image=saved_debug_img,
+            )
+
+        elif action == "select_all_timeline":
+            verify_template = step.get("verify_template")
+            if verify_template:
+                verify_template_path = Path(verify_template)
+                if not verify_template_path.is_absolute():
+                    verify_template_path = base / verify_template_path
+            else:
+                verify_template_path = None
+
+            click_x_ratio = float(step.get("click_x_ratio", 0.5))
+            click_y_from_bottom = int(step.get("click_y_from_bottom", 150))
+            pause_after_click = float(step.get("pause_after_click", 0.5))
+            pause_after_hotkey = float(step.get("pause_after_hotkey", 1.0))
+            verify_threshold = float(step.get("verify_threshold", 0.68))
+
+            result = select_all_timeline(
+                dry_run=dry_run,
+                click_x_ratio=click_x_ratio,
+                click_y_from_bottom=click_y_from_bottom,
+                pause_after_click=pause_after_click,
+                pause_after_hotkey=pause_after_hotkey,
+                verify_template=verify_template_path,
+                verify_threshold=verify_threshold,
+            )
+            last_click_executor = lambda: select_all_timeline(
+                dry_run=dry_run,
+                click_x_ratio=click_x_ratio,
+                click_y_from_bottom=click_y_from_bottom,
+                pause_after_click=pause_after_click,
+                pause_after_hotkey=pause_after_hotkey,
+                verify_template=None,
+            )
+
+        elif action == "click_template":
+            template = Path(step["template"])
+            if not template.is_absolute():
+                template = base / template
+            step_attempts = max(1, int(step.get("attempts", 1) or 1))
+            retry_delay = float(step.get("retry_delay", 0.0) or 0.0)
+            warn_after = float(step.get("warn_after", 0) or 0)
+            threshold = float(step.get("threshold", 0.82))
+            timeout = float(step.get("timeout", 20))
+            click_offset_x = int(step.get("click_offset_x", 0))
+            click_offset_y = int(step.get("click_offset_y", 0))
+            search_region = step.get("search_region")
+
+            step_started = time.time()
+            last_exc: Exception | None = None
+            try:
+                for attempt in range(1, step_attempts + 1):
+                    try:
+                        result = click_template(
+                            template,
+                            threshold=threshold,
+                            dry_run=dry_run,
+                            timeout=timeout,
+                            click_offset_x=click_offset_x,
+                            click_offset_y=click_offset_y,
+                            search_region=search_region,
+                            fallback_fn=current_fallback_fn,
+                            max_fallback=max_fallback,
+                            fallback_delay=fallback_delay,
+                        )
+                        result["attempt"] = attempt
+                        result["attempts"] = step_attempts
+                        break
+                    except Exception as exc:
+                        last_exc = exc
+                        elapsed = time.time() - step_started
+                        if warn_after > 0 and elapsed >= warn_after:
+                            logger.warning(
+                                "RPA step %s: chua click duoc %s sau %.1fs "
+                                "(attempt %s/%s): %s",
+                                index,
+                                template.name,
+                                elapsed,
+                                attempt,
+                                step_attempts,
+                                exc,
+                            )
+                            warn_after = 0
+                        if attempt >= step_attempts:
+                            raise
+                        if retry_delay > 0 and not dry_run:
+                            time.sleep(retry_delay)
+            except Exception as exc:
+                if not bool(step.get("optional", False)):
+                    raise
+                result = {
+                    "action": "click_template",
+                    "template": str(template),
+                    "optional": True,
+                    "skipped": True,
+                    "error": str(last_exc or exc),
+                    "dry_run": dry_run,
+                }
+
+            if not result.get("skipped"):
+                click_x = result.get("x")
+                click_y = result.get("y")
+                saved_template = template
+                saved_threshold = threshold
+                saved_offset_x = click_offset_x
+                saved_offset_y = click_offset_y
+                saved_region = search_region
+
+                def _make_fallback(tx, ty, tmpl, thresh, ox, oy, sreg):
+                    def _do_fallback():
+                        if tx is not None and ty is not None and not dry_run:
+                            logger.info(f"Fallback: Click lại vị trí cũ ({tx}, {ty}) của nút {tmpl.name}")
+                            click_abs(tx, ty, dry_run=False)
+                        else:
+                            click_template(
+                                tmpl,
+                                threshold=thresh,
+                                dry_run=dry_run,
+                                timeout=1.0,
+                                click_offset_x=ox,
+                                click_offset_y=oy,
+                                search_region=sreg,
+                                fallback_fn=None,
+                            )
+                    return _do_fallback
+
+                last_click_executor = _make_fallback(
+                    click_x, click_y, saved_template, saved_threshold, saved_offset_x, saved_offset_y, saved_region
+                )
+
+        elif action == "wait":
+            template = step.get("template")
+            template_path = None
+            if template:
+                template_path = Path(template)
+                if not template_path.is_absolute():
+                    template_path = base / template_path
+            result = wait_action(
+                timeout=float(step.get("timeout", step.get("seconds", 1))),
+                template_path=template_path,
+                threshold=float(step.get("threshold", 0.82)),
+                mode=str(step.get("mode", "present")),
+                interval=float(step.get("interval", 0.5)),
+                dry_run=dry_run,
+                require_seen=bool(step.get("require_seen", False)),
+                fallback_fn=current_fallback_fn,
+                max_fallback=max_fallback,
+                fallback_delay=fallback_delay,
+            )
+        elif action == "sleep":
+            seconds = float(step.get("seconds", 1))
+            if not dry_run:
+                time.sleep(seconds)
+            result = {"action": "sleep", "seconds": seconds, "dry_run": dry_run}
+        elif action == "hotkey":
+            keys = step.get("keys", [])
+            if not dry_run:
+                pyautogui.hotkey(*keys)
+            result = {"action": "hotkey", "keys": keys, "dry_run": dry_run}
+        elif action == "click_ratio":
+            rx = float(step.get("ratio_x", 0.5))
+            ry = float(step.get("ratio_y", 0.5))
+            target = find_capcut_window()
+            cx = target.left + int(target.width * rx)
+            cy = target.top + int(target.height * ry)
+            if not dry_run:
+                pyautogui.click(cx, cy)
+            result = {"action": "click_ratio", "ratio_x": rx, "ratio_y": ry, "x": cx, "y": cy, "dry_run": dry_run}
+        elif action == "key":
+            k = step.get("key", "enter")
+            if not dry_run:
+                pyautogui.press(k)
+            result = {"action": "key", "key": k, "dry_run": dry_run}
+        else:
+            raise ValueError(f"Unsupported action: {action}")
+        result["step"] = index
+        steps.append(result)
+    return {"ok": True, "steps": steps}
+
+
+def main() -> int:
+    sys.stdout.reconfigure(encoding="utf-8")
+    parser = argparse.ArgumentParser(description="CapCut OpenCV/PyAutoGUI RPA helper.")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    open_first = sub.add_parser("open-first-project", help="Detect and click the first project card on CapCut Home.")
+    open_first.add_argument("--dry-run", action="store_true")
+    open_first.add_argument("--debug-image", type=Path)
+    open_first.add_argument("--min-area", type=int, default=1500)
+
+    click = sub.add_parser("click-template", help="Click an image template inside the CapCut window.")
+    click.add_argument("template", type=Path)
+    click.add_argument("--threshold", type=float, default=0.82)
+    click.add_argument("--timeout", type=float, default=20)
+    click.add_argument("--dry-run", action="store_true")
+
+    workflow = sub.add_parser("workflow", help="Run JSON workflow.")
+    workflow.add_argument("config", type=Path)
+    workflow.add_argument("--dry-run", action="store_true")
+
+    args = parser.parse_args()
+    if args.command == "open-first-project":
+        result = detect_first_project_card(args.min_area, args.dry_run, args.debug_image)
+    elif args.command == "click-template":
+        result = click_template(args.template, args.threshold, args.dry_run, args.timeout)
+    else:
+        result = run_workflow(args.config, args.dry_run)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+
+
+
