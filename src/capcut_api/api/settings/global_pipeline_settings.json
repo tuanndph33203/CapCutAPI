@@ -1,0 +1,7 @@
+{
+  "tts_engine": "local",
+  "nghitts_voice": "Ngọc Huyền (mới)",
+  "use_local_ocr": true,
+  "use_local_whisper": true,
+  "auto_shutdown": false
+}

@@ -45,44 +45,38 @@ if not logger.handlers:
 
 
 def capcut_process_ids() -> set[int]:
+    pids = set()
     try:
-        output = subprocess.check_output(
-            ["powershell", "-NoProfile", "-Command", "Get-Process CapCut -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Id"],
-            text=True,
-            stderr=subprocess.DEVNULL,
-        )
-        return {int(line.strip()) for line in output.splitlines() if line.strip().isdigit()}
+        for p in psutil.process_iter(['pid', 'name']):
+            name = (p.info.get('name') or '').lower()
+            if 'capcut' in name or 'jianying' in name:
+                pids.add(p.info['pid'])
     except Exception:
-        return set()
+        pass
+    return pids
 
 
 def dismiss_environment_testing_window() -> bool:
-    """Tự động diệt VEDetector.exe gây treo mở CapCut (không đóng bậy cửa sổ CapCut)."""
-    dismissed = False
-    for p in psutil.process_iter(["pid", "name"]):
-        try:
-            if "vedetector" in (p.info.get("name") or "").lower():
-                p.kill()
-                dismissed = True
-        except Exception:
-            pass
-    return dismissed
+    """Bỏ qua việc diệt VEDetector.exe vì diệt tiến trình này khiến CapCut bị crash/tự thoát khi khởi động."""
+    return False
+
 
 
 def capcut_main_hwnd_and_rect() -> tuple[int, tuple[int, int, int, int]] | None:
-    dismiss_environment_testing_window()
+    # dismiss_environment_testing_window() - đã tắt, tránh crash VEDetector khi gọi lặp
     pids = capcut_process_ids()
-    best: tuple[int, tuple[int, int, int, int], int] | None = None
+    if not pids:
+        return None
+    best_visible: tuple[int, tuple[int, int, int, int], int] | None = None
 
     def enum_proc(hwnd, _):
-        nonlocal best
+        nonlocal best_visible
         try:
             if not win32gui.IsWindow(hwnd) or not win32gui.IsWindowVisible(hwnd):
                 return
             _, pid = win32process.GetWindowThreadProcessId(hwnd)
             if pid not in pids:
                 return
-            title = win32gui.GetWindowText(hwnd)
             class_name = win32gui.GetClassName(hwnd)
             if "Qt" not in class_name:
                 return
@@ -90,8 +84,8 @@ def capcut_main_hwnd_and_rect() -> tuple[int, tuple[int, int, int, int]] | None:
             area = max(0, rect[2] - rect[0]) * max(0, rect[3] - rect[1])
             if area < 400 * 300:
                 return
-            if best is None or area > best[2]:
-                best = (hwnd, rect, area)
+            if best_visible is None or area > best_visible[2]:
+                best_visible = (hwnd, rect, area)
         except Exception:
             pass
 
@@ -99,9 +93,14 @@ def capcut_main_hwnd_and_rect() -> tuple[int, tuple[int, int, int, int]] | None:
         win32gui.EnumWindows(enum_proc, None)
     except Exception:
         return None
-    if best is None:
+
+    if best_visible is None:
         return None
-    return best[0], best[1]
+
+    hwnd, rect, _ = best_visible
+    return hwnd, rect
+
+
 
 
 def activate_capcut_main_window() -> tuple[int, int, int, int] | None:
@@ -112,10 +111,27 @@ def activate_capcut_main_window() -> tuple[int, int, int, int] | None:
     try:
         import ctypes
         ctypes.windll.user32.AllowSetForegroundWindow(-1)
-        win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
-        win32gui.ShowWindow(hwnd, win32con.SW_SHOW)
-        win32gui.BringWindowToTop(hwnd)
-        win32gui.SetForegroundWindow(hwnd)
+        if win32gui.IsIconic(hwnd):
+            win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+        else:
+            win32gui.ShowWindow(hwnd, win32con.SW_SHOW)
+
+        try:
+            import win32api
+            fore_hwnd = win32gui.GetForegroundWindow()
+            fore_thread = win32process.GetWindowThreadProcessId(fore_hwnd)[0] if fore_hwnd else 0
+            app_thread = win32api.GetCurrentThreadId()
+            if fore_thread and fore_thread != app_thread:
+                win32process.AttachThreadInput(fore_thread, app_thread, True)
+                win32gui.BringWindowToTop(hwnd)
+                win32gui.SetForegroundWindow(hwnd)
+                win32process.AttachThreadInput(fore_thread, app_thread, False)
+            else:
+                win32gui.BringWindowToTop(hwnd)
+                win32gui.SetForegroundWindow(hwnd)
+        except Exception:
+            win32gui.BringWindowToTop(hwnd)
+            win32gui.SetForegroundWindow(hwnd)
     except Exception:
         pass
     return rect

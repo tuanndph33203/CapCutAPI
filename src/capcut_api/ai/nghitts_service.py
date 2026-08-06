@@ -35,6 +35,18 @@ def _get_normalizer():
         _NORMALIZER_INSTANCE = VietnameseNormalizer()
     return _NORMALIZER_INSTANCE
 
+def _voice_to_ascii_filename(voice_name: str) -> str:
+    mapping = {
+        "Ngọc Huyền (mới)": "ngoc_huyen_moi",
+        "Nam Miền Nam": "nam_mien_nam",
+        "Nữ Miền Nam": "nu_mien_nam",
+    }
+    if voice_name in mapping:
+        return mapping[voice_name]
+    import unicodedata, re
+    clean = unicodedata.normalize("NFKD", voice_name).encode("ASCII", "ignore").decode("ASCII")
+    return re.sub(r"[^\w\-]", "_", clean).strip("_").lower() or "voice"
+
 def ensure_model_files(voice_name: str) -> tuple[str, str]:
     """
     Ensure that the .onnx and .onnx.json files for the requested voice exist locally.
@@ -42,26 +54,35 @@ def ensure_model_files(voice_name: str) -> tuple[str, str]:
     """
     os.makedirs(BASE_MODEL_DIR, exist_ok=True)
 
-    onnx_file = f"{voice_name}.onnx"
-    json_file = f"{voice_name}.onnx.json"
+    ascii_name = _voice_to_ascii_filename(voice_name)
+    onnx_file = f"{ascii_name}.onnx"
+    json_file = f"{ascii_name}.onnx.json"
 
     onnx_path = os.path.join(BASE_MODEL_DIR, onnx_file)
     json_path = os.path.join(BASE_MODEL_DIR, json_file)
 
     encoded_name = urllib.parse.quote(voice_name)
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+
+    def _download_file(url, target_path):
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req) as resp, open(target_path, "wb") as out_f:
+            out_f.write(resp.read())
 
     if not os.path.exists(json_path):
         json_url = f"https://nghitts.app/api/model/{encoded_name}.onnx.json"
         print(f"📥 Downloading config for voice '{voice_name}' from {json_url}...")
-        urllib.request.urlretrieve(json_url, json_path)
+        _download_file(json_url, json_path)
 
     if not os.path.exists(onnx_path):
         onnx_url = f"https://nghitts.app/api/model/{encoded_name}.onnx"
         print(f"📥 Downloading ONNX model for voice '{voice_name}' (this may take a moment)...")
-        urllib.request.urlretrieve(onnx_url, onnx_path)
+        _download_file(onnx_url, onnx_path)
         print(f"✅ Model '{voice_name}' downloaded successfully!")
 
     return onnx_path, json_path
+
+
 
 def get_piper_voice(voice_name: str = "Ngọc Huyền (mới)"):
     """

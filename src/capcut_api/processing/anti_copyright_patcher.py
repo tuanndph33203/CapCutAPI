@@ -112,10 +112,8 @@ def patch_video_speed_dynamic(draft_path: str, base_speed: float = 1.05, randomi
             compile_timeline(video_segs)
             
             # Compile associated subtitles and audio segments
-            from subtitle.compiler import compile_subtitles
-            from audio.compiler import compile_audio
-            compile_subtitles(subtitle_segs, video_segs)
-            compile_audio(audio_segs, video_segs)
+            compile_associated_segments(subtitle_segs, video_segs)
+            compile_associated_segments(audio_segs, video_segs)
             
             validate_timeline(video_segs, subtitle_segs, audio_segs)
             export_draft(data, video_segs, subtitle_segs, audio_segs)
@@ -222,11 +220,15 @@ def patch_smart_subtitle_gaps(draft_path: str, target_interval_sec: float = 30.0
             # Compile
             compile_timeline(split_segs)
             
-            # Compile subtitles and audio segments
-            from subtitle.compiler import compile_subtitles
-            from audio.compiler import compile_audio
-            compile_subtitles(subtitle_segs, split_segs)
-            compile_audio(audio_segs, split_segs)
+            # Compile subtitles and audio segments if compiler modules exist
+            try:
+                from subtitle.compiler import compile_subtitles
+                from audio.compiler import compile_audio
+                compile_subtitles(subtitle_segs, split_segs)
+                compile_audio(audio_segs, split_segs)
+            except ImportError:
+                pass
+
             
             validate_timeline(split_segs, subtitle_segs, audio_segs)
             export_draft(data, split_segs, subtitle_segs, audio_segs)
@@ -329,12 +331,9 @@ def _resync_timeline_new(draft_path: str, sync_audio: bool) -> int:
                 
             compile_timeline(video_segs)
             
-            from subtitle.compiler import compile_subtitles
-            compile_subtitles(subtitle_segs, video_segs)
-            
+            compile_associated_segments(subtitle_segs, video_segs)
             if sync_audio:
-                from audio.compiler import compile_audio
-                compile_audio(audio_segs, video_segs)
+                compile_associated_segments(audio_segs, video_segs)
                 
             validate_timeline(video_segs, subtitle_segs, audio_segs)
             export_draft(data, video_segs, subtitle_segs, audio_segs, sync_video=False, sync_audio=sync_audio, sync_subtitles=True)

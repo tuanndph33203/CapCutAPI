@@ -1,0 +1,45 @@
+{
+    "steps": [
+        {
+            "action": "hotkey",
+            "keys": [
+                "ctrl",
+                "e"
+            ]
+        },
+        {
+            "action": "sleep",
+            "seconds": 1.5
+        },
+        {
+            "action": "click_ratio",
+            "ratio_x": 0.60,
+            "ratio_y": 0.72
+        },
+        {
+            "action": "sleep",
+            "seconds": 0.5
+        },
+        {
+            "action": "click_ratio",
+            "ratio_x": 0.64,
+            "ratio_y": 0.72
+        },
+        {
+            "action": "sleep",
+            "seconds": 0.5
+        },
+        {
+            "action": "key",
+            "key": "enter"
+        },
+        {
+            "action": "sleep",
+            "seconds": 0.5
+        },
+        {
+            "action": "key",
+            "key": "enter"
+        }
+    ]
+}

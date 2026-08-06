@@ -17,7 +17,8 @@ import uuid
 import io
 import random
 from pathlib import Path
-from flask import Flask, render_template, request, jsonify, Response
+from typing import Optional, List, Dict, Any
+from flask import Flask, render_template, request, jsonify, Response, send_from_directory
 import psutil
 import numpy as np
 from PIL import Image
@@ -27,8 +28,13 @@ if sys.platform.startswith("win"):
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="replace")
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
 
-# Add current dir to python path
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+# Add current, parent, and processing dirs to python path
+api_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(api_dir)
+processing_dir = os.path.join(parent_dir, "processing")
+for d in [api_dir, parent_dir, processing_dir]:
+    if d not in sys.path:
+        sys.path.insert(0, d)
 
 import uiautomation as auto
 import pyautogui
@@ -132,15 +138,25 @@ PIPELINE_PROJECTS_DIR = Path(__file__).resolve().parent / "projects"
 QUEUE_CACHE_PATH = Path(__file__).with_name("queue_cache.json")
 FIRST_PROJECT_FALLBACK_X = 285
 FIRST_PROJECT_FALLBACK_Y = 583
-PROJECT_TITLE_MARKER_TEMPLATE = Path(__file__).with_name("rpa_templates") / "project_title_marker.png"
+_rpa_dir = Path(__file__).with_name("rpa_templates")
+if not _rpa_dir.exists():
+    _rpa_dir = Path(__file__).resolve().parents[3] / "rpa_templates"
+if not _rpa_dir.exists():
+    _rpa_dir = Path(os.getcwd()) / "rpa_templates"
+PROJECT_TITLE_MARKER_TEMPLATE = _rpa_dir / "project_title_marker.png"
 PROJECT_TITLE_MARKER_CLICK_ABOVE_CM = 1.0
 PROJECT_TITLE_MARKER_DPI = 96.0
+# Danh sách shortcut/exe để mở CapCut - ƯU TIÊN Desktop shortcut (--src1 mở GUI)
 CAPCUT_SHORTCUT_CANDIDATES = [
     os.environ.get("CAPCUT_SHORTCUT", ""),
-    os.path.join(os.environ.get("APPDATA", ""), "Microsoft", "Windows", "Start Menu", "Programs", "CapCut", "CapCut.lnk"),
     os.path.join(os.environ.get("USERPROFILE", ""), "Desktop", "CapCut.lnk"),
     r"C:\Users\PC\Desktop\CapCut.lnk",
+    os.path.join(os.environ.get("PUBLIC", r"C:\Users\Public"), "Desktop", "CapCut.lnk"),
+    os.path.join(os.environ.get("APPDATA", ""), "Microsoft", "Windows", "Start Menu", "Programs", "CapCut", "CapCut.lnk"),
 ]
+CAPCUT_SHORTCUT_CANDIDATES = [p for p in CAPCUT_SHORTCUT_CANDIDATES if p]
+
+
 GLOBAL_SETTINGS_PATH = Path(__file__).resolve().parent / "settings" / "global_pipeline_settings.json"
 
 # Configure logging
@@ -178,7 +194,14 @@ except Exception:
     pass
 
 # Create Flask Application
-app = Flask(__name__, template_folder="templates")
+frontend_dist = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "frontend", "dist"))
+root_templates = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "..", "templates"))
+
+if os.path.exists(frontend_dist):
+    app = Flask(__name__, static_folder=os.path.join(frontend_dist, "assets"), static_url_path="/assets", template_folder=frontend_dist)
+else:
+    app = Flask(__name__, template_folder=root_templates)
+
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.jinja_env.auto_reload = True
 
@@ -209,13 +232,58 @@ def _get_buffer_ids() -> list:
     # fallback: giữ tương thích ngược với tên cũ
     return ["00000000000", "111111111111111111"]
 
+
+def ensure_buffer_drafts_exist():
+    """Tự động tạo folder buffer template CapCut (00000000000, 111111111111111111) nếu chưa có."""
+    try:
+        buffer_ids = get_buffer_ids()
+        base_dir = Path(DEFAULT_CAPCUT_DRAFTS)
+        base_dir.mkdir(parents=True, exist_ok=True)
+
+        sample_draft = None
+        for entry in base_dir.iterdir():
+            if entry.is_dir() and (entry / "draft_content.json").exists() and entry.name not in buffer_ids:
+                sample_draft = entry
+                break
+
+        for b_id in buffer_ids:
+            target_dir = base_dir / b_id
+            target_dir.mkdir(parents=True, exist_ok=True)
+            info_file = target_dir / "draft_info.json"
+            content_file = target_dir / "draft_content.json"
+
+            if sample_draft and (not info_file.exists() or not content_file.exists()):
+                for item in sample_draft.iterdir():
+                    if item.is_file() and not (target_dir / item.name).exists():
+                        try:
+                            shutil.copy2(item, target_dir / item.name)
+                        except Exception:
+                            pass
+
+            if not info_file.exists():
+                info_file.write_text(json.dumps({"draft_id": b_id, "draft_name": b_id, "draft_type": 0}, ensure_ascii=False), encoding="utf-8")
+            if not content_file.exists():
+                content_file.write_text(json.dumps({"canvas_config": {"ratio": "16:9"}, "materials": {}, "tracks": []}, ensure_ascii=False), encoding="utf-8")
+    except Exception as e:
+        logger.warning(f"Không thể tự động khởi tạo folder Buffer CapCut: {e}")
+
+
+ensure_buffer_drafts_exist()
+
 # --- Helper RPA Functions ---
 
 def run_image_workflow(config_name, label, attempts=3, retry_delay=3):
     """Run an OpenCV/PyAutoGUI workflow from JSON."""
     from capcut_rpa import run_workflow
 
-    workflow_path = Path(__file__).resolve().parent / config_name
+    candidates = [
+        Path(__file__).resolve().parent / config_name,
+        Path(__file__).resolve().parents[3] / config_name,
+        Path(__file__).resolve().parents[3] / "scratch" / config_name,
+        Path(os.getcwd()) / config_name,
+        Path(os.getcwd()) / "scratch" / config_name,
+    ]
+    workflow_path = next((p for p in candidates if p.exists()), candidates[0])
     attempts = max(1, int(attempts or 1))
     last_exc = None
 
@@ -481,27 +549,149 @@ def find_element_by_name(root, target_name, depth=0, max_depth=10):
         pass
     return None
 
+def find_real_versioned_capcut_exe() -> Optional[str]:
+    """Tìm file CapCut.exe thực sự nằm trong các thư mục phiên bản (ví dụ Apps/9.1.0.3879/CapCut.exe)."""
+    local_appdata = os.environ.get("LOCALAPPDATA", "")
+    if not local_appdata:
+        return None
+    apps_dir = os.path.join(local_appdata, "CapCut", "Apps")
+    if not os.path.exists(apps_dir):
+        return None
+        
+    candidates = []
+    for entry in os.listdir(apps_dir):
+        full_p = os.path.join(apps_dir, entry)
+        if os.path.isdir(full_p):
+            exe_p = os.path.join(full_p, "CapCut.exe")
+            if os.path.exists(exe_p):
+                try:
+                    ver_parts = [int(x) for x in entry.split('.') if x.isdigit()]
+                    if ver_parts:
+                        candidates.append((ver_parts, exe_p))
+                except Exception:
+                    pass
+    if candidates:
+        candidates.sort(key=lambda item: item[0])
+        return candidates[-1][1]
+    return None
+
+def find_and_patch_capcut_path(auto_launch=False):
+    """
+    Tự động quét hệ thống tìm CapCut.exe chính chủ (phiên bản mới nhất), vá path đúng vào config.json và khởi chạy nếu chưa mở.
+    """
+    root_dir = Path(__file__).resolve().parents[3]
+    config_path = root_dir / "config.json"
+    if not config_path.exists():
+        config_path = Path(__file__).resolve().parent / "config.json"
+
+    cfg = {}
+    if config_path.exists():
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                cfg = json.load(f)
+        except Exception:
+            cfg = {}
+
+    found_path = cfg.get("capcut_exe_path")
+    
+    # Kiểm tra xem found_path từ config có phải là stub launcher (CapCut/Apps/CapCut.exe) hay không
+    is_stub_launcher = False
+    if found_path and os.path.exists(found_path):
+        parent_name = os.path.basename(os.path.dirname(found_path))
+        if parent_name.lower() == "apps":
+            # file này chỉ là launcher stub (4.9MB), không phải editor GUI thật nằm ở Apps/<version>/CapCut.exe
+            is_stub_launcher = True
+
+    real_versioned = find_real_versioned_capcut_exe()
+    if real_versioned:
+        found_path = real_versioned
+        logger.info(f"Đã tìm thấy CapCut.exe phiên bản thực sự mới nhất: {found_path}")
+    elif found_path and os.path.exists(found_path) and not is_stub_launcher:
+        logger.info(f"Đã tìm thấy CapCut.exe từ config.json: {found_path}")
+    else:
+        found_path = None
+        candidates = [
+            r"C:\Program Files\CapCut\CapCut.exe",
+            r"C:\Program Files (x86)\CapCut\CapCut.exe",
+            os.path.join(os.environ.get("LOCALAPPDATA", ""), "CapCut", "CapCut.exe"),
+        ]
+        for cand in candidates:
+            if os.path.exists(cand):
+                found_path = cand
+                break
+
+    if found_path:
+        cfg["capcut_exe_path"] = found_path
+        try:
+            with open(config_path, "w", encoding="utf-8") as f:
+                json.dump(cfg, f, ensure_ascii=False, indent=2)
+            logger.info(f"Đã cập nhật capcut_exe_path chuẩn ({found_path}) vào config.json!")
+        except Exception as e:
+            logger.error(f"Lỗi khi lưu config.json: {e}")
+
+    if found_path and auto_launch:
+        if capcut_main_hwnd_and_rect() is None:
+            logger.info(f"Đang mở phần mềm CapCut với tham số --src1 từ: {found_path}")
+            try:
+                shortcut = next((path for path in CAPCUT_SHORTCUT_CANDIDATES if path and os.path.exists(path)), None)
+                if shortcut:
+                    os.startfile(shortcut)
+                else:
+                    subprocess.Popen([found_path, "--src1"], cwd=os.path.dirname(found_path))
+            except Exception:
+                try:
+                    os.startfile(found_path)
+                except Exception:
+                    pass
+
+    return found_path
+
+
 def launch_capcut(connect_ui=True, cancel_check=None):
     logger.info("Đang kiểm tra và khởi động CapCut...")
+    # Luôn đưa cửa sổ CapCut lên foreground nếu đang chạy
     hwnd_and_rect = capcut_main_hwnd_and_rect()
+    if hwnd_and_rect is not None:
+        logger.info("CapCut đang chạy ngầm - đưa lên foreground ngay...")
+        activate_capcut_for_image_workflow()
     if hwnd_and_rect is None:
         logger.info("Không tìm thấy cửa sổ CapCut GUI đang mở. Dọn dẹp tiến trình ngầm cũ...")
         kill_capcut()
-        time.sleep(1)
+        time.sleep(1.5)
+
+        exe_path = find_and_patch_capcut_path(auto_launch=False)
         shortcut = next((path for path in CAPCUT_SHORTCUT_CANDIDATES if path and os.path.exists(path)), None)
-        if shortcut:
-            logger.info(f"Khởi chạy CapCut từ shortcut: {shortcut}")
+
+        # Dung explorer.exe de mo shortcut - giong nhu feat/module-orc (hien dung)
+        launched = False
+        if exe_path and os.path.exists(exe_path):
+            logger.info(f"Khởi chạy CapCut.exe trực tiếp với tham số --src1 từ: {exe_path}")
+            try:
+                subprocess.Popen([exe_path, "--src1"], cwd=os.path.dirname(exe_path))
+                launched = True
+            except Exception as e:
+                logger.warning(f"Khởi chạy exe_path thất bại: {e}")
+
+        if not launched and shortcut:
+            logger.info(f"Fallback: Khởi chạy CapCut từ shortcut: {shortcut}")
             try:
                 os.startfile(shortcut)
+                launched = True
+            except Exception as e:
+                logger.warning(f"Khởi chạy shortcut thất bại: {e}")
+
+        if not launched:
+            logger.info("Fallback: mở CapCut qua giao thức capcut://")
+            try:
+                os.startfile("capcut://")
             except Exception:
-                subprocess.Popen(["explorer.exe", shortcut])
-        else:
-            logger.info("Không tìm thấy shortcut CapCut. Thử khởi chạy bằng CapCut.exe...")
-            exe_path = r"C:\Users\nguye\AppData\Local\CapCut\Apps\CapCut.exe"
-            if os.path.exists(exe_path):
-                os.startfile(exe_path)
-            else:
                 subprocess.Popen(["powershell", "-NoProfile", "-Command", "Start-Process 'capcut://'"])
+
+
+
+
+
+
 
         time.sleep(1)
         try:
@@ -514,12 +704,36 @@ def launch_capcut(connect_ui=True, cancel_check=None):
                         win32api.CloseHandle(h)
                     except Exception: pass
         except Exception: pass
-        for _ in range(30):
+        # Chờ tối đa 60 giây để CapCut mở được cửa sổ chính
+        logger.info("Đang chờ CapCut khởi động và mở cửa sổ chính (tối đa 60s)...")
+        _found_window = False
+        for _wait_i in range(120):  # 120 × 0.5s = 60s
             if cancel_check:
                 cancel_check()
             time.sleep(0.5)
-            if capcut_main_hwnd_and_rect() is not None:
+            _hw = capcut_main_hwnd_and_rect()
+            if _hw is not None:
+                _found_window = True
+                logger.info(f"CapCut đã mở cửa sổ sau {(_wait_i+1)*0.5:.1f}s. Đang hiển thị lên màn hình...")
+                # Ngay khi tìm thấy, force show window lên màn hình
+                try:
+                    import win32gui, win32con, ctypes
+                    _hwnd = _hw[0]
+                    ctypes.windll.user32.AllowSetForegroundWindow(-1)
+                    ex_style = win32gui.GetWindowLong(_hwnd, win32con.GWL_EXSTYLE)
+                    ex_style = (ex_style & ~win32con.WS_EX_TOOLWINDOW) | win32con.WS_EX_APPWINDOW
+                    win32gui.SetWindowLong(_hwnd, win32con.GWL_EXSTYLE, ex_style)
+                    win32gui.ShowWindow(_hwnd, win32con.SW_MAXIMIZE)
+                    win32gui.SetWindowPos(_hwnd, win32con.HWND_TOPMOST, 0, 0, 0, 0,
+                        win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_SHOWWINDOW | win32con.SWP_FRAMECHANGED)
+                    win32gui.SetForegroundWindow(_hwnd)
+                except Exception as _e:
+                    logger.warning(f"Không activate ngay được khi vừa tìm thấy window: {_e}")
                 break
+        if not _found_window:
+            logger.error("Đã chờ 60s nhưng không có cửa sổ CapCut nào hiển thị trên màn hình!")
+            raise Exception("Không tìm thấy cửa sổ CapCut hiển thị trên màn hình. Vui lòng mở phần mềm CapCut thủ công trước khi bấm Chạy.")
+
 
     if not connect_ui:
         hwnd_and_rect = capcut_main_hwnd_and_rect()
@@ -540,11 +754,12 @@ def launch_capcut(connect_ui=True, cancel_check=None):
     for i in range(25):
         if cancel_check:
             cancel_check()
-        dismiss_environment_testing_window()
+        # dismiss_environment_testing_window() - đã tắt, tránh crash VEDetector
         try:
             controller = CapCutController()
             if controller.app and controller.app.Exists(0):
                 logger.info(f"Đã kết nối thành công tới cửa sổ CapCut (Trạng thái: {controller.app_status})")
+                activate_capcut_for_image_workflow()
                 return controller
         except Exception as e:
             err_str = str(e)
@@ -558,52 +773,97 @@ def launch_capcut(connect_ui=True, cancel_check=None):
     raise Exception("Không thể kết nối với cửa sổ CapCut. Vui lòng mở CapCut thủ công trước.")
 
 def activate_capcut_for_image_workflow():
+    """Đưa cửa sổ CapCut lên foreground bằng nhiều kỹ thuật mạnh, vượt qua Windows foreground lock."""
     hwnd_and_rect = capcut_main_hwnd_and_rect()
     if hwnd_and_rect is None:
         return False
 
     hwnd, _ = hwnd_and_rect
     try:
+        import ctypes
+        import win32api
         import win32con
         import win32gui
         import win32process
 
-        _, pid = win32process.GetWindowThreadProcessId(hwnd)
+        # Kỹ thuật 1: AllowSetForegroundWindow
         try:
+            ctypes.windll.user32.AllowSetForegroundWindow(-1)
+        except Exception:
+            pass
+
+        # Kỹ thuật 2: Xóa WS_EX_TOOLWINDOW, thêm WS_EX_APPWINDOW để hiện trên taskbar
+        try:
+            ex_style = win32gui.GetWindowLong(hwnd, win32con.GWL_EXSTYLE)
+            ex_style = (ex_style & ~win32con.WS_EX_TOOLWINDOW) | win32con.WS_EX_APPWINDOW
+            win32gui.SetWindowLong(hwnd, win32con.GWL_EXSTYLE, ex_style)
+        except Exception:
+            pass
+
+        # Kỹ thuật 3: Restore nếu đang minimize
+        try:
+            placement = win32gui.GetWindowPlacement(hwnd)
+            if placement[1] == win32con.SW_SHOWMINIMIZED:
+                win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
+                time.sleep(0.3)
+        except Exception:
+            pass
+
+        # Kỹ thuật 4: Maximize và hiện cửa sổ
+        win32gui.ShowWindow(hwnd, win32con.SW_MAXIMIZE)
+
+        # Kỹ thuật 5: SetWindowPos TOPMOST + SHOWWINDOW + FRAMECHANGED (để taskbar nhận ra)
+        win32gui.SetWindowPos(
+            hwnd, win32con.HWND_TOPMOST, 0, 0, 0, 0,
+            win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_SHOWWINDOW | win32con.SWP_FRAMECHANGED,
+        )
+        time.sleep(0.15)
+
+        # Kỹ thuật 6: AttachThreadInput bypass foreground lock
+        try:
+            fore_hwnd = win32gui.GetForegroundWindow()
+            fore_tid = win32process.GetWindowThreadProcessId(fore_hwnd)[0] if fore_hwnd else 0
+            capcut_tid = win32process.GetWindowThreadProcessId(hwnd)[0]
+            if fore_tid and fore_tid != capcut_tid:
+                ctypes.windll.user32.AttachThreadInput(fore_tid, capcut_tid, True)
+                win32gui.BringWindowToTop(hwnd)
+                win32gui.SetForegroundWindow(hwnd)
+                ctypes.windll.user32.AttachThreadInput(fore_tid, capcut_tid, False)
+            else:
+                win32gui.BringWindowToTop(hwnd)
+                win32gui.SetForegroundWindow(hwnd)
+        except Exception:
+            try:
+                win32gui.BringWindowToTop(hwnd)
+                win32gui.SetForegroundWindow(hwnd)
+            except Exception:
+                pass
+
+        # Kỹ thuật 7: PowerShell AppActivate
+        try:
+            _, pid = win32process.GetWindowThreadProcessId(hwnd)
             subprocess.run(
-                [
-                    "powershell.exe",
-                    "-NoProfile",
-                    "-Command",
-                    f"$ws=New-Object -ComObject WScript.Shell; $null=$ws.AppActivate({int(pid)})",
-                ],
-                capture_output=True,
-                text=True,
-                timeout=3,
+                ["powershell.exe", "-NoProfile", "-Command",
+                 f"$ws=New-Object -ComObject WScript.Shell; $null=$ws.AppActivate({int(pid)})"],
+                capture_output=True, text=True, timeout=3,
             )
         except Exception:
             pass
 
-        win32gui.ShowWindow(hwnd, win32con.SW_MAXIMIZE)
-        win32gui.SetWindowPos(
-            hwnd,
-            win32con.HWND_TOPMOST,
-            0,
-            0,
-            0,
-            0,
-            win32con.SWP_NOMOVE | win32con.SWP_NOSIZE,
-        )
-        time.sleep(0.15)
+        # Kỹ thuật 8: WM_SETFOCUS + WM_ACTIVATE
         try:
-            win32gui.SetForegroundWindow(hwnd)
-        except Exception as e:
-            logger.warning(f"Không SetForegroundWindow được cho CapCut, vẫn giữ TOPMOST để workflow ảnh thấy cửa sổ: {e}")
+            win32gui.PostMessage(hwnd, win32con.WM_ACTIVATE, win32con.WA_ACTIVE, 0)
+            win32gui.PostMessage(hwnd, win32con.WM_SETFOCUS, 0, 0)
+        except Exception:
+            pass
+
         time.sleep(0.5)
+        logger.info(f"Đã đưa cửa sổ CapCut (HWND={hwnd}) lên foreground thành công.")
         return True
     except Exception as e:
-        logger.warning(f"Không đưa được CapCut lên foreground bằng Win32/AppActivate: {e}")
+        logger.warning(f"Không đưa được CapCut lên foreground: {e}")
         return False
+
 
 def is_project_editor_visible(controller, project_name):
     if controller is None:
@@ -675,6 +935,9 @@ def open_project_in_gui(controller, project_name, cancel_check=None):
             f"Đang dùng ảnh {template_file.name} để mở dự án, "
             f"click lên trên {PROJECT_TITLE_MARKER_CLICK_ABOVE_CM}cm ở giữa ảnh..."
         )
+        # Đảm bảo cửa sổ CapCut hiện lên màn hình TRƯỚC KHI template match
+        activate_capcut_for_image_workflow()
+        time.sleep(0.5)
         click_result = None
         marker_started = time.time()
         marker_warned = False
@@ -837,9 +1100,37 @@ def run_text_to_speech(controller):
     raise Exception("Quá thời gian tạo giọng đọc TTS (Timeout).")
 
 def kill_capcut():
-    logger.info("Đang đóng cưỡng bức CapCut để lưu cấu hình bản nháp...")
-    os.system("taskkill /f /im CapCut.exe")
-    time.sleep(2.5)
+    """Đóng cửa sổ CapCut nhẹ nhàng (WM_CLOSE / Taskkill không /F) để lưu nháp và giải phóng file."""
+    logger.info("Đang đóng cửa sổ CapCut nhẹ nhàng để giải phóng khóa file...")
+    try:
+        import win32gui, win32con, win32process, psutil
+        pids = set()
+        for p in psutil.process_iter(['pid', 'name']):
+            if 'capcut' in (p.info.get('name') or '').lower():
+                pids.add(p.pid)
+        
+        def enum_close(hwnd, _):
+            try:
+                _, pid = win32process.GetWindowThreadProcessId(hwnd)
+                if pid in pids and win32gui.IsWindow(hwnd):
+                    win32gui.PostMessage(hwnd, win32con.WM_CLOSE, 0, 0)
+            except Exception:
+                pass
+        
+        if pids:
+            try:
+                win32gui.EnumWindows(enum_close, None)
+            except Exception:
+                pass
+    except Exception:
+        pass
+
+    os.system("taskkill /im CapCut.exe >nul 2>&1")
+    time.sleep(1.0)
+    # Diệt triệt để các tiến trình CapCut ngầm (zombie) còn kẹt để lượt mở tiếp theo tạo được GUI window mới
+    os.system("taskkill /f /im CapCut.exe >nul 2>&1")
+    time.sleep(1.0)
+
 
 # --- Subtitle JSON processing ---
 
@@ -1637,11 +1928,15 @@ def apply_global_settings_to_config(config):
         "default_context_ai_profile_id": global_settings.get("default_context_ai_profile_id"),
         "translation_ai_profile_id": global_settings.get("default_translation_ai_profile_id"),
         "context_ai_profile_id": global_settings.get("default_context_ai_profile_id"),
-        "translation_method": "ai" if global_settings.get("default_translation_ai_profile_id") else "google",
+        "tts_engine": global_settings.get("tts_engine", "local"),
+        "nghitts_voice": global_settings.get("nghitts_voice", "Ngọc Huyền (mới)"),
+        "use_local_ocr": global_settings.get("use_local_ocr", True),
+        "use_local_whisper": global_settings.get("use_local_whisper", True),
         "speed": 0.77,
         "tts_speed": 1.17,
         "volume_db": -15.5,
     }
+
     if config:
         merged.update(config)
     merged["available_ai_profiles"] = normalize_ai_profiles(
@@ -4798,9 +5093,10 @@ class QueueRunner:
             self._check_cancel(item)
             item["progress"] = 75
             
-            tts_engine = item_config.get("tts_engine", "local")
+            tts_engine = str(item_config.get("tts_engine", "local")).lower()
             
-            if tts_engine == "local":
+            if tts_engine in ("local", "nghitts", "offline") or tts_engine.startswith("vi_vn") or tts_engine not in ("capcut", "rpa", "online"):
+
                 voice_name = item_config.get("nghitts_voice") or item_config.get("tts_voice") or "Ngọc Huyền (mới)"
                 item["message"] = f"Bước 6: Đóng CapCut để gán âm thanh TTS offline NGHI-TTS..."
                 self.save_cache()
@@ -4991,7 +5287,15 @@ runner = QueueRunner()
 
 @app.route('/')
 def index():
+    if os.path.exists(frontend_dist):
+        return render_template("index.html")
     return render_template("index.html")
+
+@app.route('/assets/<path:path>')
+def serve_assets(path):
+    if os.path.exists(frontend_dist):
+        return send_from_directory(os.path.join(frontend_dist, "assets"), path)
+    return "", 404
 
 @app.route('/api/settings/global', methods=['GET', 'POST'])
 def global_settings():
@@ -5378,17 +5682,31 @@ def add_to_queue():
 
         create_project_backup(folder)
 
-        folder_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, folder)
-        meta_path = os.path.join(folder_path, "draft_meta_info.json")
-        config_path = os.path.join(folder_path, "pipeline_config.json")
+        pipeline_dir_path = PIPELINE_PROJECTS_DIR / folder
+        capcut_dir_path = os.path.join(DEFAULT_CAPCUT_DRAFTS, folder)
+
+        config_path = None
+        if (pipeline_dir_path / "pipeline_config.json").exists():
+            config_path = pipeline_dir_path / "pipeline_config.json"
+        elif os.path.exists(os.path.join(capcut_dir_path, "pipeline_config.json")):
+            config_path = os.path.join(capcut_dir_path, "pipeline_config.json")
 
         name = folder
-        if os.path.exists(meta_path):
-            with open(meta_path, "r", encoding="utf-8") as f:
-                name = json.load(f).get("draft_name", folder)
+        if (pipeline_dir_path / "meta.json").exists():
+            try:
+                meta = json.loads((pipeline_dir_path / "meta.json").read_text(encoding="utf-8"))
+                name = meta.get("name", folder)
+            except Exception:
+                pass
+        elif os.path.exists(os.path.join(capcut_dir_path, "draft_meta_info.json")):
+            try:
+                with open(os.path.join(capcut_dir_path, "draft_meta_info.json"), "r", encoding="utf-8") as f:
+                    name = json.load(f).get("draft_name", folder)
+            except Exception:
+                pass
 
         config = {}
-        if os.path.exists(config_path):
+        if config_path and os.path.exists(config_path):
             with open(config_path, "r", encoding="utf-8") as f:
                 config = json.load(f)
         config = apply_global_settings_to_config(config)
@@ -5569,16 +5887,43 @@ def delete_queue_item():
 @app.route('/api/test_connection', methods=['POST'])
 def test_connection():
     try:
+        auto_launched = False
+        found_exe = None
         if capcut_main_hwnd_and_rect() is None:
-            return jsonify({"ok": False, "error": "CapCut window not found"})
+            logger.info("CapCut window chưa mở. Tự động tìm kiếm đường dẫn CapCut.exe và khởi chạy...")
+            found_exe = find_and_patch_capcut_path(auto_launch=True)
+            if found_exe:
+                for _ in range(16):
+                    time.sleep(0.5)
+                    if capcut_main_hwnd_and_rect() is not None:
+                        auto_launched = True
+                        break
+
+        if capcut_main_hwnd_and_rect() is None:
+            return jsonify({
+                "ok": False,
+                "error": "CapCut window not found",
+                "message": "Không tìm thấy hoặc không thể khởi chạy phần mềm CapCut trên máy tính.",
+                "capcut_exe_path": found_exe
+            })
+
         controller = CapCutController()
+        msg = "Kết nối UI CapCut thành công!"
+        if auto_launched:
+            msg = f"Đã tự động tìm thấy & mở CapCut ({found_exe}) và vá đường dẫn vào config.json thành công!"
+        elif found_exe:
+            msg = f"Kết nối UI CapCut thành công! (Path: {found_exe})"
+
         return jsonify({
             "ok": True,
-            "window": controller.app.Name if controller.app else "CapCut",
-            "status": controller.app_status
+            "window": controller.app.Name if (controller and controller.app) else "CapCut",
+            "status": getattr(controller, "app_status", "connected"),
+            "message": msg,
+            "capcut_exe_path": found_exe,
+            "auto_launched": auto_launched
         })
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)})
+        return jsonify({"ok": False, "error": str(e), "message": str(e)})
 
 CONFIG_JSON_PATH = Path(__file__).resolve().parent / "config.json"
 
