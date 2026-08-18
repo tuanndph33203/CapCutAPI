@@ -3,6 +3,7 @@ import subprocess
 import time
 import requests
 import shutil
+from typing import Optional
 from requests.exceptions import RequestException, Timeout
 from urllib.parse import urlparse, unquote
 
@@ -249,14 +250,12 @@ def clean_and_resolve_url(raw_text: str) -> str:
 def download_douyin_no_watermark(raw_text: str, output_dir: str = "downloads") -> dict:
     """
     Direct no-watermark Douyin downloader bypassing cookie & login requirements.
-    Parses iesdouyin share API to get no-watermark MP4 video.
+    Uses dynamic ttwid session registration & Douyin aweme feed / detail API.
+    Creates a dedicated folder per video, downloads both video and cover/banner image.
     """
     import json
     import requests
     os.makedirs(output_dir, exist_ok=True)
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1',
-    }
 
     clean_url = clean_and_resolve_url(raw_text)
     video_id_match = re.search(r'(\d{15,22})', clean_url)
@@ -264,80 +263,226 @@ def download_douyin_no_watermark(raw_text: str, output_dir: str = "downloads") -
         try:
             match_url = re.search(r'https?://[^\s]+', raw_text)
             if match_url:
-                resp = requests.get(match_url.group(0), headers=headers, allow_redirects=True, timeout=5)
+                resp = requests.get(match_url.group(0), headers={
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
+                }, allow_redirects=True, timeout=5)
                 video_id_match = re.search(r'(\d{15,22})', resp.url)
         except Exception:
             pass
 
     if not video_id_match:
-        return {"success": False, "error": "Could not extract Douyin video ID", "file_path": None}
+        return {"success": False, "error": "Could not extract Douyin video ID", "file_path": None, "cover_path": None}
 
     item_id = video_id_match.group(1)
-    share_url = f"https://www.iesdouyin.com/share/video/{item_id}/"
+    share_url = f"https://www.douyin.com/video/{item_id}"
+
+    # Dedicated folder for this video
+    video_folder = os.path.join(output_dir, f"douyin_{item_id}")
+    os.makedirs(video_folder, exist_ok=True)
+
+    out_path = os.path.join(video_folder, f"douyin_{item_id}.mp4")
+    cover_path = os.path.join(video_folder, "cover.jpg")
 
     try:
-        resp = requests.get(share_url, headers=headers, timeout=8)
-        router_match = re.search(r'window\._ROUTER_DATA\s*=\s*(.*?);?\s*</script>', resp.text)
-        if not router_match:
-            return {"success": False, "error": "Failed to parse Douyin router data", "file_path": None}
+        session = requests.Session()
+        # 1. Register dynamic ttwid session
+        try:
+            ttwid_payload = {
+                'region': 'cn',
+                'aid': 1768,
+                'needFid': 'false',
+                'service': 'www.ixigua.com',
+                'migrate_info': {'ticket': '', 'source': 'node'},
+                'cbUrlProtocol': 'https',
+                'union': 'true'
+            }
+            session.post('https://ttwid.bytedance.com/ttwid/union/register/', json=ttwid_payload, timeout=5)
+        except Exception as e:
+            print(f"[download_douyin_no_watermark] ttwid registration warning: {e}")
 
-        data = json.loads(router_match.group(1).strip())
-        loader_data = data.get("loaderData", {})
-        page_data = loader_data.get("video_(id)/page") or loader_data.get("video_(id)\\u002fpage", {})
+        # 2. Query aweme feed API (Mobile client emulation - bypasses web anti-bot)
+        mobile_headers = {
+            'User-Agent': 'com.ss.android.ugc.aweme/230501 (Linux; U; Android 10; zh_CN; Pixel 4; Build/QQ3A.200805.001; Cronet/TTNetVersion:b4d74d15 2020-04-23 QuicVersion:0144d358 2020-03-24)',
+            'Accept-Encoding': 'gzip, deflate',
+        }
+        feed_url = f'https://aweme.snssdk.com/aweme/v1/feed/?aweme_id={item_id}&version_code=230501&aid=1128'
+        api_resp = session.get(feed_url, headers=mobile_headers, timeout=10)
 
-        video_info = page_data.get("videoInfoRes", {})
-        item_list = video_info.get("item_list", [])
-        if not item_list:
-            return {"success": False, "error": "Douyin video item_list empty", "file_path": None}
+        aweme = {}
+        if api_resp.status_code == 200 and api_resp.text:
+            try:
+                data = api_resp.json()
+                for item in data.get('aweme_list', []):
+                    if str(item.get('aweme_id')) == item_id:
+                        aweme = item
+                        break
+                if not aweme and data.get('aweme_list'):
+                    aweme = data['aweme_list'][0]
+            except Exception:
+                pass
 
-        item = item_list[0]
-        title = item.get("desc", f"douyin_{item_id}")
-        video_obj = item.get("video", {})
+        # Fallback to web detail API if feed API returned empty
+        if not aweme:
+            web_headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36',
+                'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+                'Referer': 'https://www.douyin.com/'
+            }
+            detail_url = f'https://www.douyin.com/aweme/v1/web/aweme/detail/?aweme_id={item_id}&aid=1128&version_name=23.5.0&device_platform=android&os_version=2333'
+            web_resp = session.get(detail_url, headers=web_headers, timeout=10)
+            if web_resp.status_code == 200 and web_resp.text:
+                try:
+                    w_data = web_resp.json()
+                    aweme = w_data.get("aweme_detail", {})
+                except Exception:
+                    pass
+
+        if not aweme:
+            # Check if video was already downloaded previously in default videos folder
+            existing_candidates = [
+                os.path.join(os.path.expanduser("~"), "Videos", "default", f"douyin_{item_id}.mp4"),
+                os.path.join(os.path.expanduser("~"), "Videos", f"douyin_{item_id}.mp4"),
+            ]
+            for cand in existing_candidates:
+                if os.path.exists(cand) and os.path.getsize(cand) > 0:
+                    shutil.copy2(cand, out_path)
+                    return {
+                        "success": True,
+                        "clean_url": share_url,
+                        "video_dir": os.path.abspath(video_folder),
+                        "file_path": os.path.abspath(out_path),
+                        "cover_path": os.path.abspath(cover_path) if os.path.exists(cover_path) else None,
+                        "cover_url": None,
+                        "title": f"douyin_{item_id}",
+                        "duration": 0,
+                        "width": 1080,
+                        "height": 1920,
+                        "uploader": "Douyin User"
+                    }
+            return {"success": False, "error": "Douyin aweme_detail is empty", "file_path": None, "cover_path": None}
+
+        title = aweme.get("desc", f"douyin_{item_id}")
+        video_obj = aweme.get("video", {})
         play_addr = video_obj.get("play_addr", {})
         url_list = play_addr.get("url_list", [])
 
         if not url_list:
-            return {"success": False, "error": "Douyin play URL not found", "file_path": None}
+            return {"success": False, "error": "Douyin play URL not found in API response", "file_path": None, "cover_path": None}
 
         # Convert to no-watermark play URL
         raw_play_url = url_list[0]
-        no_watermark_url = raw_play_url.replace("/playwm/", "/play/")
+        no_watermark_url = raw_play_url.replace("/playwm/", "/play/").replace("playwm", "play")
 
-        out_path = os.path.join(output_dir, f"douyin_{item_id}.mp4")
-
-        video_resp = requests.get(no_watermark_url, headers=headers, stream=True, timeout=30)
+        # Download video stream
+        video_resp = session.get(
+            no_watermark_url,
+            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'},
+            stream=True,
+            timeout=30
+        )
         if video_resp.status_code == 200:
             with open(out_path, "wb") as f:
                 for chunk in video_resp.iter_content(chunk_size=1024*1024):
                     if chunk:
                         f.write(chunk)
 
-            duration = int(video_obj.get("duration", 0)) // 1000 if video_obj.get("duration") else 0
+            duration = int(video_obj.get("duration", 0)) // 1000 if video_obj.get("duration") else int(aweme.get("duration", 0)) // 1000
             width = video_obj.get("width", 1080)
             height = video_obj.get("height", 1920)
+            uploader = aweme.get("author", {}).get("nickname", "Douyin User")
+
+            # Extract and download cover/banner image (prioritize customized 'cover' banner over raw 'origin_cover' frame)
+            cover_url = None
+            for key in ("cover", "dynamic_cover", "origin_cover", "animated_cover"):
+                urls = video_obj.get(key, {}).get("url_list", []) if isinstance(video_obj.get(key), dict) else []
+                if urls:
+                    cover_url = urls[0]
+                    break
+
+            if cover_url:
+                try:
+                    c_resp = session.get(cover_url, timeout=15)
+                    if c_resp.status_code == 200:
+                        with open(cover_path, "wb") as cf:
+                            cf.write(c_resp.content)
+                    else:
+                        cover_path = None
+                except Exception as c_err:
+                    print(f"[download_douyin_no_watermark] Cover download warning: {c_err}")
+                    cover_path = None
+            else:
+                cover_path = None
+
+            # Save local metadata.json in video folder
+            try:
+                meta_file = os.path.join(video_folder, "metadata.json")
+                with open(meta_file, "w", encoding="utf-8") as mf:
+                    json.dump({
+                        "id": item_id,
+                        "title": title,
+                        "duration": duration,
+                        "width": width,
+                        "height": height,
+                        "uploader": uploader,
+                        "clean_url": share_url,
+                        "video_file": os.path.basename(out_path),
+                        "cover_file": os.path.basename(cover_path) if cover_path else None,
+                        "cover_url": cover_url,
+                        "downloaded_at": time.strftime("%Y-%m-%d %H:%M:%S")
+                    }, mf, ensure_ascii=False, indent=2)
+            except Exception as mf_err:
+                print(f"[download_douyin_no_watermark] Metadata write warning: {mf_err}")
 
             return {
                 "success": True,
                 "clean_url": share_url,
+                "video_dir": os.path.abspath(video_folder),
                 "file_path": os.path.abspath(out_path),
+                "cover_path": os.path.abspath(cover_path) if cover_path and os.path.exists(cover_path) else None,
+                "cover_url": cover_url,
                 "title": title,
                 "duration": duration,
                 "width": width,
                 "height": height,
-                "uploader": item.get("author", {}).get("nickname", "Douyin User")
+                "uploader": uploader
             }
         else:
-            return {"success": False, "error": f"Failed to download MP4 stream: HTTP {video_resp.status_code}", "file_path": None}
+            return {"success": False, "error": f"Failed to download MP4 stream: HTTP {video_resp.status_code}", "file_path": None, "cover_path": None}
     except Exception as err:
-        return {"success": False, "error": f"Douyin custom downloader error: {err}", "file_path": None}
+        return {"success": False, "error": f"Douyin custom downloader error: {err}", "file_path": None, "cover_path": None}
+
+
+def find_cookie_file() -> Optional[str]:
+    """Find cookies.txt file in workspace or common directories."""
+    candidates = [
+        os.path.join(os.getcwd(), "cookies.txt"),
+        os.path.join(os.getcwd(), "douyin_cookies.txt"),
+        os.path.join(os.path.dirname(__file__), "cookies.txt"),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "cookies.txt"),
+    ]
+    for c in candidates:
+        if os.path.exists(c) and os.path.getsize(c) > 0:
+            return os.path.abspath(c)
+    return None
 
 
 def download_with_ytdlp(url: str, output_dir: str = "downloads", filename_prefix: str = "video") -> dict:
     """
     Download video from any supported URL (YouTube, TikTok, Facebook, Instagram, Douyin, etc.) using yt-dlp
     or custom Douyin no-watermark engine.
+    Saves each video and its banner/cover image into a dedicated subfolder.
     """
-    # 1. Custom Douyin handler (Bypasses yt-dlp cookie requirements)
+    import yt_dlp
+    import json
+
+    clean_url = clean_and_resolve_url(url)
+    print(f"[download_with_ytdlp] Cleaned target URL: {clean_url}")
+
+    cookie_file = find_cookie_file()
+    if cookie_file:
+        print(f"[download_with_ytdlp] Using cookies from: {cookie_file}")
+
+    # 1. Custom Douyin handler (Bypasses yt-dlp cookie requirements if possible)
     if "douyin.com" in url or "iesdouyin.com" in url:
         print(f"[download_with_ytdlp] Douyin URL detected, using Douyin no-watermark engine...")
         dy_res = download_douyin_no_watermark(url, output_dir=output_dir)
@@ -345,40 +490,109 @@ def download_with_ytdlp(url: str, output_dir: str = "downloads", filename_prefix
             return dy_res
         print(f"[download_with_ytdlp] Custom Douyin engine fallback: {dy_res.get('error')}, trying yt-dlp...")
 
-    import yt_dlp
-
-    clean_url = clean_and_resolve_url(url)
-    print(f"[download_with_ytdlp] Cleaned target URL: {clean_url}")
-
     os.makedirs(output_dir, exist_ok=True)
-    outtmpl = os.path.join(output_dir, f"{filename_prefix}_%(id)s.%(ext)s")
 
-    ydl_opts = {
-        'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
-        'outtmpl': outtmpl,
-        'merge_output_format': 'mp4',
+    # Initial extraction options (metadata first to create dedicated folder)
+    extract_opts = {
         'quiet': True,
         'no_warnings': True,
-        'overwrites': True,
         'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     }
+    if cookie_file:
+        extract_opts['cookiefile'] = cookie_file
 
     try:
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            info = ydl.extract_info(clean_url, download=True)
-            filename = ydl.prepare_filename(info)
+        with yt_dlp.YoutubeDL(extract_opts) as ydl:
+            info = ydl.extract_info(clean_url, download=False)
+            if not info:
+                raise Exception("yt-dlp could not extract video information")
 
-            # Check if merged to .mp4
+            video_id = str(info.get("id") or int(time.time()))
+            extractor = str(info.get("extractor_key") or filename_prefix).lower()
+            folder_name = f"{extractor}_{video_id}"
+            video_folder = os.path.join(output_dir, folder_name)
+            os.makedirs(video_folder, exist_ok=True)
+
+            outtmpl = os.path.join(video_folder, f"{filename_prefix}_%(id)s.%(ext)s")
+
+            ydl_download_opts = {
+                'format': 'bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best',
+                'outtmpl': outtmpl,
+                'merge_output_format': 'mp4',
+                'quiet': True,
+                'no_warnings': True,
+                'overwrites': True,
+                'user_agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            }
+            if cookie_file:
+                ydl_download_opts['cookiefile'] = cookie_file
+
+            with yt_dlp.YoutubeDL(ydl_download_opts) as ydl_down:
+                ydl_down.download([clean_url])
+                filename = ydl_down.prepare_filename(info)
+
+            # Check if merged to .mp4 or original extension
             mp4_candidate = os.path.splitext(filename)[0] + ".mp4"
             if os.path.exists(mp4_candidate):
                 final_path = mp4_candidate
-            else:
+            elif os.path.exists(filename):
                 final_path = filename
+            else:
+                # Fallback search inside video_folder
+                files = [os.path.join(video_folder, f) for f in os.listdir(video_folder) if not f.startswith("cover.") and not f.endswith(".json")]
+                final_path = files[0] if files else filename
+
+            # Download banner / thumbnail image
+            cover_url = info.get("thumbnail")
+            if not cover_url and info.get("thumbnails"):
+                cover_url = info["thumbnails"][-1].get("url")
+
+            cover_path = os.path.join(video_folder, "cover.jpg")
+            if cover_url:
+                try:
+                    t_resp = requests.get(
+                        cover_url,
+                        headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'},
+                        timeout=15
+                    )
+                    if t_resp.status_code == 200:
+                        with open(cover_path, "wb") as tf:
+                            tf.write(t_resp.content)
+                    else:
+                        cover_path = None
+                except Exception as t_err:
+                    print(f"[download_with_ytdlp] Thumbnail download warning: {t_err}")
+                    cover_path = None
+            else:
+                cover_path = None
+
+            # Save local metadata.json in video folder
+            try:
+                meta_file = os.path.join(video_folder, "metadata.json")
+                with open(meta_file, "w", encoding="utf-8") as mf:
+                    json.dump({
+                        "id": video_id,
+                        "title": info.get("title", "Video"),
+                        "duration": info.get("duration", 0),
+                        "width": info.get("width", 1080),
+                        "height": info.get("height", 1920),
+                        "uploader": info.get("uploader", ""),
+                        "clean_url": clean_url,
+                        "video_file": os.path.basename(final_path),
+                        "cover_file": os.path.basename(cover_path) if cover_path else None,
+                        "cover_url": cover_url,
+                        "downloaded_at": time.strftime("%Y-%m-%d %H:%M:%S")
+                    }, mf, ensure_ascii=False, indent=2)
+            except Exception as mf_err:
+                print(f"[download_with_ytdlp] Metadata write warning: {mf_err}")
 
             return {
                 "success": True,
                 "clean_url": clean_url,
+                "video_dir": os.path.abspath(video_folder),
                 "file_path": os.path.abspath(final_path),
+                "cover_path": os.path.abspath(cover_path) if cover_path and os.path.exists(cover_path) else None,
+                "cover_url": cover_url,
                 "title": info.get("title", "Video"),
                 "duration": info.get("duration", 0),
                 "width": info.get("width", 1080),
@@ -397,6 +611,8 @@ def download_with_ytdlp(url: str, output_dir: str = "downloads", filename_prefix
             "success": False,
             "error": str(e),
             "clean_url": clean_url,
-            "file_path": None
+            "file_path": None,
+            "cover_path": None,
+            "video_dir": None
         }
 

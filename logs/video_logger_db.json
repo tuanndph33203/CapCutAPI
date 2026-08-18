@@ -1,0 +1,127 @@
+{
+  "videos": {
+    "6ad69b81-1a49-46f2-a7ab-d8b92e2e4ef5": {
+      "_id": "6ad69b81-1a49-46f2-a7ab-d8b92e2e4ef5",
+      "videoUrl": "https://www.douyin.com/video/7673773501225225578",
+      "pageUrl": "https://www.douyin.com/video/7673773501225225578",
+      "pageTitle": "这胡迪够帅 #玩具总动员 #胡迪警长",
+      "folderName": "default",
+      "status": "draft_created",
+      "savedAt": "2026-08-16T14:41:17.766726+00:00",
+      "updatedAt": "2026-08-16T14:41:19.827278+00:00",
+      "telegramUserId": null,
+      "draftId": "dfd_cat_1786890366_1b1831a2",
+      "localPath": "C:\\Users\\nguye\\Videos\\default\\douyin_7673773501225225578.mp4",
+      "currentStep": "DRAFT_CREATED",
+      "pipelineSteps": [
+        {
+          "step": "DRAFT_CREATED",
+          "status": "SUCCESS",
+          "timestamp": "2026-08-16T14:41:19.827278+00:00",
+          "detail": "Created CapCut Draft: dfd_cat_1786890366_1b1831a2"
+        }
+      ]
+    },
+    "6852eac0-16ac-48e8-b35e-c6a205daee9f": {
+      "_id": "6852eac0-16ac-48e8-b35e-c6a205daee9f",
+      "videoUrl": "https://www.douyin.com/user/MS4wLjABAAAAlfvB70WNDdjfdNKi4Wh-Geb-cCU0-xPU5MfQDTOCw-Q",
+      "pageUrl": "https://www.douyin.com/user/MS4wLjABAAAAlfvB70WNDdjfdNKi4Wh-Geb-cCU0-xPU5MfQDTOCw-Q",
+      "pageTitle": "https://www.douyin.com/user/MS4wLjABAAAAlfvB70WNDdjfdNKi4Wh-Geb-cCU0-xPU5MfQDTOCw-Q",
+      "folderName": "default",
+      "status": "FAILED",
+      "savedAt": "2026-08-16T14:53:18.789511+00:00",
+      "updatedAt": "2026-08-16T14:53:28.268342+00:00",
+      "telegramUserId": 8241435668,
+      "currentStep": "DOWNLOADING",
+      "pipelineSteps": [
+        {
+          "step": "LINK_RECEIVED",
+          "status": "SUCCESS",
+          "timestamp": "2026-08-16T14:53:19.808799+00:00",
+          "detail": "Lưu vào thư mục Videos/default"
+        },
+        {
+          "step": "DOWNLOADING",
+          "status": "IN_PROGRESS",
+          "timestamp": "2026-08-16T14:53:21.729584+00:00",
+          "detail": "Bắt đầu tải file qua engine yt-dlp / Douyin"
+        },
+        {
+          "step": "DOWNLOADING",
+          "status": "FAILED",
+          "timestamp": "2026-08-16T14:53:28.268342+00:00",
+          "detail": "Lỗi tải: ERROR: Unsupported URL: https://www.douyin.com/user/MS4wLjABAAAAlfvB70WNDdjfdNKi4Wh-Geb-cCU0-xPU5MfQDTOCw-Q"
+        }
+      ],
+      "error": "ERROR: Unsupported URL: https://www.douyin.com/user/MS4wLjABAAAAlfvB70WNDdjfdNKi4Wh-Geb-cCU0-xPU5MfQDTOCw-Q"
+    },
+    "9d54e091-bbb0-4e7d-bb3b-b14baa834710": {
+      "_id": "9d54e091-bbb0-4e7d-bb3b-b14baa834710",
+      "videoUrl": "https://www.douyin.com/video/7672738653055716837",
+      "pageUrl": "https://www.douyin.com/video/7672738653055716837",
+      "pageTitle": "https://v.douyin.com/gtGAQ7hX8yY",
+      "folderName": "default",
+      "status": "DOWNLOADED",
+      "savedAt": "2026-08-16T14:58:13.554878+00:00",
+      "updatedAt": "2026-08-17T13:10:05.490468+00:00",
+      "telegramUserId": 8241435668,
+      "currentStep": "DRAFT_CREATED",
+      "pipelineSteps": [
+        {
+          "step": "LINK_RECEIVED",
+          "status": "SUCCESS",
+          "timestamp": "2026-08-16T14:58:15.073840+00:00",
+          "detail": "Lưu vào thư mục Videos/default"
+        },
+        {
+          "step": "DOWNLOADING",
+          "status": "IN_PROGRESS",
+          "timestamp": "2026-08-16T14:58:16.954222+00:00",
+          "detail": "Bắt đầu tải file qua engine yt-dlp / Douyin"
+        },
+        {
+          "step": "DOWNLOADED",
+          "status": "SUCCESS",
+          "timestamp": "2026-08-16T14:58:32.551743+00:00",
+          "detail": "File: C:\\Users\\nguye\\Videos\\default\\douyin_7672738653055716837.mp4 (95.50 MB)"
+        },
+        {
+          "step": "PIPELINE_CREATING",
+          "status": "IN_PROGRESS",
+          "timestamp": "2026-08-16T14:58:34.455796+00:00",
+          "detail": "Khởi tạo script CapCut & chèn video track"
+        },
+        {
+          "step": "DRAFT_CREATED",
+          "status": "SUCCESS",
+          "timestamp": "2026-08-16T14:58:36.781216+00:00",
+          "detail": "Đã tạo CapCut Draft ID: dfd_cat_1786892315_1f8906b0"
+        }
+      ],
+      "localPath": "C:\\Users\\nguye\\Projects\\CapCutAPI\\downloads\\douyin_7672738653055716837\\douyin_7672738653055716837.mp4",
+      "renderConfig": {
+        "width": 576,
+        "height": 1024,
+        "ratio": "9:16",
+        "fps": 30,
+        "speed": 1.0,
+        "volume": 1.0,
+        "autoCaptions": true,
+        "ttsVoice": "Vietnamese_Female",
+        "blurEffect": true,
+        "exportFormat": "mp4"
+      },
+      "videoMeta": {
+        "title": "败可以，服不行#vlog日常 #来时路 #CODM联动崩坏3",
+        "duration": 363,
+        "width": 576,
+        "height": 1024,
+        "fileSizeMb": 95.5,
+        "localPath": "C:\\Users\\nguye\\Videos\\default\\douyin_7672738653055716837.mp4"
+      },
+      "draftId": "dfd_cat_1786892315_1f8906b0",
+      "coverPath": "C:\\Users\\nguye\\Projects\\CapCutAPI\\downloads\\douyin_7672738653055716837\\cover.jpg",
+      "videoDir": "C:\\Users\\nguye\\Projects\\CapCutAPI\\downloads\\douyin_7672738653055716837"
+    }
+  }
+}

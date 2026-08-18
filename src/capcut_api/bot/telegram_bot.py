@@ -35,7 +35,9 @@ import re
 
 # Paths
 BASE_DIR = Path(__file__).parent.resolve()
+ROOT_DIR = Path(__file__).resolve().parents[3]
 sys.path.append(str(BASE_DIR))
+sys.path.append(str(ROOT_DIR))
 
 try:
     from social_publisher import (
@@ -48,9 +50,11 @@ except ImportError:
     pass
 
 CONFIG_FILE = BASE_DIR / "config.json"
+ROOT_CONFIG_FILE = ROOT_DIR / "config.json"
 
-VIDEOS_BASE_DIR = BASE_DIR / "Videos"
-OUTPUTS_DIR = BASE_DIR / "outputs"
+USER_VIDEOS = Path.home() / "Videos"
+VIDEOS_BASE_DIR = USER_VIDEOS if USER_VIDEOS.exists() else (ROOT_DIR / "Videos")
+OUTPUTS_DIR = ROOT_DIR / "outputs"
 
 VIDEOS_BASE_DIR.mkdir(exist_ok=True)
 OUTPUTS_DIR.mkdir(exist_ok=True)
@@ -69,14 +73,51 @@ def get_user_folder_dir(context: ContextTypes.DEFAULT_TYPE, folder_name: Optiona
 
 
 def load_config() -> dict:
-    """Load configuration from config.json"""
-    if CONFIG_FILE.exists():
+    """Load configuration from config.json and environment variables"""
+    config = {}
+    
+    # 1. Load from root config.json
+    if ROOT_CONFIG_FILE.exists():
+        try:
+            with open(ROOT_CONFIG_FILE, "r", encoding="utf-8") as f:
+                config.update(json.load(f))
+        except Exception as e:
+            logger.error(f"Error loading root config.json: {e}")
+            
+    # 2. Load from bot directory config.json (if exists and overrides)
+    if CONFIG_FILE.exists() and CONFIG_FILE != ROOT_CONFIG_FILE:
         try:
             with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
+                config.update(json.load(f))
         except Exception as e:
-            logger.error(f"Error loading config.json: {e}")
-    return {}
+            logger.error(f"Error loading bot config.json: {e}")
+            
+    # 3. Load from .env if available
+    env_file = ROOT_DIR / ".env"
+    if env_file.exists():
+        try:
+            with open(env_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        k, v = line.split("=", 1)
+                        k = k.strip()
+                        v = v.strip().strip("'\"")
+                        if k == "TELEGRAM_BOT_TOKEN" and not config.get("telegram_bot_token"):
+                            config["telegram_bot_token"] = v
+                        elif k == "TELEGRAM_ALLOWED_USER_IDS" and "allowed_user_ids" not in config:
+                            try:
+                                config["allowed_user_ids"] = [int(x.strip()) for x in v.split(",") if x.strip()]
+                            except Exception:
+                                pass
+        except Exception as e:
+            logger.error(f"Error parsing .env for telegram config: {e}")
+
+    # 4. OS environment fallback
+    if not config.get("telegram_bot_token") and os.environ.get("TELEGRAM_BOT_TOKEN"):
+        config["telegram_bot_token"] = os.environ.get("TELEGRAM_BOT_TOKEN")
+        
+    return config
 
 
 def is_user_allowed(user_id: int, config: dict) -> bool:
@@ -264,15 +305,15 @@ async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         server_online = False
 
     # Count downloaded files
-    downloads_count = len(list(DOWNLOADS_DIR.glob("*")))
+    downloads_count = len(list(VIDEOS_BASE_DIR.glob("*")))
     outputs_count = len(list(OUTPUTS_DIR.glob("*")))
 
     status_text = (
         f"📊 **BÁO CÁO TRẠNG THÁI HỆ THỐNG**\n\n"
         f"• **CapCut API Server**: {'🟢 Hoạt động (Port ' + str(port) + ')' if server_online else '🔴 Chưa bật server (sẽ dùng script trực tiếp)'}\n"
-        f"• **Thư mục Downloads**: {downloads_count} file\n"
+        f"• **Thư mục Videos**: {downloads_count} mục/file\n"
         f"• **Thư mục Outputs (Video xuất)**: {outputs_count} file\n"
-        f"• **Đường dẫn thư mục làm việc**: `{BASE_DIR}`"
+        f"• **Đường dẫn thư mục làm việc**: `{ROOT_DIR}`"
     )
 
     if status_msg:
@@ -464,21 +505,29 @@ async def handle_url_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     file_path = result.get("file_path")
+    cover_path = result.get("cover_path")
+    video_dir = result.get("video_dir")
     title = result.get("title", "Video")
     duration = result.get("duration", 0)
     width = result.get("width", 1080)
     height = result.get("height", 1920)
-    file_size_mb = os.path.getsize(file_path) / (1024 * 1024) if os.path.exists(file_path) else 0
+    file_size_mb = os.path.getsize(file_path) / (1024 * 1024) if file_path and os.path.exists(file_path) else 0
 
     render_cfg = get_default_render_config(width=width, height=height)
 
     # 3. Log step: DOWNLOADED
-    update_video_status(clean_url, status="DOWNLOADED", local_path=file_path)
+    update_video_status(
+        clean_url,
+        status="DOWNLOADED",
+        local_path=file_path,
+        cover_path=cover_path,
+        video_dir=video_dir
+    )
     log_pipeline_step(
         clean_url,
         "DOWNLOADED",
         "SUCCESS",
-        detail=f"File: {file_path} ({file_size_mb:.2f} MB)",
+        detail=f"Folder: {video_dir} | Video: {os.path.basename(file_path)} ({file_size_mb:.2f} MB)" if video_dir else f"File: {file_path}",
         render_config=render_cfg,
         extra_meta={
             "videoMeta": {
@@ -487,17 +536,22 @@ async def handle_url_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "width": width,
                 "height": height,
                 "fileSizeMb": round(file_size_mb, 2),
-                "localPath": file_path
+                "localPath": file_path,
+                "coverPath": cover_path,
+                "videoDir": video_dir,
+                "coverUrl": result.get("cover_url")
             }
         }
     )
 
+    cover_info_str = f"• **Ảnh bìa (Banner)**: `{os.path.basename(cover_path)}`\n" if cover_path else ""
     await status_msg.edit_text(
-        f"✅ **Tải Video thành công!**\n\n"
+        f"✅ **Tải Video & Banner thành công!**\n\n"
         f"• **Tiêu đề**: `{title}`\n"
-        f"• **Thời lượng**: {duration}s\n"
-        f"• **Dung lượng**: {file_size_mb:.2f} MB\n"
-        f"• **Lưu tại**: `{file_path}`\n\n"
+        f"• **Thời lượng**: {duration}s | **Dung lượng**: {file_size_mb:.2f} MB\n"
+        f"• **Thư mục riêng**: `{video_dir or target_dir}`\n"
+        f"• **File video**: `{os.path.basename(file_path)}`\n"
+        f"{cover_info_str}\n"
         f"⚙️ *Đang tự động chèn video vào Timeline CapCut Pipeline...*",
         parse_mode="Markdown"
     )
