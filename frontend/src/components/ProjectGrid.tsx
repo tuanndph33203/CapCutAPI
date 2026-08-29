@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Plus, RefreshCw, Folder, Play, Video, Clock, Trash2 } from "lucide-react";
+import { Plus, RefreshCw, Folder, Play, Video, Clock, Trash2, Languages } from "lucide-react";
 import { fetchPipelineProjects, createPipelineProject, runProjectPipeline, api, type PipelineProject } from "../lib/api";
 import { Button } from "./ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "./ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ui/dialog";
 import { Input } from "./ui/input";
+import { MultiLangTranslateModal } from "./MultiLangTranslateModal";
 
 interface ProjectGridProps {
   onSelectProject: (folder: string) => void;
@@ -17,6 +18,7 @@ export const ProjectGrid: React.FC<ProjectGridProps> = ({ onSelectProject }) => 
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [newProjectName, setNewProjectName] = useState<string>("");
   const [isCreating, setIsCreating] = useState<boolean>(false);
+  const [translateFolder, setTranslateFolder] = useState<string | null>(null);
 
   const loadProjects = async () => {
     setLoading(true);
@@ -175,7 +177,21 @@ export const ProjectGrid: React.FC<ProjectGridProps> = ({ onSelectProject }) => 
                   Xem chi tiết &rarr;
                 </Button>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setTranslateFolder(proj.Folder);
+                    }}
+                    className="h-8 px-2.5 text-xs border-purple-500/40 text-purple-300 bg-purple-500/10 hover:bg-purple-500/20 font-semibold gap-1"
+                    title="Dịch đa ngôn ngữ & Lồng tiếng AI"
+                  >
+                    <Languages className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Dịch</span>
+                  </Button>
+
                   <Button
                     variant="ghost"
                     size="sm"
@@ -245,6 +261,14 @@ export const ProjectGrid: React.FC<ProjectGridProps> = ({ onSelectProject }) => 
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Multi-Language Translation Modal */}
+      <MultiLangTranslateModal
+        open={!!translateFolder}
+        onOpenChange={(open) => !open && setTranslateFolder(null)}
+        folder={translateFolder || ""}
+        onSuccess={loadProjects}
+      />
     </div>
   );
 };

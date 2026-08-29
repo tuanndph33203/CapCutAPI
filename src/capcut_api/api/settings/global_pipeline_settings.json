@@ -1,7 +1,20 @@
 {
-  "tts_engine": "local",
-  "nghitts_voice": "Ngọc Huyền (mới)",
-  "use_local_ocr": true,
-  "use_local_whisper": true,
-  "auto_shutdown": false
+    "ai_provider": "gemini",
+    "ai_api_key": "sk-d13e798ca7a8589d-jfr5u9-d6a964f4",
+    "ai_model": "ag/gemini-3.6-flash-high",
+    "ai_base_url": "http://127.0.0.1:20128/v1",
+    "ai_profiles": [
+        {
+            "id": "ai-profile-2194",
+            "label": "AI Profile 2",
+            "provider": "gemini",
+            "api_key": "sk-d13e798ca7a8589d-jfr5u9-d6a964f4",
+            "model": "ag/gemini-3.6-flash-high",
+            "base_url": "http://127.0.0.1:20128/v1"
+        }
+    ],
+    "default_translation_ai_profile_id": "ai-profile-2194",
+    "default_context_ai_profile_id": "ai-profile-2194",
+    "openreel_api_key": "",
+    "openreel_reference_keys": ""
 }

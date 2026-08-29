@@ -61,9 +61,9 @@
       "pageUrl": "https://www.douyin.com/video/7672738653055716837",
       "pageTitle": "https://v.douyin.com/gtGAQ7hX8yY",
       "folderName": "default",
-      "status": "DOWNLOADED",
+      "status": "draft_created",
       "savedAt": "2026-08-16T14:58:13.554878+00:00",
-      "updatedAt": "2026-08-17T13:10:05.490468+00:00",
+      "updatedAt": "2026-08-19T08:49:10.260424+00:00",
       "telegramUserId": 8241435668,
       "currentStep": "DRAFT_CREATED",
       "pipelineSteps": [
@@ -96,12 +96,42 @@
           "status": "SUCCESS",
           "timestamp": "2026-08-16T14:58:36.781216+00:00",
           "detail": "Đã tạo CapCut Draft ID: dfd_cat_1786892315_1f8906b0"
+        },
+        {
+          "step": "LINK_RECEIVED",
+          "status": "SUCCESS",
+          "timestamp": "2026-08-19T08:48:36.169386+00:00",
+          "detail": "Lưu vào thư mục Videos/default"
+        },
+        {
+          "step": "DOWNLOADING",
+          "status": "IN_PROGRESS",
+          "timestamp": "2026-08-19T08:48:38.486146+00:00",
+          "detail": "Bắt đầu tải file qua engine yt-dlp / Douyin"
+        },
+        {
+          "step": "DOWNLOADED",
+          "status": "SUCCESS",
+          "timestamp": "2026-08-19T08:49:06.300594+00:00",
+          "detail": "Folder: C:\\Users\\admin.TRANANH\\Videos\\default\\douyin_7672738653055716837 | Video: douyin_7672738653055716837.mp4 (95.50 MB)"
+        },
+        {
+          "step": "PIPELINE_CREATING",
+          "status": "IN_PROGRESS",
+          "timestamp": "2026-08-19T08:49:08.162805+00:00",
+          "detail": "Khởi tạo script CapCut & chèn video track"
+        },
+        {
+          "step": "DRAFT_CREATED",
+          "status": "SUCCESS",
+          "timestamp": "2026-08-19T08:49:10.260424+00:00",
+          "detail": "Đã tạo CapCut Draft ID: dfd_cat_1787129349_fed4bc14 | Hàng đợi #2"
         }
       ],
-      "localPath": "C:\\Users\\nguye\\Projects\\CapCutAPI\\downloads\\douyin_7672738653055716837\\douyin_7672738653055716837.mp4",
+      "localPath": "C:\\Users\\admin.TRANANH\\Videos\\default\\douyin_7672738653055716837\\douyin_7672738653055716837.mp4",
       "renderConfig": {
-        "width": 576,
-        "height": 1024,
+        "width": 1080,
+        "height": 1920,
         "ratio": "9:16",
         "fps": 30,
         "speed": 1.0,
@@ -114,14 +144,141 @@
       "videoMeta": {
         "title": "败可以，服不行#vlog日常 #来时路 #CODM联动崩坏3",
         "duration": 363,
-        "width": 576,
-        "height": 1024,
+        "width": 1080,
+        "height": 1920,
         "fileSizeMb": 95.5,
-        "localPath": "C:\\Users\\nguye\\Videos\\default\\douyin_7672738653055716837.mp4"
+        "localPath": "C:\\Users\\admin.TRANANH\\Videos\\default\\douyin_7672738653055716837\\douyin_7672738653055716837.mp4",
+        "coverPath": "C:\\Users\\admin.TRANANH\\Videos\\default\\douyin_7672738653055716837\\cover.jpg",
+        "videoDir": "C:\\Users\\admin.TRANANH\\Videos\\default\\douyin_7672738653055716837",
+        "coverUrl": "https://p11-sign.douyinpic.com/tos-cn-i-0813c000-ce/ogaEdA7PypIrAJAxXviCB8iLwsAAlZd2Mv4Bn~tplv-dy-resize-walign-adapt-aq:540:q75.jpeg?lk3s=138a59ce&x-expires=1788336000&x-signature=6fWFLy2ymhXC66Le9AfCor%2Bm2qk%3D&from=327834062&s=PackSourceEnum_FEED&se=false&sc=cover&biz_tag=aweme_video&l=20260819164855B74E594C681CBFC5A0F7"
       },
-      "draftId": "dfd_cat_1786892315_1f8906b0",
-      "coverPath": "C:\\Users\\nguye\\Projects\\CapCutAPI\\downloads\\douyin_7672738653055716837\\cover.jpg",
-      "videoDir": "C:\\Users\\nguye\\Projects\\CapCutAPI\\downloads\\douyin_7672738653055716837"
+      "draftId": "dfd_cat_1787129349_fed4bc14",
+      "coverPath": "C:\\Users\\admin.TRANANH\\Videos\\default\\douyin_7672738653055716837\\cover.jpg",
+      "videoDir": "C:\\Users\\admin.TRANANH\\Videos\\default\\douyin_7672738653055716837",
+      "queuePosition": 2
+    },
+    "163dae84-dad4-460f-8262-fea96245b3e2": {
+      "_id": "163dae84-dad4-460f-8262-fea96245b3e2",
+      "videoUrl": "https://www.douyin.com/video/7674588831824125179",
+      "pageUrl": "https://www.douyin.com/video/7674588831824125179",
+      "pageTitle": "https://v.douyin.com/Pac5dXN7R40",
+      "folderName": "default",
+      "status": "draft_created",
+      "savedAt": "2026-08-19T01:57:52.876102+00:00",
+      "updatedAt": "2026-08-19T02:10:09.741031+00:00",
+      "telegramUserId": 8241435668,
+      "currentStep": "DRAFT_CREATED",
+      "pipelineSteps": [
+        {
+          "step": "LINK_RECEIVED",
+          "status": "SUCCESS",
+          "timestamp": "2026-08-19T01:57:53.923802+00:00",
+          "detail": "Lưu vào thư mục Videos/default"
+        },
+        {
+          "step": "DOWNLOADING",
+          "status": "IN_PROGRESS",
+          "timestamp": "2026-08-19T01:57:55.735960+00:00",
+          "detail": "Bắt đầu tải file qua engine yt-dlp / Douyin"
+        },
+        {
+          "step": "DOWNLOADING",
+          "status": "FAILED",
+          "timestamp": "2026-08-19T01:58:22.928408+00:00",
+          "detail": "Lỗi tải: ERROR: [Douyin] 7674588831824125179: Fresh cookies (not necessarily logged in) are needed"
+        },
+        {
+          "step": "LINK_RECEIVED",
+          "status": "SUCCESS",
+          "timestamp": "2026-08-19T02:09:33.919022+00:00",
+          "detail": "Lưu vào thư mục Videos/default"
+        },
+        {
+          "step": "DOWNLOADING",
+          "status": "IN_PROGRESS",
+          "timestamp": "2026-08-19T02:09:35.734312+00:00",
+          "detail": "Bắt đầu tải file qua engine yt-dlp / Douyin"
+        },
+        {
+          "step": "DOWNLOADED",
+          "status": "SUCCESS",
+          "timestamp": "2026-08-19T02:10:05.888954+00:00",
+          "detail": "Folder: C:\\Users\\admin.TRANANH\\Videos\\default\\douyin_7674588831824125179 | Video: douyin_7674588831824125179.mp4 (99.62 MB)"
+        },
+        {
+          "step": "PIPELINE_CREATING",
+          "status": "IN_PROGRESS",
+          "timestamp": "2026-08-19T02:10:07.688094+00:00",
+          "detail": "Khởi tạo script CapCut & chèn video track"
+        },
+        {
+          "step": "DRAFT_CREATED",
+          "status": "SUCCESS",
+          "timestamp": "2026-08-19T02:10:09.741031+00:00",
+          "detail": "Đã tạo CapCut Draft ID: dfd_cat_1787105408_43061e9f"
+        }
+      ],
+      "error": "ERROR: [Douyin] 7674588831824125179: Fresh cookies (not necessarily logged in) are needed",
+      "localPath": "C:\\Users\\admin.TRANANH\\Videos\\default\\douyin_7674588831824125179\\douyin_7674588831824125179.mp4",
+      "coverPath": "C:\\Users\\admin.TRANANH\\Videos\\default\\douyin_7674588831824125179\\cover.jpg",
+      "videoDir": "C:\\Users\\admin.TRANANH\\Videos\\default\\douyin_7674588831824125179",
+      "renderConfig": {
+        "width": 1080,
+        "height": 1920,
+        "ratio": "9:16",
+        "fps": 30,
+        "speed": 1.0,
+        "volume": 1.0,
+        "autoCaptions": true,
+        "ttsVoice": "Vietnamese_Female",
+        "blurEffect": true,
+        "exportFormat": "mp4"
+      },
+      "videoMeta": {
+        "title": "离家千里又千里，务必争气再争气#vlog日常 #来时路",
+        "duration": 419,
+        "width": 1080,
+        "height": 1920,
+        "fileSizeMb": 99.62,
+        "localPath": "C:\\Users\\admin.TRANANH\\Videos\\default\\douyin_7674588831824125179\\douyin_7674588831824125179.mp4",
+        "coverPath": "C:\\Users\\admin.TRANANH\\Videos\\default\\douyin_7674588831824125179\\cover.jpg",
+        "videoDir": "C:\\Users\\admin.TRANANH\\Videos\\default\\douyin_7674588831824125179",
+        "coverUrl": "https://p11-sign.douyinpic.com/tos-cn-i-0813c000-ce/ocAEZ3qkAO9nEguAFZAERIQDDwzegAoE2AfLeg~tplv-dy-resize-walign-adapt-aq:540:q75.jpeg?lk3s=138a59ce&x-expires=1788314400&x-signature=Et0TcwtfE%2F643g6brV57bmCVnoU%3D&from=327834062&s=PackSourceEnum_FEED&se=false&sc=cover&biz_tag=aweme_video&l=202608191009559D99C56ED82BFDA20BA3"
+      },
+      "draftId": "dfd_cat_1787105408_43061e9f"
+    },
+    "feea8f0d-8488-4ae2-89b7-452ed082f921": {
+      "_id": "feea8f0d-8488-4ae2-89b7-452ed082f921",
+      "videoUrl": "https://www.youtube.com/watch?v=8uFOushmgBM",
+      "pageUrl": "https://www.youtube.com/watch?v=8uFOushmgBM",
+      "pageTitle": "https://www.youtube.com/watch?v=8uFOushmgBM",
+      "folderName": "default",
+      "status": "FAILED",
+      "savedAt": "2026-08-19T08:46:17.865324+00:00",
+      "updatedAt": "2026-08-19T08:46:30.765505+00:00",
+      "telegramUserId": 8241435668,
+      "currentStep": "DOWNLOADING",
+      "pipelineSteps": [
+        {
+          "step": "LINK_RECEIVED",
+          "status": "SUCCESS",
+          "timestamp": "2026-08-19T08:46:18.906305+00:00",
+          "detail": "Lưu vào thư mục Videos/default"
+        },
+        {
+          "step": "DOWNLOADING",
+          "status": "IN_PROGRESS",
+          "timestamp": "2026-08-19T08:46:20.764943+00:00",
+          "detail": "Bắt đầu tải file qua engine yt-dlp / Douyin"
+        },
+        {
+          "step": "DOWNLOADING",
+          "status": "FAILED",
+          "timestamp": "2026-08-19T08:46:30.765505+00:00",
+          "detail": "Lỗi tải: ERROR: unable to download video data: HTTP Error 403: Forbidden"
+        }
+      ],
+      "error": "ERROR: unable to download video data: HTTP Error 403: Forbidden"
     }
   }
 }

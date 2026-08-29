@@ -17,8 +17,9 @@ from typing import Dict, Any, List, Optional
 
 logger = logging.getLogger(__name__)
 
-BASE_DIR = Path(__file__).parent.resolve()
-CONFIG_FILE = BASE_DIR / "config.json"
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent.parent
+CONFIG_FILE = ROOT_DIR / "config.json"
+FALLBACK_CONFIG_FILE = Path(__file__).resolve().parent / "config.json"
 
 # Import provider adapters
 try:
@@ -30,19 +31,31 @@ try:
     from providers.threads import ThreadsProvider
     from providers.types import PublishContent, MediaType, PostType
     PROVIDERS_AVAILABLE = True
-except ImportError as err:
-    logger.warning(f"Could not import social providers: {err}")
-    PROVIDERS_AVAILABLE = False
+except ImportError:
+    try:
+        from capcut_api.publisher.providers.tiktok import TikTokProvider
+        from capcut_api.publisher.providers.youtube import YouTubeProvider
+        from capcut_api.publisher.providers.facebook import FacebookProvider
+        from capcut_api.publisher.providers.instagram import InstagramProvider
+        from capcut_api.publisher.providers.linkedin import LinkedInProvider
+        from capcut_api.publisher.providers.threads import ThreadsProvider
+        from capcut_api.publisher.providers.types import PublishContent, MediaType, PostType
+        PROVIDERS_AVAILABLE = True
+    except ImportError as err:
+        logger.warning(f"Could not import social providers: {err}")
+        PROVIDERS_AVAILABLE = False
 
 
 def load_config() -> dict:
     """Load configuration from config.json"""
-    if CONFIG_FILE.exists():
-        try:
-            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception as e:
-            logger.error(f"Error loading config.json: {e}")
+    for cfg_path in [CONFIG_FILE, FALLBACK_CONFIG_FILE]:
+        if cfg_path.exists():
+            try:
+                with open(cfg_path, "r", encoding="utf-8") as f:
+                    return json.load(f)
+            except Exception as e:
+                logger.error(f"Error loading config at {cfg_path}: {e}")
+    return {}
     return {}
 
 

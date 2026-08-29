@@ -27,7 +27,10 @@ export interface QueueItem {
   video_name?: string;
   video?: string;
   folder?: string;
-  status: "pending" | "running" | "failed" | "success" | string;
+  mode?: "translate_only" | "full_pipeline" | "full_publish" | string;
+  mode_label?: string;
+  config?: Record<string, any>;
+  status: "pending" | "running" | "failed" | "success" | "preprocessing" | "gui_processing" | "ready_for_capcut" | "paused" | string;
   progress?: number;
   duration?: string;
   message?: string;
@@ -191,4 +194,52 @@ export const selectNativeFiles = async (): Promise<string[]> => {
 export const selectNativeFolder = async (): Promise<string> => {
   const res = await api.post("/select_folder");
   return res.data.folder || res.data.path || "";
+};
+
+// Social Multi-Platform Publishing API (/api/v1/...)
+export interface PublishSocialPayload {
+  file_path?: string;
+  video_url?: string;
+  title: string;
+  description?: string;
+  platforms: string[];
+  privacy_status?: "public" | "unlisted" | "private";
+  tags?: string[];
+  thumbnail_file?: string;
+  category_id?: string;
+  made_for_kids?: boolean;
+}
+
+export interface ScheduleSocialPayload extends PublishSocialPayload {
+  scheduled_at: string; // ISO string e.g. "2026-08-18T19:00:00"
+}
+
+export const publishSocialVideo = async (payload: PublishSocialPayload): Promise<any> => {
+  const res = await axios.post("/api/v1/publish", payload);
+  return res.data;
+};
+
+export const scheduleSocialVideo = async (payload: ScheduleSocialPayload): Promise<any> => {
+  const res = await axios.post("/api/v1/schedule", payload);
+  return res.data;
+};
+
+export const fetchScheduledPosts = async (): Promise<any[]> => {
+  const res = await axios.get("/api/v1/schedules");
+  return res.data.schedules || [];
+};
+
+export const deleteScheduledPost = async (scheduleId: string): Promise<any> => {
+  const res = await axios.delete(`/api/v1/schedules/${encodeURIComponent(scheduleId)}`);
+  return res.data;
+};
+
+export const fetchSocialJobs = async (): Promise<any[]> => {
+  const res = await axios.get("/api/v1/jobs");
+  return res.data.jobs || [];
+};
+
+export const fetchSocialStatus = async (): Promise<any> => {
+  const res = await axios.get("/api/v1/status");
+  return res.data;
 };

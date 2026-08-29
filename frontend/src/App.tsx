@@ -6,6 +6,7 @@ import { ProjectGrid } from "./components/ProjectGrid";
 import { ProjectDetails } from "./components/ProjectDetails";
 import { QueueAndLogs } from "./components/QueueAndLogs";
 import { SocialProvidersPage } from "./components/SocialProvidersPage";
+import { NovelsPage } from "./components/NovelsPage";
 import { SystemSettingsModal } from "./components/SystemSettingsModal";
 import { fetchSystemStatus, testUIConnection, toggleAutoShutdown } from "./lib/api";
 import { Button } from "./components/ui/button";
@@ -113,34 +114,21 @@ export function App() {
           {/* Dynamic Full-Width Main Body Container */}
           <main className="flex-1 p-6 md:p-8 overflow-y-auto w-full space-y-6">
             {selectedFolder ? (
-              <div className="space-y-6">
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedFolder(null)}
-                    className="border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-300"
-                  >
-                    <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Back to Projects
-                  </Button>
-                  <h1 className="text-xl font-bold text-white tracking-tight">
-                    Project Detail: {selectedFolder}
-                  </h1>
-                </div>
-                <ProjectDetails
-                  folder={selectedFolder}
-                  onBack={() => setSelectedFolder(null)}
-                  onRunSuccess={() => {
-                    setSelectedFolder(null);
-                    setCurrentRoute("queue");
-                  }}
-                />
-              </div>
+              <ProjectDetails
+                folder={selectedFolder}
+                onBack={() => setSelectedFolder(null)}
+                onRunSuccess={() => {
+                  setSelectedFolder(null);
+                  setCurrentRoute("queue");
+                }}
+              />
             ) : (
               <>
                 {currentRoute === "projects" && (
                   <ProjectGrid onSelectProject={handleSelectProject} />
                 )}
+
+                {currentRoute === "novels" && <NovelsPage />}
 
                 {currentRoute === "queue" && <QueueAndLogs />}
 

@@ -202,6 +202,7 @@ export const QueueAndLogs: React.FC = () => {
                 <tr>
                   <th className="p-3 w-10">STT</th>
                   <th className="p-3">Dự án / Video</th>
+                  <th className="p-3">Chế độ / Luồng</th>
                   <th className="p-3">Trạng thái</th>
                   <th className="p-3">Tiến trình</th>
                   <th className="p-3">Chi tiết / Thông báo</th>
@@ -211,16 +212,35 @@ export const QueueAndLogs: React.FC = () => {
               <tbody>
                 {filteredQueue.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-10 text-muted-foreground">
+                    <td colSpan={7} className="text-center py-10 text-muted-foreground">
                       Hàng chờ trống. Vui lòng bấm nút chạy trên thẻ dự án để bắt đầu.
                     </td>
                   </tr>
                 ) : (
-                  filteredQueue.map((item, idx) => (
+                  filteredQueue.map((item, idx) => {
+                    const isTransOnly = item.mode === "translate_only" || Boolean(item.config?.translate_only || item.config?.subtitle_only);
+                    const isAutoPub = item.mode === "full_publish" || Boolean(item.config?.auto_publish);
+
+                    return (
                     <tr key={idx} className="border-b border-white/5 hover:bg-white/5 transition-colors">
                       <td className="p-3 font-mono">{idx + 1}</td>
                       <td className="p-3 font-semibold text-foreground truncate max-w-[160px]" title={item.video || item.project_name || item.folder}>
                         {item.project_name || item.video_name || item.folder || item.video || `Project ${idx + 1}`}
+                      </td>
+                      <td className="p-3">
+                        {isTransOnly ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                            📝 Chỉ Dịch Sub
+                          </span>
+                        ) : isAutoPub ? (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            🚀 Full + Đăng MXH
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                            🎬 Full Pipeline
+                          </span>
+                        )}
                       </td>
                       <td className="p-3">
                         <Badge
@@ -306,8 +326,9 @@ export const QueueAndLogs: React.FC = () => {
                         </div>
                       </td>
                     </tr>
-                  ))
-                )}
+                  );
+                })
+              )}
               </tbody>
             </table>
           </div>

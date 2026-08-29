@@ -103,10 +103,19 @@ def save_draft_background(draft_id, draft_folder, task_id):
         logger.info(f"Starting to save draft: {draft_id}")
         # Save draft
         current_dir = os.path.dirname(os.path.abspath(__file__))
+        root_dir = Path(__file__).resolve().parents[3]
+        template_name = "template" if IS_CAPCUT_ENV else "template_jianying"
+        template_src = root_dir / "templates" / template_name
+
+        local_template_dir = os.path.join(current_dir, template_name)
+        if not os.path.exists(local_template_dir) and template_src.exists():
+            try:
+                shutil.copytree(str(template_src), local_template_dir, dirs_exist_ok=True)
+            except Exception as copy_err:
+                logger.warning(f"Could not copy template to {local_template_dir}: {copy_err}")
+
         draft_folder_for_duplicate = draft.Draft_folder(current_dir)
-        # Choose different template directory based on configuration
-        template_dir = "template" if IS_CAPCUT_ENV else "template_jianying"
-        draft_folder_for_duplicate.duplicate_as_template(template_dir, draft_id)
+        draft_folder_for_duplicate.duplicate_as_template(template_name, draft_id, allow_replace=True)
         
         # Update draft_meta_info.json with correct draft_id and draft_name to prevent database conflicts in CapCut
         meta_info_path = os.path.join(current_dir, draft_id, "draft_meta_info.json")
@@ -264,6 +273,15 @@ def save_draft_background(draft_id, draft_folder, task_id):
         draft_info_path = Path(current_dir) / str(draft_id) / "draft_info.json"
         dump_script_to_path(script, draft_info_path)
         logger.info(f"Draft information has been saved to {draft_info_path}.")
+
+        if draft_folder and os.path.abspath(draft_folder) != os.path.abspath(current_dir):
+            try:
+                target_dest = os.path.join(draft_folder, draft_id)
+                os.makedirs(draft_folder, exist_ok=True)
+                shutil.copytree(os.path.join(current_dir, draft_id), target_dest, dirs_exist_ok=True)
+                logger.info(f"Copied saved draft to target draft_folder: {target_dest}")
+            except Exception as copy_dest_err:
+                logger.warning(f"Could not copy draft to {draft_folder}: {copy_dest_err}")
 
         draft_url = ""
         # Only upload draft information when IS_UPLOAD_DRAFT is True

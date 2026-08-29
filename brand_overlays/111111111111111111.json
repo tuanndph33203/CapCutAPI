@@ -1,6 +1,6 @@
 {
     "version": 1,
-    "source": "C:\\Users\\nguye\\AppData\\Local\\CapCut\\User Data\\Projects\\com.lveditor.draft\\111111111111111111\\draft_info.json",
+    "source": "C:\\Users\\admin.TRANANH\\AppData\\Local\\CapCut\\User Data\\Projects\\com.lveditor.draft\\111111111111111111\\draft_info.json",
     "materials": {
         "videos": [
             {
@@ -329,27 +329,27 @@
                     "enable_color_wheels": true,
                     "enable_lut": true,
                     "enable_smart_color_adjust": false,
-                    "last_nonzero_volume": 0.09440608762859236,
+                    "last_nonzero_volume": 0.16788040181225602,
                     "reverse": false,
                     "track_attribute": 4,
                     "track_render_index": 0,
                     "visible": true,
-                    "id": "d4c58bf180d441139f6edbcb92c3715c",
+                    "id": "6470b299c20d4628b46bade7263956f1",
                     "material_id": "205B0FC0-CBC4-45f0-BE9B-A3DBBDBD7A6D",
                     "target_timerange": {
                         "start": 0,
-                        "duration": 138760000
+                        "duration": 419700000
                     },
                     "common_keyframes": [],
                     "keyframe_refs": [],
                     "source_timerange": {
                         "start": 0,
-                        "duration": 138760000
+                        "duration": 419700000
                     },
                     "speed": 1.0,
-                    "volume": 0.0,
+                    "volume": 0.16788040181225602,
                     "extra_material_refs": [
-                        "ba5e444ef2c14239a16a1393b55e1a80"
+                        "ed3bb87dbe394e00ba9b3f89921495e3"
                     ],
                     "clip": {
                         "alpha": 1.0,
@@ -365,8 +365,7 @@
                         "transform": {
                             "x": 0.8099487442328226,
                             "y": 0.8740359897172236
-                        },
-                        "volume": 0.0
+                        }
                     },
                     "uniform_scale": {
                         "on": true,
@@ -397,27 +396,27 @@
                     "enable_color_wheels": true,
                     "enable_lut": true,
                     "enable_smart_color_adjust": false,
-                    "last_nonzero_volume": 0.09440608762859236,
+                    "last_nonzero_volume": 0.16788040181225602,
                     "reverse": false,
                     "track_attribute": 4,
                     "track_render_index": 0,
                     "visible": true,
-                    "id": "77f05b05187b4eeb935857e4b8679aaf",
+                    "id": "d390aab9bbf44a77ab6090faead88708",
                     "material_id": "9D84B894-1A60-40f7-B78F-38F5A8E8C6B2",
                     "target_timerange": {
                         "start": 0,
-                        "duration": 138760000
+                        "duration": 419700000
                     },
                     "common_keyframes": [],
                     "keyframe_refs": [],
                     "source_timerange": {
                         "start": 0,
-                        "duration": 138760000
+                        "duration": 419700000
                     },
                     "speed": 1.0,
-                    "volume": 0.0,
+                    "volume": 0.16788040181225602,
                     "extra_material_refs": [
-                        "bdd5045f158c43d18133c8a354502bad"
+                        "3a1b8bcf329d4c8f8e0cce5bd7a3d367"
                     ],
                     "clip": {
                         "alpha": 1.0,
@@ -433,8 +432,7 @@
                         "transform": {
                             "x": -0.8712011577424024,
                             "y": 0.8303341902313625
-                        },
-                        "volume": 0.0
+                        }
                     },
                     "uniform_scale": {
                         "on": true,

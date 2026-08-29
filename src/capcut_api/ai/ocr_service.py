@@ -142,9 +142,9 @@ def detect_speech_regions_whisper(
         video_path,
         language=str(transcribe_options["language"] or "zh"),
         speed=float(_config_get(speech_config, "speed", 1.0) or 1.0),
-        model_size=str(_config_get(speech_config, "model", os.environ.get("WHISPER_MODEL", "large-v3-turbo"))),
-        device=str(_config_get(speech_config, "device", os.environ.get("WHISPER_DEVICE", "cuda"))),
-        compute_type=_config_get(speech_config, "compute_type", os.environ.get("WHISPER_COMPUTE_TYPE")),
+        model_size=str(_config_get(speech_config, "model", os.environ.get("WHISPER_MODEL", "small"))),
+        device=str(_config_get(speech_config, "device", os.environ.get("WHISPER_DEVICE", "cpu"))),
+        compute_type=_config_get(speech_config, "compute_type", os.environ.get("WHISPER_COMPUTE_TYPE", "int8")),
         transcribe_options=transcribe_options,
         progress_callback=progress_callback,
     )

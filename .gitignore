@@ -37,3 +37,11 @@ nghitts/public/demo/*.wav
 nghitts/ngoc_huyen_*.wav
 nghitts/output_*.wav
 nghitts/test_*.wav
+
+# Novel data & generated audio outputs
+data/novels/
+outputs/
+outputs/novel_audio/
+my-novels/
+novels/
+*.epub

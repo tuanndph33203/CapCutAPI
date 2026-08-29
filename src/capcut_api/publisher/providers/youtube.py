@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import json
 import logging
 from datetime import datetime
 from urllib.parse import urlencode
@@ -299,6 +301,148 @@ class YouTubeProvider(SocialProvider):
             "No video file provided (media_files required)",
             platform=self.platform_name,
         )
+
+    # ------------------------------------------------------------------
+    # Channel Banner & Advanced Features
+    # ------------------------------------------------------------------
+
+    def set_channel_banner(self, access_token: str, image_path: str) -> dict:
+        """Upload image to YouTube and update channel banner branding.
+        
+        Requires 16:9 image (min 2048x1152, recommended 2560x1440, max 6MB).
+        """
+        if not os.path.exists(image_path):
+            raise FileNotFoundError(f"Banner image file not found: {image_path}")
+
+        with open(image_path, "rb") as f:
+            img_data = f.read()
+
+        ext = image_path.lower().rsplit(".", 1)[-1]
+        ct = "image/png" if ext == "png" else "image/jpeg"
+
+        logger.info(f"Đang upload banner image ({len(img_data)} bytes) lên YouTube...")
+        upload_resp = self._request(
+            "POST",
+            f"{UPLOAD_BASE}/channelBanners/insert",
+            access_token=access_token,
+            params={"uploadType": "media"},
+            headers={"Content-Type": ct, "Content-Length": str(len(img_data))},
+            data=img_data,
+            timeout=60.0,
+        )
+        banner_url = upload_resp.json().get("url")
+        if not banner_url:
+            raise PublishError("YouTube did not return banner URL", platform=self.platform_name)
+
+        # Resolve my channel ID
+        ch_resp = self._request(
+            "GET",
+            f"{API_BASE}/channels",
+            access_token=access_token,
+            params={"part": "id", "mine": "true"},
+        )
+        items = ch_resp.json().get("items", [])
+        if not items:
+            raise PublishError("No YouTube channel found for authenticated user", platform=self.platform_name)
+        channel_id = items[0]["id"]
+
+        logger.info(f"Cập nhật Branding Settings cho kênh {channel_id} với banner_url: {banner_url}...")
+        update_resp = self._request(
+            "PUT",
+            f"{API_BASE}/channels",
+            access_token=access_token,
+            params={"part": "brandingSettings"},
+            json={
+                "id": channel_id,
+                "brandingSettings": {
+                    "image": {
+                        "bannerExternalUrl": banner_url
+                    }
+                }
+            },
+        )
+        return {
+            "success": True,
+            "banner_url": banner_url,
+            "channel_details": update_resp.json(),
+        }
+
+    def upload_caption(
+        self,
+        access_token: str,
+        video_id: str,
+        srt_path_or_content: str,
+        language: str = "vi",
+        name: str = "Tiếng Việt",
+        is_draft: bool = False
+    ) -> dict:
+        """Upload a caption track (.srt / .vtt) to a YouTube video.
+        
+        Enables user-toggleable Closed Captions (CC).
+        """
+        import json as json_lib
+        if os.path.exists(srt_path_or_content):
+            with open(srt_path_or_content, "rb") as f:
+                caption_bytes = f.read()
+        else:
+            caption_bytes = srt_path_or_content.encode("utf-8")
+
+        metadata = {
+            "snippet": {
+                "videoId": video_id,
+                "language": language,
+                "name": name,
+                "isDraft": is_draft,
+            }
+        }
+
+        logger.info(f"Đang upload file phụ đề ({language} - {name}) lên video {video_id}...")
+        resp = self._request(
+            "POST",
+            f"{UPLOAD_BASE}/captions",
+            access_token=access_token,
+            params={"part": "snippet", "uploadType": "multipart"},
+            files={
+                "snippet": ("metadata.json", json_lib.dumps(metadata), "application/json"),
+                "media": ("caption.srt", caption_bytes, "application/octet-stream"),
+            },
+            timeout=60.0,
+        )
+        body = resp.json()
+        return {
+            "success": True,
+            "caption_id": body.get("id"),
+            "snippet": body.get("snippet", {}),
+        }
+
+    def set_thumbnail(self, access_token: str, video_id: str, image_path: str) -> dict:
+        """Upload custom thumbnail for a YouTube video."""
+        if not os.path.exists(image_path):
+            raise FileNotFoundError(f"Thumbnail image file not found: {image_path}")
+
+        with open(image_path, "rb") as tf:
+            thumb_data = tf.read()
+
+        ext = image_path.lower().rsplit(".", 1)[-1]
+        thumb_ct = "image/png" if ext == "png" else "image/jpeg"
+
+        logger.info(f"Đang upload Custom Thumbnail cho video {video_id}...")
+        resp = self._request(
+            "POST",
+            f"{UPLOAD_BASE}/thumbnails/set",
+            access_token=access_token,
+            params={"videoId": video_id, "uploadType": "media"},
+            headers={
+                "Content-Type": thumb_ct,
+                "Content-Length": str(len(thumb_data)),
+            },
+            data=thumb_data,
+            timeout=60.0,
+        )
+        return {
+            "success": True,
+            "items": resp.json().get("items", []),
+        }
 
     # ------------------------------------------------------------------
     # Comments

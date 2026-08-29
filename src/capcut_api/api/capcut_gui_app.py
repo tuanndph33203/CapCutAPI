@@ -3286,15 +3286,13 @@ def ffmpeg_has_h264_nvenc():
     if _FFMPEG_H264_NVENC_AVAILABLE is not None:
         return _FFMPEG_H264_NVENC_AVAILABLE
     try:
+        test_cmd = ["ffmpeg", "-f", "lavfi", "-i", "color=black:s=16x16:d=0.1", "-c:v", "h264_nvenc", "-f", "null", "-"]
         completed = subprocess.run(
-            ["ffmpeg", "-hide_banner", "-encoders"],
-            text=True,
+            test_cmd,
             capture_output=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=10,
+            timeout=5,
         )
-        _FFMPEG_H264_NVENC_AVAILABLE = completed.returncode == 0 and "h264_nvenc" in completed.stdout
+        _FFMPEG_H264_NVENC_AVAILABLE = completed.returncode == 0
     except Exception:
         _FFMPEG_H264_NVENC_AVAILABLE = False
     return _FFMPEG_H264_NVENC_AVAILABLE

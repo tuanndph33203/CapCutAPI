@@ -1,11 +1,44 @@
 import os
+import sys
 import subprocess
 import time
 import requests
 import shutil
 from typing import Optional
+from pathlib import Path
 from requests.exceptions import RequestException, Timeout
 from urllib.parse import urlparse, unquote
+
+# Automatically ensure FFmpeg is available in system PATH
+def _ensure_ffmpeg_in_path() -> str | None:
+    try:
+        import static_ffmpeg
+        static_ffmpeg.add_paths()
+    except Exception:
+        pass
+
+    try:
+        tools_dir = Path(__file__).resolve().parent.parent.parent.parent / "tools"
+        if (tools_dir / "ffmpeg.exe").exists():
+            t_str = str(tools_dir)
+            if t_str not in os.environ.get("PATH", ""):
+                os.environ["PATH"] = t_str + os.pathsep + os.environ.get("PATH", "")
+            return t_str
+    except Exception:
+        pass
+
+    try:
+        import imageio_ffmpeg
+        ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+        ffmpeg_dir = os.path.dirname(ffmpeg_exe)
+        if ffmpeg_dir not in os.environ.get("PATH", ""):
+            os.environ["PATH"] = ffmpeg_dir + os.pathsep + os.environ.get("PATH", "")
+        return ffmpeg_dir
+    except Exception:
+        pass
+    return None
+
+_ensure_ffmpeg_in_path()
 
 def download_video(video_url, draft_name, material_name):
     """
@@ -247,14 +280,20 @@ def clean_and_resolve_url(raw_text: str) -> str:
     return url
 
 
-def download_douyin_no_watermark(raw_text: str, output_dir: str = "downloads") -> dict:
+DEFAULT_VIDEOS_OUTPUT_DIR = str(Path.home() / "Videos" / "default")
+
+
+def download_douyin_no_watermark(raw_text: str, output_dir: Optional[str] = None) -> dict:
     """
     Direct no-watermark Douyin downloader bypassing cookie & login requirements.
     Uses dynamic ttwid session registration & Douyin aweme feed / detail API.
     Creates a dedicated folder per video, downloads both video and cover/banner image.
+    Always saves to the user's chosen Videos/<folder> directory.
     """
     import json
     import requests
+    if not output_dir or output_dir == "downloads":
+        output_dir = DEFAULT_VIDEOS_OUTPUT_DIR
     os.makedirs(output_dir, exist_ok=True)
 
     clean_url = clean_and_resolve_url(raw_text)
@@ -452,6 +491,59 @@ def download_douyin_no_watermark(raw_text: str, output_dir: str = "downloads") -
         return {"success": False, "error": f"Douyin custom downloader error: {err}", "file_path": None, "cover_path": None}
 
 
+def ensure_douyin_cookies() -> Optional[str]:
+    """Auto-generate fresh guest Douyin Netscape cookies to bypass yt-dlp cookie requirement."""
+    try:
+        workspace_dir = Path(__file__).resolve().parent.parent.parent.parent
+        cookie_path = workspace_dir / "douyin_cookies.txt"
+        
+        # Check if existing cookie is fresh (less than 12 hours old)
+        if cookie_path.exists() and (time.time() - cookie_path.stat().st_mtime < 43200):
+            return str(cookie_path)
+            
+        session = requests.Session()
+        # 1. Fetch ttwid from ByteDance union register
+        ttwid_resp = session.post("https://ttwid.bytedance.com/ttwid/union/register/", json={
+            "region": "cn",
+            "aid": 1768,
+            "needFid": "false",
+            "service": "www.ixigua.com",
+            "migrate_info": {"ticket": "", "source": "node"},
+            "cbUrlProtocol": "https",
+            "union": "true"
+        }, timeout=5)
+        ttwid = session.cookies.get("ttwid") or ttwid_resp.cookies.get("ttwid")
+        
+        # 2. Visit douyin endpoints to get session tokens
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        }
+        try:
+            session.get("https://live.douyin.com/", headers=headers, timeout=5)
+            session.get("https://www.douyin.com/", headers=headers, timeout=5)
+        except Exception:
+            pass
+
+        expiry = int(time.time()) + 86400 * 30
+        lines = [
+            "# Netscape HTTP Cookie File",
+            f".douyin.com\tTRUE\t/\tTRUE\t{expiry}\tttwid\t{ttwid or ''}",
+            f".douyin.com\tTRUE\t/\tFALSE\t{expiry}\tpassport_csrf_token\t6c4d7b2a9f1e8d3c5b7a9f1e8d3c5b7a",
+            f".douyin.com\tTRUE\t/\tFALSE\t{expiry}\tIS_NOT_SLIDE_VCODE\t1",
+            f".douyin.com\tTRUE\t/\tFALSE\t{expiry}\td_ticket\t9f1e8d3c5b7a9f1e8d3c5b7a9f1e8d3c",
+        ]
+        for c in session.cookies:
+            lines.append(f".douyin.com\tTRUE\t/\tFALSE\t{expiry}\t{c.name}\t{c.value}")
+
+        with open(cookie_path, "w", encoding="utf-8") as f:
+            f.write("\n".join(lines) + "\n")
+        return str(cookie_path)
+    except Exception as e:
+        print(f"[ensure_douyin_cookies] Warning: {e}")
+        return None
+
+
 def find_cookie_file() -> Optional[str]:
     """Find cookies.txt file in workspace or common directories."""
     candidates = [
@@ -459,6 +551,7 @@ def find_cookie_file() -> Optional[str]:
         os.path.join(os.getcwd(), "douyin_cookies.txt"),
         os.path.join(os.path.dirname(__file__), "cookies.txt"),
         os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "cookies.txt"),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))), "douyin_cookies.txt"),
     ]
     for c in candidates:
         if os.path.exists(c) and os.path.getsize(c) > 0:
@@ -466,29 +559,38 @@ def find_cookie_file() -> Optional[str]:
     return None
 
 
-def download_with_ytdlp(url: str, output_dir: str = "downloads", filename_prefix: str = "video") -> dict:
+def download_with_ytdlp(url: str, output_dir: Optional[str] = None, filename_prefix: str = "video") -> dict:
     """
     Download video from any supported URL (YouTube, TikTok, Facebook, Instagram, Douyin, etc.) using yt-dlp
     or custom Douyin no-watermark engine.
-    Saves each video and its banner/cover image into a dedicated subfolder.
+    Saves each video and its banner/cover image into a dedicated subfolder in the user's chosen Videos/<folder> directory.
     """
     import yt_dlp
     import json
 
+    if not output_dir or output_dir == "downloads":
+        output_dir = DEFAULT_VIDEOS_OUTPUT_DIR
+    os.makedirs(output_dir, exist_ok=True)
+
     clean_url = clean_and_resolve_url(url)
     print(f"[download_with_ytdlp] Cleaned target URL: {clean_url}")
 
-    cookie_file = find_cookie_file()
+    is_douyin = "douyin.com" in url or "iesdouyin.com" in url or "douyin.com" in clean_url
+    if is_douyin:
+        cookie_file = ensure_douyin_cookies() or find_cookie_file()
+    else:
+        cookie_file = find_cookie_file()
+
     if cookie_file:
         print(f"[download_with_ytdlp] Using cookies from: {cookie_file}")
 
     # 1. Custom Douyin handler (Bypasses yt-dlp cookie requirements if possible)
-    if "douyin.com" in url or "iesdouyin.com" in url:
-        print(f"[download_with_ytdlp] Douyin URL detected, using Douyin no-watermark engine...")
+    if is_douyin:
+        print(f"[download_with_ytdlp] Douyin URL detected, trying custom Douyin engine...")
         dy_res = download_douyin_no_watermark(url, output_dir=output_dir)
         if dy_res.get("success"):
             return dy_res
-        print(f"[download_with_ytdlp] Custom Douyin engine fallback: {dy_res.get('error')}, trying yt-dlp...")
+        print(f"[download_with_ytdlp] Custom Douyin engine fallback: {dy_res.get('error')}, trying yt-dlp with auto-cookies...")
 
     os.makedirs(output_dir, exist_ok=True)
 

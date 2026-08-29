@@ -32,7 +32,11 @@ for d in subdirs:
     if d_str not in sys.path:
         sys.path.insert(0, d_str)
 
+# Add tools to PATH for ffmpeg
+tools_dir = root_dir / "tools"
+if tools_dir.exists() and str(tools_dir) not in os.environ.get("PATH", ""):
+    os.environ["PATH"] = str(tools_dir) + os.pathsep + os.environ.get("PATH", "")
+
 if __name__ == "__main__":
-    from capcut_api.api.server_app import app, PORT
-    print(f"Khởi động CapCut Draft REST API Server tại http://127.0.0.1:{PORT}")
-    app.run(host="0.0.0.0", port=PORT)
+    from capcut_api.server import run_master_server
+    run_master_server(port=9001)

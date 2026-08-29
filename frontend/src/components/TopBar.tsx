@@ -25,26 +25,26 @@ export const TopBar: React.FC<TopBarProps> = ({
   onOpenSettingsModal,
 }) => {
   return (
-    <header className="sticky top-0 z-20 w-full flex h-16 items-center justify-between px-6 bg-[#09090b]/90 backdrop-blur-md border-b border-zinc-800/80">
+    <header className="sticky top-0 z-20 w-full flex h-16 items-center justify-between px-6 bg-[#09090b]/80 backdrop-blur-xl border-b border-zinc-800/80">
       {/* Left Title & Status */}
-      <div className="flex items-center gap-3">
-        <SidebarTrigger />
-        <Separator orientation="vertical" className="h-4" />
-        <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3.5">
+        <SidebarTrigger className="text-zinc-400 hover:text-white" />
+        <Separator orientation="vertical" className="h-4 bg-zinc-800" />
+        <div className="flex items-center gap-2.5">
           <Badge
             variant="outline"
-            className={`px-2.5 py-1 flex items-center gap-1.5 text-xs font-semibold rounded-full ${
+            className={`px-3 py-1 flex items-center gap-2 text-xs font-semibold rounded-full border transition-all ${
               isConnected
-                ? "border-emerald-500/30 text-emerald-400 bg-emerald-500/10"
-                : "border-red-500/30 text-red-400 bg-red-500/10"
+                ? "border-emerald-500/30 text-emerald-400 bg-emerald-500/10 shadow-sm shadow-emerald-500/10"
+                : "border-amber-500/30 text-amber-400 bg-amber-500/10"
             }`}
           >
             <span
               className={`w-2 h-2 rounded-full ${
-                isConnected ? "bg-emerald-400 animate-pulse" : "bg-red-500"
+                isConnected ? "bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400" : "bg-amber-400"
               }`}
             />
-            <span>{isConnected ? "Server Active" : "Server Disconnected"}</span>
+            <span>{isConnected ? "CapCut Core Active" : "Waiting for Server"}</span>
           </Badge>
         </div>
       </div>
@@ -56,40 +56,44 @@ export const TopBar: React.FC<TopBarProps> = ({
           size="sm"
           onClick={onTestConnection}
           disabled={isTestingConnection}
-          className="h-8 text-xs font-medium border-zinc-700 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-200"
+          className="h-8 text-xs font-medium border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 hover:border-zinc-700 text-zinc-300 transition-all gap-1.5"
         >
-          <Plug className="w-3.5 h-3.5 mr-1.5 text-purple-400" />
-          <span>{isTestingConnection ? "Testing..." : "Test Connection"}</span>
+          <Plug className="w-3.5 h-3.5 text-purple-400" />
+          <span>{isTestingConnection ? "Đang kiểm tra..." : "Test CapCut UI"}</span>
         </Button>
 
         <Button
           variant="outline"
           size="sm"
           onClick={onOpenSocialModal}
-          className="h-8 text-xs font-medium border-zinc-700 bg-zinc-900/80 hover:bg-zinc-800 text-cyan-300"
+          className="h-8 text-xs font-medium border-blue-500/30 bg-blue-950/30 hover:bg-blue-900/40 text-blue-300 transition-all gap-1.5"
         >
-          <Globe className="w-3.5 h-3.5 mr-1.5 text-cyan-400" />
-          <span>Social Network</span>
+          <Globe className="w-3.5 h-3.5 text-blue-400" />
+          <span>Social Hub</span>
         </Button>
 
         <Button
           variant="outline"
           size="sm"
           onClick={onOpenSettingsModal}
-          className="h-8 text-xs font-medium border-zinc-700 bg-zinc-900/80 hover:bg-zinc-800 text-zinc-200"
+          className="h-8 text-xs font-medium border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-300 transition-all gap-1.5"
         >
-          <Settings className="w-3.5 h-3.5 mr-1.5 text-zinc-400" />
-          <span>Global Config</span>
+          <Settings className="w-3.5 h-3.5 text-zinc-400" />
+          <span>Cấu Hình</span>
         </Button>
 
         <Button
           variant={autoShutdown ? "destructive" : "outline"}
           size="sm"
           onClick={onToggleAutoShutdown}
-          className="h-8 text-xs font-medium border-zinc-700 bg-zinc-900/80 text-zinc-200"
+          className={`h-8 text-xs font-medium transition-all gap-1.5 ${
+            autoShutdown
+              ? "bg-red-600 hover:bg-red-700 text-white shadow-sm shadow-red-600/20"
+              : "border-zinc-800 bg-zinc-900/60 hover:bg-zinc-800 text-zinc-400"
+          }`}
         >
-          <Power className="w-3.5 h-3.5 mr-1.5" />
-          <span>Shutdown: {autoShutdown ? "ON" : "OFF"}</span>
+          <Power className="w-3.5 h-3.5" />
+          <span>{autoShutdown ? "Tắt máy: BẬT" : "Tắt máy: Tắt"}</span>
         </Button>
       </div>
     </header>

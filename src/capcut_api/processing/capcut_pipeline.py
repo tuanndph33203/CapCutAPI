@@ -515,10 +515,16 @@ def run_pipeline(
 
     save_result = save_draft_impl(draft_id, str(capcut_drafts))
 
-    repo_draft = Path.cwd() / draft_id
+    core_dir = Path(__file__).resolve().parent.parent / "core"
+    repo_draft = core_dir / draft_id
+    if not repo_draft.exists():
+        repo_draft = Path.cwd() / draft_id
+    if not repo_draft.exists() and capcut_drafts and (capcut_drafts / draft_id).exists():
+        repo_draft = capcut_drafts / draft_id
+
     capcut_draft = capcut_drafts / draft_id
     restored_effect_files = 0
-    if copy_to_capcut:
+    if copy_to_capcut and repo_draft.resolve() != capcut_draft.resolve() and repo_draft.exists():
         import time
         max_attempts = 10
         for attempt in range(1, max_attempts + 1):
@@ -530,8 +536,10 @@ def run_pipeline(
             except (PermissionError, OSError) as e:
                 if attempt == max_attempts:
                     raise e
-                print(f"[{attempt}/{max_attempts}] Không thể copy thư mục nháp sang CapCut vì file bị khóa. "
-                      f"Đang force kill CapCut.exe và thử lại sau 1.5s... Chi tiết: {e}")
+                try:
+                    print(f"[{attempt}/{max_attempts}] Đang thử lại copy sang CapCut sau 1.5s... ({e})")
+                except Exception:
+                    pass
                 subprocess.run(["taskkill", "/F", "/IM", "CapCut.exe"], capture_output=True)
                 time.sleep(1.5)
         restore_brand_overlay_snapshot(capcut_draft, brand_snapshot)
