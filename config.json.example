@@ -1,9 +1,66 @@
 {
+  "user": {
+    "name": "Your Name",
+    "email": "your_email@example.com"
+  },
+  "telegram_bot_token": "",
+  "gemini_api_key": "",
+  "openai_api_key": "",
+  "deepseek_api_key": "",
+  "novel_pipeline": {
+    "mode": "detailed",
+    "target_duration_min": 15.0,
+    "words_per_minute": 210,
+    "content_tuning": {
+      "compression_ratio": 0.75,
+      "keep_dialogue": true,
+      "combat_detail_level": "high",
+      "scene_count": 25,
+      "inter_scene_pause": 0.3
+    },
+    "auto_span": {
+      "enabled": true,
+      "words_threshold_min": 3200,
+      "max_chapters_to_merge": 6
+    },
+    "hook_outro": {
+      "style": "minimal",
+      "hook_template": "Tập {ep} — {title}!",
+      "outro_template": "Bấm Like, Đăng ký và Bật chuông xem tiếp Tập {next_ep} nhé! Hẹn gặp lại!"
+    },
+    "tts": {
+      "voice": "vi-VN-NamMinhNeural",
+      "rate": "+5%",
+      "pitch": "+0Hz"
+    }
+  },
   "is_capcut_env": true,
   "draft_domain": "https://www.install-ai-guider.top",
   "port": 9001,
   "preview_router": "/draft/downloader",
   "is_upload_draft": false,
+  "social_credentials": {
+    "youtube": {
+      "enabled": false,
+      "account_name": "",
+      "email": "",
+      "client_id": "",
+      "client_secret": "",
+      "refresh_token": "",
+      "access_token": ""
+    }
+  },
+  "database": {
+    "type": "mongodb",
+    "mongodb_uri": "",
+    "database_name": "capcut_recap_ai"
+  },
+  "cloud_storage": {
+    "provider": "gdrive",
+    "gdrive_mount_path": "G:\\My Drive",
+    "gdrive_folder_id": "",
+    "cleanup_after_sync": false
+  },
   "oss_config": {
     "bucket_name": "your-bucket-name",
     "access_key_id": "your-access-key-id",
