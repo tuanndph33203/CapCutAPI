@@ -42,17 +42,186 @@ def _get_normalizer():
         _NORMALIZER_INSTANCE = VietnameseNormalizer()
     return _NORMALIZER_INSTANCE
 
+# Danh mục toàn bộ các giọng đọc chất lượng cao của NghiTTS
+NGHITTS_VOICES: Dict[str, Dict[str, Any]] = {
+    "Ngọc Huyền (mới)": {
+        "slug": "ngoc_huyen_moi",
+        "gender": "female",
+        "region": "Bắc",
+        "style": "Đọc truyện kiếm hiệp / tiên hiệp, truyền cảm, mượt mà",
+        "is_default": True
+    },
+    "Duy Oryx": {
+        "slug": "duy_oryx",
+        "gender": "male",
+        "region": "Bắc",
+        "style": "Trầm ấm, đĩnh đạc, hiện đại, thuyết minh review"
+    },
+    "Mạnh Dũng": {
+        "slug": "manh_dung",
+        "gender": "male",
+        "region": "Bắc",
+        "style": "Hào hùng, khí thế, phóng sự, truyện hành động chiến đấu"
+    },
+    "Ngọc Ngạn": {
+        "slug": "ngoc_ngan",
+        "gender": "male",
+        "region": "Hải Ngoại",
+        "style": "Kể chuyện đêm khuya, lôi cuốn, giọng điệu huyền bí đặc trưng"
+    },
+    "Trấn Thành": {
+        "slug": "tran_thanh",
+        "gender": "male",
+        "region": "Nam",
+        "style": "Hoạt ngôn, sinh động, biểu cảm phong phú"
+    },
+    "Việt Thảo": {
+        "slug": "viet_thao",
+        "gender": "male",
+        "region": "Hải Ngoại",
+        "style": "Kể chuyện liêu trai, giật gân, bí ẩn, truyện kinh dị"
+    },
+    "Minh Quang": {
+        "slug": "minh_quang",
+        "gender": "male",
+        "region": "Bắc",
+        "style": "Rõ ràng, dứt khoát, tin tức, tài liệu"
+    },
+    "Mai Phương": {
+        "slug": "mai_phuong",
+        "gender": "female",
+        "region": "Bắc",
+        "style": "Dịu dàng, nhẹ nhàng, sâu lắng"
+    },
+    "Chiêu Thành": {
+        "slug": "chieu_thanh",
+        "gender": "male",
+        "region": "Bắc",
+        "style": "Cổ phong, tiên hiệp, kiếm hiệp kiếm khách"
+    },
+    "Lạc Phi": {
+        "slug": "lac_phi",
+        "gender": "female",
+        "region": "Bắc",
+        "style": "Trẻ trung, hiện đại, linh hoạt"
+    },
+    "Thanh Phương Viettel": {
+        "slug": "thanh_phuong_viettel",
+        "gender": "female",
+        "region": "Bắc",
+        "style": "Chuẩn mực phát thanh viên, giọng AI quốc dân"
+    },
+    "Phương Trang": {
+        "slug": "phuong_trang",
+        "gender": "female",
+        "region": "Bắc",
+        "style": "Truyền cảm, ấm áp, văn học tự sự"
+    },
+    "Thiện Tâm": {
+        "slug": "thien_tam",
+        "gender": "male",
+        "region": "Bắc",
+        "style": "Điềm đạm, triết lý, nhân văn, chiêm nghiệm"
+    },
+    "Ban Mai": {
+        "slug": "ban_mai",
+        "gender": "female",
+        "region": "Bắc",
+        "style": "Tươi vui, rạng rỡ, năng động"
+    },
+    "Tài An": {
+        "slug": "tai_an",
+        "gender": "male",
+        "region": "Nam",
+        "style": "Trầm ấm, chững chạc, tin cậy"
+    },
+    "Minh Khang": {
+        "slug": "minh_khang",
+        "gender": "male",
+        "region": "Nam",
+        "style": "Trẻ trung, tự nhiên, gần gũi"
+    },
+    "Mỹ Tâm": {
+        "slug": "my_tam",
+        "gender": "female",
+        "region": "Trung",
+        "style": "Đặc trưng giọng miền Trung, chân chất, cảm xúc"
+    },
+}
+
+def list_available_nghitts_voices() -> Dict[str, Dict[str, Any]]:
+    """Trả về danh mục toàn bộ các giọng đọc NghiTTS kèm mô tả phong cách."""
+    return NGHITTS_VOICES
+
 def _voice_to_ascii_filename(voice_name: str) -> str:
-    mapping = {
-        "Ngọc Huyền (mới)": "ngoc_huyen_moi",
-        "Nam Miền Nam": "nam_mien_nam",
-        "Nữ Miền Nam": "nu_mien_nam",
-    }
-    if voice_name in mapping:
-        return mapping[voice_name]
+    # 1. Tìm trực tiếp trong danh mục NghiTTS
+    for v_name, meta in NGHITTS_VOICES.items():
+        if v_name.lower() == voice_name.lower() or meta["slug"] == voice_name.lower():
+            return meta["slug"]
+    
+    # 2. Fallback chuyển Unicode sang ASCII an toàn
     import unicodedata, re
     clean = unicodedata.normalize("NFKD", voice_name).encode("ASCII", "ignore").decode("ASCII")
     return re.sub(r"[^\w\-]", "_", clean).strip("_").lower() or "voice"
+
+def resolve_nghitts_voice(voice_query: Optional[str] = None, config_path: Optional[str] = None) -> str:
+    """
+    Tự động phân giải giọng đọc động theo cấu hình dự án hoặc truy vấn của người dùng:
+    1. Nếu voice_query khớp với tên hoặc slug của NghiTTS -> Trả về tên giọng chuẩn.
+    2. Nếu voice_query là mặc định ('default', 'vi-VN-NamMinhNeural', '') -> Đọc cấu hình 'novel_pipeline.tts.voice' từ config.json.
+    3. Fallback an toàn: 'Ngọc Huyền (mới)' (đã tích hợp offline trong repo).
+    """
+    import json
+    from pathlib import Path
+
+    # Đọc cấu hình dự án / toàn cục nếu có
+    cfg_voice = None
+    try:
+        cfg_file = Path(config_path) if config_path else Path(__file__).resolve().parents[3] / "config.json"
+        if cfg_file.exists():
+            data = json.loads(cfg_file.read_text(encoding="utf-8"))
+            cfg_voice = data.get("novel_pipeline", {}).get("tts", {}).get("voice") or data.get("tts_voice")
+    except Exception:
+        pass
+
+    target = (voice_query or "").strip()
+    
+    # Nếu voice_query không có hoặc chỉ là generic edge-tts placeholder, ưu tiên dùng cấu hình dự án
+    if not target or target.lower() in ("default", "vi-vn-namminhneural", "auto"):
+        if cfg_voice and cfg_voice.strip():
+            target = cfg_voice.strip()
+
+    if not target or target.lower() in ("default", "vi-vn-namminhneural", "auto"):
+        return "Ngọc Huyền (mới)"
+
+    target_lower = target.lower()
+
+    # 1. Khớp chính xác theo tên hiển thị
+    for v_name in NGHITTS_VOICES:
+        if v_name.lower() == target_lower:
+            return v_name
+
+    # 2. Khớp theo slug (ví dụ: ngoc_ngan, duy_oryx, manh_dung)
+    for v_name, meta in NGHITTS_VOICES.items():
+        if meta["slug"] == target_lower:
+            return v_name
+
+    # 3. Khớp từ khóa mờ không dấu (fuzzy matching)
+    import unicodedata
+    def strip_accents(s: str) -> str:
+        return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn').lower()
+
+    target_no_accent = strip_accents(target_lower)
+    for v_name, meta in NGHITTS_VOICES.items():
+        v_no_accent = strip_accents(v_name)
+        if target_no_accent in v_no_accent or meta["slug"] in target_no_accent:
+            return v_name
+        # Thử từng từ khóa
+        parts = [p for p in target_no_accent.split() if len(p) >= 3]
+        if any(p in v_no_accent for p in parts):
+            return v_name
+
+    return "Ngọc Huyền (mới)"
 
 def ensure_model_files(voice_name: str) -> tuple[str, str]:
     """

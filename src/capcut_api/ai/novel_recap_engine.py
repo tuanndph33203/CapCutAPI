@@ -1779,11 +1779,10 @@ QUY TRÌNH TƯ DUY CỦA BỘ ÓC AI (BẮT BUỘC TUÂN THỦ NGHIÊM NGẶT):
         if chosen_speed < 0.5 or chosen_speed > 3.0:
             chosen_speed = 1.2
 
-        # Tên giọng đọc NghiTTS chuẩn xác
-        voice_arg = kwargs.get("voice_name") or voice or "Ngọc Huyền (mới)"
-        valid_nghitts = ["Ngọc Huyền (mới)", "Nam Miền Nam", "Nữ Miền Nam"]
-        matched_voice = next((v for v in valid_nghitts if v.lower() in voice_arg.lower()), None)
-        chosen_voice = matched_voice or "Ngọc Huyền (mới)"
+        # Tên giọng đọc NghiTTS động theo cấu hình dự án / người dùng
+        from capcut_api.ai.nghitts_service import resolve_nghitts_voice
+        voice_arg = kwargs.get("voice_name") or kwargs.get("voice") or voice
+        chosen_voice = resolve_nghitts_voice(voice_arg)
 
         # Chạy toàn bộ 5 bước của Pipeline
         pipeline_res = pipeline.run_full_pipeline(

@@ -109,6 +109,9 @@ class NovelVideoPipeline:
             output_dir = self.audio_output_dir / f"session_{int(time.time())}"
         output_dir.mkdir(parents=True, exist_ok=True)
 
+        from capcut_api.ai.nghitts_service import resolve_nghitts_voice
+        voice_name = resolve_nghitts_voice(voice_name)
+
         logger.info(f"🚀 [B1] Bắt đầu sinh âm thanh NghiTTS (Giọng: {voice_name}, Tốc độ: {speed}x)...")
 
         # 1. Tách các dòng và thẻ ngắt nghỉ

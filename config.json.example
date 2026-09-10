@@ -29,7 +29,7 @@
       "outro_template": "Bấm Like, Đăng ký và Bật chuông xem tiếp Tập {next_ep} nhé! Hẹn gặp lại!"
     },
     "tts": {
-      "voice": "vi-VN-NamMinhNeural",
+      "voice": "Ngọc Huyền (mới)",
       "rate": "+5%",
       "pitch": "+0Hz"
     }
