@@ -55,9 +55,13 @@ ROOT_CONFIG_FILE = ROOT_DIR / "config.json"
 
 USER_VIDEOS = Path.home() / "Videos"
 VIDEOS_BASE_DIR = USER_VIDEOS if USER_VIDEOS.exists() else (ROOT_DIR / "Videos")
-OUTPUTS_DIR = ROOT_DIR / "outputs"
+try:
+    from capcut_api.cloud.gdrive_manager import get_gdrive_manager
+    OUTPUTS_DIR = get_gdrive_manager().get_outputs_dir()
+except Exception:
+    OUTPUTS_DIR = ROOT_DIR / "data" / "outputs"
 
-OUTPUTS_DIR.mkdir(exist_ok=True)
+OUTPUTS_DIR.mkdir(parents=True, exist_ok=True)
 
 SUPPORTED_BOT_LANGUAGES = {
     "vi": {"name": "Tiếng Việt", "flag": "🇻🇳", "target": "Vietnamese", "source": "Chinese"},

@@ -133,9 +133,11 @@ DEFAULT_CAPCUT_DRAFTS = os.environ.get(
     "CAPCUT_DRAFTS_DIR",
     os.path.join(os.environ.get("LOCALAPPDATA", ""), "CapCut", "User Data", "Projects", "com.lveditor.draft"),
 )
-# Thư mục lưu trữ "pipeline projects" — cấu hình riêng của người dùng, KHÔNG phải CapCut folder
-PIPELINE_PROJECTS_DIR = Path(__file__).resolve().parent / "projects"
-QUEUE_CACHE_PATH = Path(__file__).with_name("queue_cache.json")
+ROOT_DIR = Path(__file__).resolve().parents[3]
+# Thư mục lưu trữ "pipeline projects" — cấu hình riêng của người dùng, lưu vào data/projects
+PIPELINE_PROJECTS_DIR = ROOT_DIR / "data" / "projects"
+PIPELINE_PROJECTS_DIR.mkdir(parents=True, exist_ok=True)
+QUEUE_CACHE_PATH = ROOT_DIR / "data" / "queue_cache.json"
 FIRST_PROJECT_FALLBACK_X = 285
 FIRST_PROJECT_FALLBACK_Y = 583
 _rpa_dir = Path(__file__).with_name("rpa_templates")
@@ -150,7 +152,6 @@ PROJECT_TITLE_MARKER_DPI = 96.0
 CAPCUT_SHORTCUT_CANDIDATES = [
     os.environ.get("CAPCUT_SHORTCUT", ""),
     os.path.join(os.environ.get("USERPROFILE", ""), "Desktop", "CapCut.lnk"),
-    r"C:\Users\PC\Desktop\CapCut.lnk",
     os.path.join(os.environ.get("PUBLIC", r"C:\Users\Public"), "Desktop", "CapCut.lnk"),
     os.path.join(os.environ.get("APPDATA", ""), "Microsoft", "Windows", "Start Menu", "Programs", "CapCut", "CapCut.lnk"),
 ]
@@ -158,6 +159,7 @@ CAPCUT_SHORTCUT_CANDIDATES = [p for p in CAPCUT_SHORTCUT_CANDIDATES if p]
 
 
 GLOBAL_SETTINGS_PATH = Path(__file__).resolve().parent / "settings" / "global_pipeline_settings.json"
+CONFIG_FILE_PATH = ROOT_DIR / "config.json"
 
 # Configure logging
 logger = logging.getLogger("flask_video_generator")
@@ -1827,6 +1829,26 @@ def load_global_settings():
 
     defaults["ai_profiles"] = normalize_ai_profiles(defaults.get("ai_profiles"), legacy_settings=defaults)
     defaults["ai_base_url"] = normalize_ai_base_url(defaults.get("ai_base_url"))
+
+    # Đọc thêm cấu hình Database & Cloud Storage từ config.json
+    if CONFIG_FILE_PATH.exists():
+        try:
+            with open(CONFIG_FILE_PATH, "r", encoding="utf-8") as f:
+                root_cfg = json.load(f)
+                defaults["database"] = root_cfg.get("database", {
+                    "type": "mongodb",
+                    "mongodb_uri": "",
+                    "database_name": "capcut_recap_ai"
+                })
+                defaults["cloud_storage"] = root_cfg.get("cloud_storage", {
+                    "provider": "gdrive",
+                    "gdrive_mount_path": "G:\\My Drive",
+                    "auto_cleanup_local_uploads": True,
+                    "keep_recent_uploads": 1
+                })
+        except Exception as e:
+            logger.warning(f"Lỗi đọc config.json: {e}")
+
     return sync_legacy_ai_settings(defaults)
 
 def save_global_settings(data):
@@ -1913,6 +1935,40 @@ def save_global_settings(data):
         default_context_id if default_context_id in profile_ids else settings["default_translation_ai_profile_id"]
     )
     settings = sync_legacy_ai_settings(settings)
+
+    # Lưu thêm cấu hình Database & Cloud Storage vào config.json
+    if "database" in payload or "cloud_storage" in payload:
+        if CONFIG_FILE_PATH.exists():
+            try:
+                with open(CONFIG_FILE_PATH, "r", encoding="utf-8") as f:
+                    root_cfg = json.load(f)
+                if "database" in payload:
+                    root_cfg["database"] = payload["database"]
+                    settings["database"] = payload["database"]
+                if "cloud_storage" in payload:
+                    root_cfg["cloud_storage"] = payload["cloud_storage"]
+                    settings["cloud_storage"] = payload["cloud_storage"]
+                with open(CONFIG_FILE_PATH, "w", encoding="utf-8") as f:
+                    json.dump(root_cfg, f, ensure_ascii=False, indent=2)
+
+                # Cập nhật lại runtime singleton
+                try:
+                    from capcut_api.database.mongo_manager import get_db_manager
+                    db_m = get_db_manager()
+                    db_m._initialized = False
+                    db_m.__init__()
+                except Exception:
+                    pass
+                try:
+                    from capcut_api.cloud.gdrive_manager import get_gdrive_manager
+                    gd_m = get_gdrive_manager()
+                    gd_m._initialized = False
+                    gd_m.__init__()
+                except Exception:
+                    pass
+            except Exception as e:
+                logger.warning(f"Không thể cập nhật database/cloud_storage vào config.json: {e}")
+
     GLOBAL_SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(GLOBAL_SETTINGS_PATH, "w", encoding="utf-8") as f:
         json.dump(settings, f, ensure_ascii=False, indent=4)
@@ -2308,11 +2364,19 @@ def call_ai_json_object(config, system_prompt, user_payload, line_count=20):
         raw = data.get("choices", [{}])[0].get("message", {}).get("content", "")
 
     text = (raw or "").strip()
-    candidates = [text]
+    cleaned = re.sub(r'^```(?:json)?\s*', '', text, flags=re.IGNORECASE)
+    cleaned = re.sub(r'\s*```$', '', cleaned)
+
+    candidates = [text, cleaned]
     start = text.find("{")
     end = text.rfind("}")
     if start >= 0 and end > start:
         candidates.append(text[start:end + 1])
+    elif start >= 0:
+        # Thử đóng ngoặc nếu JSON bị AI cắt ngang (truncated)
+        cut = text[start:]
+        for suffix in ["}", '"]}', '"]}}', '}]}', '"}]}}']:
+            candidates.append(cut + suffix)
 
     for candidate in candidates:
         try:

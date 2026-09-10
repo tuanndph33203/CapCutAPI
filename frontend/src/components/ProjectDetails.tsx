@@ -7,19 +7,16 @@ import {
   MessageSquare,
   Globe,
   Sparkles,
+  CheckCircle,
   CheckCircle2,
+  Database,
   Shield,
   Eye,
-  Volume2,
   Type,
   FolderOpen,
   Wand2,
   Thermometer,
   Languages,
-  FileText,
-  Copy,
-  Trash2,
-  RefreshCw,
 } from "lucide-react";
 import {
   fetchProjectConfig,
@@ -34,6 +31,8 @@ import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
 import { MultiLangTranslateModal } from "./MultiLangTranslateModal";
 import { NovelImportModal } from "./NovelImportModal";
+import { ScriptReaderEditor } from "./ScriptReaderEditor";
+import { ErrorBoundary } from "./ErrorBoundary";
 
 interface ProjectDetailsProps {
   folder: string;
@@ -50,6 +49,17 @@ interface NovelSceneItem {
   audio_file?: string;
 }
 
+const extractEpisodeFromPath = (pathStr?: string): number | null => {
+  if (!pathStr) return null;
+  const clean = pathStr.split(/\r?\n/)[0].trim();
+  const m = clean.match(/(?:t[aậ]p|ep|episode)[\s_.-]*(\d+)/i) || clean.match(/(\d+)/);
+  if (m && m[1]) {
+    const v = parseInt(m[1], 10);
+    if (!isNaN(v) && v > 0 && v < 5000) return v;
+  }
+  return null;
+};
+
 export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, onRunSuccess }) => {
   const [activeTab, setActiveTab] = useState<"video" | "sub" | "translate" | "novel" | "all">("video");
   const [globalProfiles, setGlobalProfiles] = useState<any[]>([]);
@@ -63,14 +73,14 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
   });
 
   // Novel Pipeline & Script Text State inside Project
-  const [novelCurrentEp, setNovelCurrentEp] = useState<number>(185);
-  const [novelNextEp, setNovelNextEp] = useState<number>(186);
+  const [novelCurrentEp, setNovelCurrentEp] = useState<number>(1);
+  const [novelNextEp, setNovelNextEp] = useState<number>(2);
   const [novelScriptText, setNovelScriptText] = useState<string>("");
   const [generatingScript, setGeneratingScript] = useState<boolean>(false);
   const [novelScenes, setNovelScenes] = useState<NovelSceneItem[]>([]);
   const [novelLoading, setNovelLoading] = useState<boolean>(false);
-  const [playingScene, setPlayingScene] = useState<number | null>(null);
-  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
+  const [novelStepMessage, setNovelStepMessage] = useState<string>("");
+  const [novelDraftResult, setNovelDraftResult] = useState<any>(null);
 
   const [config, setConfig] = useState<any>({
     video_path: "",
@@ -130,11 +140,20 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
           if (nData.success && Array.isArray(nData.novels)) {
             setAvailableNovels(nData.novels);
             
-            // Ưu tiên chọn truyện: 1. pData.novel_id (từ folder) -> 2. localStorage -> 3. Truyện đầu tiên
+            // Ưu tiên chọn truyện: 1. pData.novel_id -> 2. Nhận diện từ video_path -> 3. localStorage -> 4. Truyện đầu tiên
+            const initialVideo = pData?.video_path || (pData?.video_paths && pData.video_paths.length > 0 ? pData.video_paths[0] : "");
             const savedLocalStr = localStorage.getItem("capcut_selected_novel");
             let targetNovel = null;
             if (pData?.novel_id) {
               targetNovel = nData.novels.find((n: any) => n.id === pData.novel_id);
+            }
+            if (!targetNovel && initialVideo) {
+              const lowerVid = initialVideo.toLowerCase();
+              if (lowerVid.includes("pham nhan") || lowerVid.includes("phàm nhân")) {
+                targetNovel = nData.novels.find((n: any) => n.id.toLowerCase().includes("pham") || n.name.toLowerCase().includes("phàm"));
+              } else if (lowerVid.includes("xianni") || lowerVid.includes("tiên nghịch") || lowerVid.includes("tien nghich") || lowerVid.includes("仙逆")) {
+                targetNovel = nData.novels.find((n: any) => n.id.toLowerCase().includes("xianni") || n.name.toLowerCase().includes("tiên nghịch") || n.name.includes("仙逆"));
+              }
             }
             if (!targetNovel && savedLocalStr) {
               try {
@@ -156,11 +175,17 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
         if (pData?.novel_script_text) {
           setNovelScriptText(pData.novel_script_text);
         }
+        const initialVideo = pData?.video_path || (pData?.video_paths && pData.video_paths.length > 0 ? pData.video_paths[0] : "");
+        const autoEp = extractEpisodeFromPath(initialVideo);
         if (pData?.novel_current_ep) {
           setNovelCurrentEp(Number(pData.novel_current_ep));
+        } else if (autoEp) {
+          setNovelCurrentEp(autoEp);
         }
         if (pData?.novel_next_ep) {
           setNovelNextEp(Number(pData.novel_next_ep));
+        } else if (autoEp) {
+          setNovelNextEp(autoEp + 1);
         }
 
         if (pData && Object.keys(pData).length > 0) {
@@ -203,9 +228,24 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
     }, 400);
   };
 
+  const [detectedChapterInfo, setDetectedChapterInfo] = useState<any>(null);
+
+  const syncEpisodeFromVideo = (videoPath: string) => {
+    const ep = extractEpisodeFromPath(videoPath);
+    if (ep) {
+      setNovelCurrentEp(ep);
+      setNovelNextEp(ep + 1);
+      handleFieldChange("novel_current_ep", ep);
+      handleFieldChange("novel_next_ep", ep + 1);
+    }
+  };
+
   const handleFieldChange = (key: string, value: any) => {
     const updated = { ...config, [key]: value };
     triggerAutoSave(updated);
+    if (key === "video_path" && typeof value === "string") {
+      syncEpisodeFromVideo(value);
+    }
   };
 
   const handleFilePickerClick = () => {
@@ -293,27 +333,43 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
   };
 
   const handleGenerateScriptText = async () => {
+    const videoSource = config.video_path?.trim();
+    if (!videoSource) {
+      toast.error("Chưa có video ở Step 1–2!", {
+        description: "Vui lòng nhập hoặc bấm '📂 Chọn file' tại tab 'Step 1-2: Video đầu vào' làm nguồn tham khảo."
+      });
+      setActiveTab("video");
+      return;
+    }
+
     setGeneratingScript(true);
-    toast.info(`Đang kết nối AI & sinh kịch bản cho ${selectedNovel.name}...`, {
-      description: `Phân tích từ Tập ${novelCurrentEp} sang Tập ${novelNextEp}`
+    toast.info("Đang đối chiếu lời thoại tham khảo & sinh kịch bản AI...", {
+      description: `Áp dụng chỉ đạo từ Prompt & kho chương ${selectedNovel?.name || "nguyên tác"}`
     });
     try {
       const res = await fetch("/api/novel/generate_script_text", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          novel_id: selectedNovel.id,
+          novel_id: selectedNovel?.id || "Pham nhan tu tien",
           current_episode_num: novelCurrentEp,
+          next_episode_num: novelNextEp,
+          video_path: videoSource,
           transcript_text: "",
-          prompt: config.novel_prompt
+          prompt: config.novel_prompt || ""
         })
       });
       const data = await res.json();
       if (data.success && data.full_plain_text) {
         setNovelScriptText(data.full_plain_text);
         handleFieldChange("novel_script_text", data.full_plain_text);
-        toast.success(`🎉 Đã sinh xong Kịch bản Văn bản (.txt)!`, {
-          description: `${data.scenes_count || 20} phân cảnh • Bạn có thể chỉnh sửa trực tiếp bên dưới.`
+        if (data.detected_info) {
+          setDetectedChapterInfo(data.detected_info);
+        }
+        toast.success(`🎉 Đã sinh Kịch bản AI (.txt) thành công!`, {
+          description: data.detected_info?.detected_end_chapter 
+            ? `Khớp nội dung Chương ${data.detected_info.detected_end_chapter}. Đã biên kịch tiếp Chương ${data.detected_info.next_episode_chapters?.join(', ')}`
+            : `${data.scenes_count || 20} phân cảnh • Sẵn sàng chỉnh sửa.`
         });
       } else {
         toast.error("Không thể tạo kịch bản", { description: data.error || "Lỗi server" });
@@ -327,39 +383,70 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
 
   const handleRunNovelPipeline = async () => {
     setNovelLoading(true);
-    toast.info("Đang xử lý Kịch bản Tiểu thuyết & TTS...", {
-      description: `Đang tạo kịch bản từ Tập ${novelCurrentEp} sang Tập ${novelNextEp}`
+    setNovelStepMessage("B1: Đang sinh âm thanh NghiTTS 1.2x...");
+    toast.info("Đang chạy Quy trình 5 Bước Sản Xuất Video Tiểu Thuyết...", {
+      description: "B1: NghiTTS 1.2x ➔ B2: Xếp Audio & SRT ➔ B3: AI Phân Cảnh ➔ B4: CapCut Draft ➔ B5: Mở CapCut PC"
     });
 
     try {
-      const res = await fetch("/api/novel/recap", {
+      const chosenVoice = config.novel_tts_voice || "Ngọc Huyền (mới)";
+      const chosenSpeed = config.novel_tts_speed ?? 1.2;
+      const mediaList = (config.video_paths && config.video_paths.length > 0)
+        ? config.video_paths
+        : [config.video_path].filter(Boolean);
+
+      const res = await fetch("/api/novel/pipeline/run", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           current_episode: novelCurrentEp,
-          novel_id: selectedNovel.id,
+          novel_id: selectedNovel?.id || "Pham nhan tu tien",
           prompt: config.novel_prompt,
-          voice: config.tts_engine === "edge-tts" ? "vi-VN-NamMinhNeural" : "vi-VN-NamMinhNeural",
-          tts_speed: config.tts_speed || 1.1,
+          voice: chosenVoice,
+          tts_speed: chosenSpeed,
           canvas_ratio: config.canvas_ratio || "16:9",
           script_text: config.novel_script_text || novelScriptText,
           scenes: novelScenes,
-          media_paths: (config.video_paths && config.video_paths.length > 0) ? config.video_paths : [config.video_path]
+          media_paths: mediaList,
+          auto_open_capcut: config.auto_open_capcut ?? true
         })
       });
       const data = await res.json();
       if (data.success) {
+        setNovelDraftResult(data);
         if (data.scenes) setNovelScenes(data.scenes);
-        toast.success(`🎉 Đã tạo xong CapCut Draft Thuyết Minh Tập ${novelNextEp}!`, {
-          description: `Đường dẫn: ${data.draft_folder}`
+        toast.success(`🎉 Đã sản xuất xong CapCut Draft hoàn chỉnh!`, {
+          description: `${data.sentences_count || 0} câu • ${data.scenes_count || 0} phân cảnh • ${Math.round(data.total_duration_sec || 0)}s audio • Đã mở CapCut PC!`
         });
       } else {
-        toast.error("Lỗi tạo tiểu thuyết", { description: data.error });
+        toast.error("Lỗi khi chạy pipeline tiểu thuyết", { description: data.error });
       }
     } catch (e: any) {
       toast.error("Lỗi kết nối", { description: e.message });
     } finally {
       setNovelLoading(false);
+      setNovelStepMessage("");
+    }
+  };
+
+  const handleOpenCapCut = async () => {
+    try {
+      toast.info("Đang kích hoạt mở CapCut PC...");
+      const res = await fetch("/api/novel/open_capcut", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ draft_folder: novelDraftResult?.draft_folder || "" })
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("CapCut PC đã mở sẵn sàng!", {
+          description: "Mở CapCut, bấm vào Dự án ở đầu trang chủ và bấm 'Export' để xuất video MP4."
+        });
+      } else {
+        toast.error("Không thể mở CapCut tự động", { description: data.error });
+      }
+    } catch (e: any) {
+      toast.error("Lỗi mở CapCut", { description: e.message });
     }
   };
 
@@ -863,7 +950,8 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
 
         {/* Tab 4: Novel Recap (Tiểu Thuyết AI) */}
         {(activeTab === "novel" || activeTab === "all") && (
-          <div className="space-y-4 pb-6 border-b border-white/10">
+          <ErrorBoundary fallbackTitle="Lỗi hiển thị Tab Thuyết Minh Tiểu Thuyết">
+            <div className="space-y-4 pb-6 border-b border-white/10">
             {/* Header & Novel Selector */}
             <div className="p-4 rounded-xl bg-gradient-to-r from-amber-500/15 via-zinc-900/60 to-zinc-900/40 border border-amber-500/30 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div className="space-y-1">
@@ -874,25 +962,25 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
                   </h3>
                   {/* Novel Selector Dropdown */}
                   <select
-                    value={selectedNovel.id || "Pham nhan tu tien"}
+                    value={selectedNovel?.id || "Pham nhan tu tien"}
                     onChange={(e) => handleSelectNovel(e.target.value)}
                     className="h-8 px-3 rounded-lg bg-zinc-900/90 border border-amber-500/40 text-xs font-semibold text-amber-300 outline-none focus:border-amber-400"
                   >
-                    {availableNovels.length > 0 ? (
+                    {availableNovels && availableNovels.length > 0 ? (
                       availableNovels.map((n: any) => (
                         <option key={n.id} value={n.id} className="bg-zinc-900 text-zinc-100">
                           {n.name} ({n.chapters_count?.toLocaleString() || 0} chương)
                         </option>
                       ))
                     ) : (
-                      <option value={selectedNovel.id} className="bg-zinc-900 text-zinc-100">
-                        {selectedNovel.name} ({selectedNovel.chapters_count?.toLocaleString() || 0} chương)
+                      <option value={selectedNovel?.id || "Pham nhan tu tien"} className="bg-zinc-900 text-zinc-100">
+                        {selectedNovel?.name || "Phàm Nhân Tu Tiên"} ({selectedNovel?.chapters_count?.toLocaleString() || 0} chương)
                       </option>
                     )}
                   </select>
 
                   <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/30 text-[10px] font-mono">
-                    {selectedNovel.chapters_count?.toLocaleString() || 0} Chương
+                    {selectedNovel?.chapters_count?.toLocaleString() || 0} Chương
                   </Badge>
                 </div>
                 <p className="text-xs text-zinc-400">
@@ -914,151 +1002,319 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
               </div>
             </div>
 
-            {/* Episode & AI Direction Prompt */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="p-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800/80 space-y-3">
-                <label className="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
-                  <Film className="w-3.5 h-3.5 text-amber-400" />
-                  Mốc Tập Phim:
+            {/* NGUỒN VIDEO/SRT THAM KHẢO (TỰ ĐỘNG TỪ STEP 1–2) */}
+            <div className="p-4 rounded-xl bg-zinc-900/70 border border-zinc-800/90 space-y-2.5 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <label className="text-xs font-bold text-zinc-100 flex items-center gap-2">
+                  <Database className="w-4 h-4 text-amber-400" />
+                  Nguồn Video/SRT Tham Khảo (Dùng Video Tại Step 1–2):
                 </label>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <span className="text-[11px] text-zinc-400">Tập Đã Xem Xong</span>
-                    <Input
-                      type="number"
-                      value={novelCurrentEp}
-                      onChange={(e) => {
-                        const v = parseInt(e.target.value) || 1;
-                        setNovelCurrentEp(v);
-                        setNovelNextEp(v + 1);
-                        handleFieldChange("novel_current_ep", v);
-                      }}
-                      className="bg-zinc-900 border-zinc-800 text-white rounded-lg text-xs h-8"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[11px] text-amber-300 font-semibold">Tập Sẽ Thuyết Minh</span>
-                    <Input
-                      type="number"
-                      value={novelNextEp}
-                      onChange={(e) => {
-                        const v = parseInt(e.target.value) || 1;
-                        setNovelNextEp(v);
-                        handleFieldChange("novel_next_ep", v);
-                      }}
-                      className="bg-zinc-900 border-amber-500/40 text-amber-300 font-bold rounded-lg text-xs h-8"
-                    />
-                  </div>
-                </div>
+                
+                {config.video_path?.trim() ? (
+                  <Badge variant="outline" className="text-[11px] border-emerald-500/40 text-emerald-400 bg-emerald-950/20 font-medium">
+                    ✓ Đã lấy từ Step 1–2
+                  </Badge>
+                ) : (
+                  <Badge variant="outline" className="text-[11px] border-amber-500/40 text-amber-400 bg-amber-950/20 font-medium">
+                    ⚠️ Chưa có video tại Step 1–2
+                  </Badge>
+                )}
               </div>
 
-              <div className="p-3.5 rounded-xl bg-zinc-900/50 border border-zinc-800/80 space-y-2">
-                <label className="text-xs font-bold text-zinc-200 flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  Prompt Chỉ Đạo AI (Tùy Chọn):
-                </label>
-                <textarea
-                  value={config.novel_prompt || ""}
-                  onChange={(e) => handleFieldChange("novel_prompt", e.target.value)}
-                  rows={2}
-                  className="w-full p-2.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 leading-relaxed outline-none focus:border-amber-400 resize-none"
-                  placeholder={`Mặc định: Phân tích Whisper tập ${novelCurrentEp}, đối chiếu ${selectedNovel.name} để viết kịch bản spoiler tập ${novelNextEp}...`}
-                />
-              </div>
-            </div>
-
-            {/* DIRECT TEXT SCRIPT VIEWER & EDITOR (.txt) */}
-            <div className="p-4 rounded-xl bg-zinc-950/80 border border-amber-500/40 space-y-3 shadow-lg">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-800/80 pb-3">
-                <div className="flex items-center gap-2">
-                  <FileText className="w-4 h-4 text-amber-400" />
-                  <h4 className="text-xs font-bold text-amber-300">
-                    Kịch Bản Văn Bản Thuần (.txt) - Xem & Chỉnh Sửa Trực Tiếp
-                  </h4>
-                  {(config.novel_script_text || novelScriptText) && (
-                    <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-400 font-mono">
-                      {(config.novel_script_text || novelScriptText).split("\n").filter((l: string) => l.trim()).length} dòng
-                    </Badge>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    size="sm"
-                    disabled={generatingScript}
-                    onClick={handleGenerateScriptText}
-                    className="bg-amber-500 hover:bg-amber-600 text-zinc-950 font-bold text-xs h-7 px-3 gap-1.5 rounded-lg shadow-sm"
-                  >
-                    {generatingScript ? (
-                      <>
-                        <RefreshCw className="w-3 h-3 animate-spin" />
-                        Đang Tạo...
-                      </>
+              {/* Hiển thị video đang dùng từ Step 1-2 */}
+              <div className="p-3 rounded-lg bg-black/50 border border-zinc-800 font-mono text-xs text-zinc-300 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2 overflow-hidden">
+                  <Film className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <div className="truncate">
+                    {config.video_path?.trim() ? (
+                      <span className="text-zinc-200">{config.video_path.split(/\r?\n/)[0]}</span>
                     ) : (
-                      <>
-                        <Sparkles className="w-3 h-3" />
-                        ⚡ Sinh Kịch Bản AI (.txt)
-                      </>
+                      <span className="text-zinc-500 italic">Chưa chọn video ở Step 1–2. (Video/SRT là nguồn dữ liệu tham khảo đối chiếu).</span>
                     )}
-                  </Button>
-
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      const text = config.novel_script_text || novelScriptText;
-                      if (!text) {
-                        toast.error("Chưa có nội dung kịch bản để sao chép");
-                        return;
-                      }
-                      navigator.clipboard.writeText(text);
-                      toast.success("Đã sao chép toàn bộ kịch bản vào clipboard!");
-                    }}
-                    className="h-7 px-2.5 text-xs text-zinc-300 hover:text-white hover:bg-zinc-800 gap-1 border border-zinc-800 rounded-lg"
-                  >
-                    <Copy className="w-3 h-3 text-zinc-400" />
-                    Sao Chép
-                  </Button>
-
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      setNovelScriptText("");
-                      handleFieldChange("novel_script_text", "");
-                      toast.info("Đã làm trống khung kịch bản");
-                    }}
-                    className="h-7 px-2 text-xs text-zinc-500 hover:text-red-400 hover:bg-zinc-900 rounded-lg"
-                    title="Xóa trắng"
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
+                  </div>
                 </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setActiveTab("video")}
+                  className="h-6 px-2 text-[11px] text-cyan-400 hover:text-cyan-300 hover:bg-cyan-950/40 shrink-0"
+                >
+                  Đổi Video tại Step 1–2 ➔
+                </Button>
               </div>
 
-              {/* Direct Full Text Area */}
-              <div className="space-y-1.5">
-                <textarea
-                  value={config.novel_script_text || novelScriptText}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    setNovelScriptText(val);
-                    handleFieldChange("novel_script_text", val);
-                  }}
-                  rows={14}
-                  className="w-full p-3.5 rounded-xl bg-zinc-900/90 border border-zinc-800 text-xs font-mono text-zinc-200 leading-relaxed outline-none focus:border-amber-400/80 resize-y"
-                  placeholder={`Kịch bản văn bản thuần (.txt) sẽ hiển thị ở đây...\n\nPhàm Nhân Tu Tiên tập 186.\n[0.2]\nChào mừng các bạn đã quay trở lại với hành trình tu tiên đầy hấp dẫn.\n[0.2]\nTrong tập này chúng ta cùng theo dõi những diễn biến tiếp theo nha.\n[0.5]\n\nBạn có thể tự do chỉnh sửa câu từ hoặc các khoảng nghỉ [0.2], [0.5] trước khi bấm 'Chạy Tiểu Thuyết AI'.`}
-                />
-                <div className="flex items-center justify-between text-[11px] text-zinc-400 px-1">
-                  <span>💡 <strong>Ghi chú:</strong> Mỗi câu văn 1 dòng • Mỗi khoảng nghỉ <code>[0.2]</code>, <code>[0.5]</code> 1 dòng riêng để dễ dàng chỉnh sửa câu từ hoặc ném vào prompt AI.</span>
-                  <span className="text-amber-400/90 font-mono">Tự động lưu vào folder</span>
+              <p className="text-[11px] text-zinc-400 italic">
+                💡 Video/SRT chỉ đóng vai trò là nguồn dữ liệu tham khảo (lời thoại, nhân vật, bối cảnh). Mọi yêu cầu viết kịch bản, nối tiếp tập trước hay phân tích trailer đều được chỉ đạo linh hoạt qua <strong>Prompt</strong>.
+              </p>
+            </div>
+
+            {/* AI Direction Prompt (Động hoàn toàn qua Prompt) */}
+            <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-3 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <label className="text-xs font-bold text-zinc-100 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-amber-400" />
+                  Prompt Chỉ Đạo AI & Yêu Cầu Kịch Bản (Số tập, cốt truyện, phong cách review...):
+                </label>
+                <Badge variant="outline" className="text-[10px] text-amber-400 border-amber-500/30 bg-amber-950/20 font-mono">
+                  ⚡ Điều Khiển Động Qua Prompt
+                </Badge>
+              </div>
+
+              {/* Gợi ý mẫu prompt nhanh */}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleFieldChange("novel_prompt", "Viết tiếp tập mới nối tiếp ngay sau đoạn kết của video tham khảo. Phân tích diễn biến các chương tiếp theo kịch tính, bám sát nguyên tác.")}
+                  className="text-xs px-2.5 py-1 rounded-lg bg-zinc-800/80 text-zinc-300 hover:bg-amber-500/20 hover:text-amber-300 hover:border-amber-500/40 border border-zinc-700/60 transition-colors"
+                >
+                  🎬 Viết tiếp đoạn kết
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleFieldChange("novel_prompt", "Phân tích các tình tiết xuất hiện trong trailer video tham khảo để spoiler chi tiết nội dung tập sắp chiếu.")}
+                  className="text-xs px-2.5 py-1 rounded-lg bg-zinc-800/80 text-zinc-300 hover:bg-amber-500/20 hover:text-amber-300 hover:border-amber-500/40 border border-zinc-700/60 transition-colors"
+                >
+                  🔥 Spoiler theo Trailer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleFieldChange("novel_prompt", "Tập trung vào đại chiến đỉnh điểm của tập mới, miêu tả chi tiết các chiêu thức thần thông, bảo vật và diễn biến giao tranh ác liệt.")}
+                  className="text-xs px-2.5 py-1 rounded-lg bg-zinc-800/80 text-zinc-300 hover:bg-amber-500/20 hover:text-amber-300 hover:border-amber-500/40 border border-zinc-700/60 transition-colors"
+                >
+                  ⚔️ Tập trung đại chiến
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleFieldChange("novel_prompt", "Tóm tắt review nhanh toàn bộ diễn biến các chương liên quan, văn phong lôi cuốn dí dỏm chuẩn YouTuber review anime.")}
+                  className="text-xs px-2.5 py-1 rounded-lg bg-zinc-800/80 text-zinc-300 hover:bg-amber-500/20 hover:text-amber-300 hover:border-amber-500/40 border border-zinc-700/60 transition-colors"
+                >
+                  🎙️ Review dí dỏm cuốn hút
+                </button>
+              </div>
+
+              <textarea
+                value={config.novel_prompt || ""}
+                onChange={(e) => handleFieldChange("novel_prompt", e.target.value)}
+                rows={3}
+                className="w-full p-3 rounded-lg bg-zinc-950/80 border border-zinc-800 text-xs text-zinc-200 leading-relaxed outline-none focus:border-amber-400 resize-none font-sans"
+                placeholder="Nhập yêu cầu kịch bản... Ví dụ: 'Viết tiếp tập 190 nối tiếp kết thúc video tập 189', hoặc: 'Dựa vào trailer tập 190 để spoiler tình tiết Hàn Lập đại chiến ma nhân...', hoặc: 'Chỉ định viết từ chương 809 đến chương 810...'"
+              />
+              <p className="text-[11px] text-zinc-400 italic">
+                💡 Không cần chọn mốc tập cố định: Bạn có thể nhập bất kỳ số tập nào (ví dụ: Tập 190, Tập 191...) hoặc yêu cầu cụ thể ngay trong Prompt trên, AI sẽ tự động phân tích và xử lý.
+              </p>
+            </div>
+
+            {/* Detected Chapter Notification Card */}
+            {detectedChapterInfo && (detectedChapterInfo.detected_end_chapter || detectedChapterInfo.next_episode_chapters) && (
+              <div className="p-3 rounded-xl bg-amber-950/30 border border-amber-500/40 text-xs space-y-1.5">
+                <div className="flex items-center gap-2 text-amber-400 font-semibold">
+                  <CheckCircle className="w-4 h-4 text-emerald-400" />
+                  <span>🎯 Kết quả đối chiếu Lời thoại Video/SRT: Khớp nội dung Chương {detectedChapterInfo.detected_end_chapter}</span>
                 </div>
+                {detectedChapterInfo.detected_chapter_title && (
+                  <div className="text-zinc-300 font-mono text-[11px] pl-6">
+                    Tiêu đề nguyên tác: <strong>{detectedChapterInfo.detected_chapter_title}</strong>
+                  </div>
+                )}
+                {detectedChapterInfo.coverage_timeline && (
+                  <div className="mx-6 p-2 rounded-lg bg-emerald-950/50 border border-emerald-500/40 text-emerald-300 font-mono text-[11px] flex items-center gap-2">
+                    <span className="text-emerald-400 font-bold">📍 Trích xuất (% từng chương):</span>
+                    <span>{detectedChapterInfo.coverage_timeline}</span>
+                  </div>
+                )}
+                {detectedChapterInfo.start_cut_point && (
+                  <div className="text-zinc-300 text-[11px] pl-6 flex items-center gap-1.5">
+                    <span className="inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
+                    <span><strong>Điểm bắt đầu:</strong> {detectedChapterInfo.start_cut_point}</span>
+                  </div>
+                )}
+                {detectedChapterInfo.end_cut_point && (
+                  <div className="text-pink-300 text-[11px] pl-6 flex items-center gap-1.5">
+                    <span className="inline-block w-2 h-2 rounded-full bg-pink-400"></span>
+                    <span><strong>Điểm ngắt Cliffhanger:</strong> {detectedChapterInfo.end_cut_point}</span>
+                  </div>
+                )}
+                {detectedChapterInfo.next_episode_chapters && (
+                  <div className="text-emerald-400 font-mono text-[11px] pl-6">
+                    ➡️ Danh sách chương nạp vào AI: <strong>Chương {detectedChapterInfo.next_episode_chapters.join(", ")}</strong>
+                  </div>
+                )}
+                {detectedChapterInfo.ending_summary && (
+                  <div className="text-zinc-400 text-[11px] pl-6">
+                    Tóm tắt bối cảnh: {detectedChapterInfo.ending_summary}
+                  </div>
+                )}
+                {detectedChapterInfo.pacing_assessment && (
+                  <div className="text-cyan-400 font-mono text-[11px] pl-6">
+                    ⚡ Phân tích nhịp độ: {detectedChapterInfo.pacing_assessment}
+                  </div>
+                )}
+                {detectedChapterInfo.bridge_summary && (
+                  <div className="text-amber-300/90 text-[11px] pl-6 pt-1 border-t border-amber-500/20 italic">
+                    🌉 Cầu nối tóm tắt tập trung gian: {detectedChapterInfo.bridge_summary}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* UPGRADED SCRIPT READER & INTERACTIVE EDITOR (VỪA ĐỌC VỪA SỬA) */}
+            <ScriptReaderEditor
+              value={config.novel_script_text || novelScriptText}
+              onChange={(val) => {
+                setNovelScriptText(val);
+                handleFieldChange("novel_script_text", val);
+              }}
+              onGenerateAI={handleGenerateScriptText}
+              generating={generatingScript}
+              novelTitle={selectedNovel?.name || "Phàm Nhân Tu Tiên"}
+              onClear={() => {
+                setNovelScriptText("");
+                handleFieldChange("novel_script_text", "");
+                toast.info("Đã làm trống khung kịch bản");
+              }}
+              ttsSpeed={config.novel_tts_speed ? parseFloat(config.novel_tts_speed) : 1.2}
+            />
+              {/* PIPELINE 5 BƯỚC: CẤU HÌNH NGHI-TTS 1.2X & CAPCUT */}
+              <div className="p-4 rounded-xl bg-gradient-to-r from-amber-950/25 via-zinc-900/60 to-zinc-900/40 border border-amber-500/30 space-y-3 shadow-sm">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <h4 className="text-xs font-bold text-zinc-100">
+                      Cấu Hình Pipeline 5 Bước (NghiTTS 1.2x & CapCut Draft):
+                    </h4>
+                  </div>
+                  <Badge variant="outline" className="text-[10px] text-emerald-400 border-emerald-500/30 bg-emerald-950/20 font-mono">
+                    ✓ Chuẩn Pipeline 5 Bước
+                  </Badge>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                  {/* Chọn Giọng NghiTTS */}
+                  <div>
+                    <label className="block text-[11px] font-semibold text-zinc-300 mb-1">
+                      B1. Giọng Đọc (NghiTTS):
+                    </label>
+                    <select
+                      value={config.novel_tts_voice || "Ngọc Huyền (mới)"}
+                      onChange={(e) => handleFieldChange("novel_tts_voice", e.target.value)}
+                      className="w-full h-8 px-2.5 rounded-lg bg-zinc-900/90 border border-amber-500/30 text-xs text-amber-300 outline-none focus:border-amber-400"
+                    >
+                      <option value="Ngọc Huyền (mới)">🎙️ Ngọc Huyền (mới) - Bắc Nữ (Khuyên dùng)</option>
+                      <option value="Nam Miền Nam">🎙️ Nam Miền Nam - Giọng Nam Ấm</option>
+                      <option value="Nữ Miền Nam">🎙️ Nữ Miền Nam - Giọng Nữ Ngọt</option>
+                      <option value="vi-VN-NamMinhNeural">🌐 Edge-TTS Nam Minh</option>
+                    </select>
+                  </div>
+
+                  {/* Tốc độ đọc (1.2x) */}
+                  <div>
+                    <label className="block text-[11px] font-semibold text-zinc-300 mb-1">
+                      B1. Tốc Độ Đọc (Speech Speed):
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        step="0.05"
+                        min="0.5"
+                        max="2.5"
+                        value={config.novel_tts_speed ?? 1.2}
+                        onChange={(e) => handleFieldChange("novel_tts_speed", parseFloat(e.target.value))}
+                        className="h-8 text-xs bg-zinc-900/90 border-amber-500/30 text-amber-300 font-bold"
+                      />
+                      <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/40 text-[11px] shrink-0 font-mono">
+                        {config.novel_tts_speed ?? 1.2}x
+                      </Badge>
+                    </div>
+                  </div>
+
+                  {/* Tự động mở CapCut */}
+                  <div className="flex flex-col justify-center">
+                    <label className="block text-[11px] font-semibold text-zinc-300 mb-1">
+                      B5. Tự Động Mở CapCut PC:
+                    </label>
+                    <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer pt-1">
+                      <input
+                        type="checkbox"
+                        checked={config.auto_open_capcut ?? true}
+                        onChange={(e) => handleFieldChange("auto_open_capcut", e.target.checked)}
+                        className="rounded border-zinc-700 text-amber-500 focus:ring-amber-500 bg-zinc-900"
+                      />
+                      <span className="text-[11px] text-emerald-400 font-medium">Khởi chạy CapCut ngay sau B4</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Tóm tắt các bước pipeline */}
+                <div className="p-2.5 rounded-lg bg-black/40 border border-zinc-800/80 text-[11px] text-zinc-400 font-mono space-y-1">
+                  <div className="text-zinc-300 font-bold text-[11px]">Luồng xử lý tự động khi bấm nút chạy:</div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-0.5 text-[10px]">
+                    <div>• <strong>B1:</strong> Sinh audio NghiTTS tốc độ {config.novel_tts_speed ?? 1.2}x từng câu.</div>
+                    <div>• <strong>B2:</strong> Xếp timeline + silence [0.2]/[0.5], sinh Master Audio & file SRT.</div>
+                    <div>• <strong>B3:</strong> Lấy ảnh cắt từ phân cảnh phim trong bộ truyện (tự động trích xuất ảnh 1080p sắc nét).</div>
+                    <div>• <strong>B4:</strong> Patch ảnh phân cảnh phim + Master Audio + Subtitle chữ vàng viền đen vào CapCut Draft.</div>
+                    <div>• <strong>B5:</strong> Tự động mở CapCut PC và sẵn sàng bấm <strong>Export</strong> xuất MP4!</div>
+                  </div>
+                </div>
+
+                {/* Hiển thị kết quả sau khi chạy xong */}
+                {novelDraftResult && novelDraftResult.draft_folder && (
+                  <div className="p-3.5 rounded-xl bg-emerald-950/30 border border-emerald-500/50 space-y-2.5 animate-in fade-in-50">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 text-emerald-400 font-bold text-xs">
+                        <CheckCircle className="w-4 h-4 text-emerald-400" />
+                        <span>🎉 Đã sản xuất xong Dự Án CapCut Hoàn Chỉnh!</span>
+                      </div>
+                      <Button
+                        type="button"
+                        size="sm"
+                        onClick={handleOpenCapCut}
+                        className="h-8 px-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-90 text-zinc-950 font-bold text-xs rounded-lg shadow-md gap-1.5 shrink-0"
+                      >
+                        <Film className="w-3.5 h-3.5 fill-current" />
+                        <span>🎬 Mở CapCut PC & Xuất Video</span>
+                      </Button>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
+                      <div className="p-2 rounded bg-black/40 border border-emerald-500/20">
+                        <div className="text-[10px] text-zinc-400">Số câu phụ đề:</div>
+                        <div className="text-emerald-300 font-bold text-sm">{novelDraftResult.sentences_count || 0} câu</div>
+                      </div>
+                      <div className="p-2 rounded bg-black/40 border border-emerald-500/20">
+                        <div className="text-[10px] text-zinc-400">Ảnh phân cảnh phim:</div>
+                        <div className="text-cyan-300 font-bold text-sm">{novelDraftResult.scenes_count || 0} ảnh 1080p</div>
+                      </div>
+                      <div className="p-2 rounded bg-black/40 border border-emerald-500/20">
+                        <div className="text-[10px] text-zinc-400">Thời lượng video:</div>
+                        <div className="text-amber-300 font-bold text-sm">{Math.floor((novelDraftResult.total_duration_sec || 0) / 60)}m {Math.round((novelDraftResult.total_duration_sec || 0) % 60)}s</div>
+                      </div>
+                      <div className="p-2 rounded bg-black/40 border border-emerald-500/20">
+                        <div className="text-[10px] text-zinc-400">Tốc độ NghiTTS:</div>
+                        <div className="text-purple-300 font-bold text-sm">{config.novel_tts_speed ?? 1.2}x</div>
+                      </div>
+                    </div>
+
+                    <div className="p-2 rounded bg-black/50 border border-zinc-800 text-[11px] text-zinc-300 font-mono truncate flex items-center justify-between gap-2">
+                      <span className="truncate">Thư mục CapCut: <strong>{novelDraftResult.draft_folder}</strong></span>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          navigator.clipboard.writeText(novelDraftResult.draft_folder);
+                          toast.success("Đã sao chép đường dẫn dự án!");
+                        }}
+                        className="h-6 px-2 text-[10px] text-zinc-400 hover:text-white"
+                      >
+                        Copy
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-          </div>
+          </ErrorBoundary>
         )}
 
         {/* YouTube Auto-Publish Card */}
@@ -1129,8 +1385,20 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
             className="flex-1 py-4 text-sm rounded-2xl font-bold bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 hover:opacity-95 text-zinc-950 shadow-lg shadow-amber-500/25 gap-2"
           >
             <Sparkles className="w-5 h-5 fill-current" />
-            <span>{novelLoading ? "Đang sản xuất..." : "📖 Chạy Thuyết Minh Tiểu Thuyết (Novel AI)"}</span>
+            <span>{novelLoading ? (novelStepMessage || "Đang sản xuất Pipeline 5 Bước...") : "📖 Chạy Thuyết Minh Tiểu Thuyết (Pipeline 5 Bước)"}</span>
           </Button>
+
+          {novelDraftResult && (
+            <Button
+              type="button"
+              size="lg"
+              onClick={handleOpenCapCut}
+              className="py-4 px-5 text-sm rounded-2xl font-bold bg-gradient-to-r from-emerald-500 to-teal-500 hover:opacity-95 text-zinc-950 shadow-lg shadow-emerald-500/25 gap-2"
+            >
+              <Film className="w-5 h-5 fill-current" />
+              <span>🎬 Mở CapCut PC & Xuất</span>
+            </Button>
+          )}
 
           <Button
             type="button"

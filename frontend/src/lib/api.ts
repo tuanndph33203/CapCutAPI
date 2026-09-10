@@ -176,6 +176,20 @@ export const saveGlobalSettings = async (settings: any): Promise<{ ok: boolean; 
   return res.data;
 };
 
+// Storage & Database Management APIs
+export const fetchStorageStatus = async (): Promise<any> => {
+  const res = await api.get("/system/storage_status");
+  return res.data;
+};
+
+export const triggerCleanupCache = async (keepRecent: number = 1, dryRun: boolean = false): Promise<any> => {
+  const res = await api.post("/system/cleanup_cache", {
+    keep_recent_uploads: keepRecent,
+    dry_run: dryRun,
+  });
+  return res.data;
+};
+
 // Queue Management API
 export const startQueue = async () => (await api.post("/start")).data;
 export const pauseQueue = async () => (await api.post("/pause")).data;
@@ -243,3 +257,103 @@ export const fetchSocialStatus = async (): Promise<any> => {
   const res = await axios.get("/api/v1/status");
   return res.data;
 };
+
+// =========================================================================
+// CLOUD ASSET REGISTRY & DOWNLOAD APIS (5TB Google Drive & MongoDB Atlas)
+// =========================================================================
+
+export interface CloudAsset {
+  asset_id: string;
+  novel_id: string;
+  novel_title: string;
+  episode: number;
+  category: "video_raw" | "scene_analysis" | "keyframes" | "srt_subtitles" | "audio_tts" | "rendered_video" | "script" | "visuals_dataset" | "other";
+  filename: string;
+  relative_path: string;
+  drive_path: string;
+  size_bytes: number;
+  size_mb: number;
+  mime_type: string;
+  created_at: number;
+  metadata?: Record<string, any>;
+  download_url: string;
+}
+
+export interface CloudEpisodeBundle {
+  bundle_key: string;
+  novel_id: string;
+  novel_title: string;
+  episode: number;
+  total_files: number;
+  total_size_mb: number;
+  has_raw_video: boolean;
+  raw_video_filename: string;
+  has_scenes_analysis: boolean;
+  scenes_count: number;
+  has_subtitles: boolean;
+  srt_filename: string;
+  keyframes_count: number;
+  has_script: boolean;
+  has_audio: boolean;
+  has_rendered_video: boolean;
+  preview_thumbnail: string;
+  assets: CloudAsset[];
+}
+
+export interface CloudManifest {
+  version: string;
+  last_scanned_at: number;
+  drive_root: string;
+  total_assets: number;
+  total_size_mb: number;
+  total_size_gb: number;
+  categories_count: Record<string, number>;
+  assets: CloudAsset[];
+}
+
+export const fetchCloudAssets = async (params?: {
+  category?: string;
+  novel_id?: string;
+  episode?: number;
+  search?: string;
+  limit?: number;
+}): Promise<{ success: boolean; count: number; assets: CloudAsset[] }> => {
+  const res = await axios.get("/api/cloud/assets", { params });
+  return res.data;
+};
+
+export const fetchCloudEpisodes = async (novel_id?: string): Promise<{
+  success: boolean;
+  count: number;
+  episodes: CloudEpisodeBundle[];
+}> => {
+  const res = await axios.get("/api/cloud/assets/episodes", { params: { novel_id } });
+  return res.data;
+};
+
+export const fetchCloudManifest = async (): Promise<{ success: boolean; manifest: CloudManifest }> => {
+  const res = await axios.get("/api/cloud/assets/manifest");
+  return res.data;
+};
+
+export const rescanCloudAssets = async (): Promise<{ success: boolean; message: string; manifest: CloudManifest }> => {
+  const res = await axios.post("/api/cloud/assets/rescan");
+  return res.data;
+};
+
+export const getCloudDownloadUrl = (asset_id_or_rel: string): string => {
+  if (asset_id_or_rel.startsWith("scene_analysis/") || asset_id_or_rel.includes("/")) {
+    return `/api/cloud/download?relative_path=${encodeURIComponent(asset_id_or_rel)}`;
+  }
+  return `/api/cloud/download?asset_id=${encodeURIComponent(asset_id_or_rel)}`;
+};
+
+export const getEpisodeBundleDownloadUrl = (novel_id: string, episode: number, include_video: boolean = false): string => {
+  return `/api/cloud/download_bundle?novel_id=${encodeURIComponent(novel_id)}&episode=${episode}&include_video=${include_video}`;
+};
+
+export const pullCloudAssetToLocal = async (asset_id: string): Promise<any> => {
+  const res = await axios.post("/api/cloud/pull_to_local", { asset_id });
+  return res.data;
+};
+

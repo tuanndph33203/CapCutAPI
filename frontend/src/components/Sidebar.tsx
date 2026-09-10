@@ -9,6 +9,7 @@ import {
   Bot,
   Activity,
   BookOpen,
+  Cloud,
 } from "lucide-react";
 import {
   Sidebar as ShadcnSidebar,
@@ -26,6 +27,7 @@ import {
 export type AdminRoute =
   | "projects"
   | "novels"
+  | "cloud_data"
   | "queue"
   | "social_providers"
   | "ai_providers"
@@ -65,6 +67,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: "Quản Lý Truyện & Kịch Bản",
       icon: BookOpen,
       badge: "AI Novel",
+    },
+    {
+      id: "cloud_data",
+      label: "Kho Dữ Liệu Cloud",
+      icon: Cloud,
+      badge: "5TB Drive",
     },
     {
       id: "queue",

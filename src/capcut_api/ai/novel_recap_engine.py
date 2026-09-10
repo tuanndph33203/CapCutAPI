@@ -6,12 +6,15 @@ import uuid
 import time
 import shutil
 from pathlib import Path
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 from openai import OpenAI
 import edge_tts
 import requests
 from bs4 import BeautifulSoup
 from capcut_api.ai.visuals_dataset_manager import VisualsDatasetManager
+import logging
+
+logger = logging.getLogger("novel_recap_engine")
 
 _CN_MAP = {'零': 0, '一': 1, '二': 2, '两': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9, '十': 10, '百': 100, '千': 1000, '万': 10000}
 _CH_DIGITS = r'一二两三四五六七八九十百千万零0-9\d'
@@ -267,20 +270,61 @@ class NovelRepositoryManager:
         }
 
     def _get_novel_path(self, novel_id: str) -> Path:
-        target = self.custom_novels_dir / novel_id
-        if target.exists() and target.is_dir():
-            ch_dir = target / "chapters"
-            return ch_dir if ch_dir.exists() else target
-            
-        target_harness = self.harness_novels_dir / novel_id
-        if target_harness.exists() and target_harness.is_dir():
-            ch_dir = target_harness / "reference" / "chapters"
-            return ch_dir if ch_dir.exists() else target_harness
+        novel_id_str = str(novel_id).strip()
 
-        if novel_id in ("xianni", "仙逆"):
+        # 1. Alias cho Tiên Nghịch
+        if novel_id_str in ("xianni", "仙逆", "Tien_Nghich", "Tiên Nghịch"):
             p = self.harness_novels_dir / "仙逆" / "reference" / "chapters"
+            if p.exists() and len(list(p.glob("**/*"))) > 0:
+                return p
+
+        # 2. Alias cho Phàm Nhân Tu Tiên
+        if any(k in novel_id_str.lower() for k in ["pham", "nhan", "tu", "tien"]):
+            p = self.custom_novels_dir / "Pham nhan tu tien" / "chapters"
             if p.exists():
                 return p
+
+        # 3. Check custom_novels_dir (chỉ lấy nếu có file chương)
+        target = self.custom_novels_dir / novel_id_str
+        if target.exists() and target.is_dir():
+            ch_dir = target / "chapters"
+            if ch_dir.exists() and any(ch_dir.glob("**/*.txt")):
+                return ch_dir
+            if any(target.glob("**/*.txt")) or any(target.glob("**/*.md")):
+                return target
+            
+        # 4. Check harness_novels_dir
+        target_harness = self.harness_novels_dir / novel_id_str
+        if target_harness.exists() and target_harness.is_dir():
+            ch_dir = target_harness / "reference" / "chapters"
+            if ch_dir.exists() and (any(ch_dir.glob("**/*.txt")) or any(ch_dir.glob("**/*.md"))):
+                return ch_dir
+            if any(target_harness.glob("**/*.txt")) or any(target_harness.glob("**/*.md")):
+                return target_harness
+
+        # 5. Duyệt tìm bất kỳ thư mục nào có chương
+        all_dirs = []
+        if self.custom_novels_dir.exists():
+            all_dirs.extend([p for p in self.custom_novels_dir.iterdir() if p.is_dir()])
+        if self.harness_novels_dir.exists():
+            all_dirs.extend([p for p in self.harness_novels_dir.iterdir() if p.is_dir()])
+
+        for p in all_dirs:
+            if p.name.lower() == novel_id_str.lower() or novel_id_str.lower() in p.name.lower():
+                ch_dir = p / "chapters"
+                if ch_dir.exists() and any(ch_dir.glob("**/*.txt")):
+                    return ch_dir
+                ch_ref = p / "reference" / "chapters"
+                if ch_ref.exists() and any(ch_ref.glob("**/*")):
+                    return ch_ref
+                if any(p.glob("**/*.txt")) or any(p.glob("**/*.md")):
+                    return p
+
+        # Fallback cuối cùng: nếu không tìm thấy gì, trả về Pham nhan tu tien nếu có
+        p_pntt = self.custom_novels_dir / "Pham nhan tu tien" / "chapters"
+        if p_pntt.exists():
+            return p_pntt
+
         raise ValueError(f"Không tìm thấy thư mục của bộ truyện '{novel_id}'.")
 
     def list_novel_chapters(self, novel_id: str) -> List[Dict[str, Any]]:
@@ -588,10 +632,14 @@ class NovelVideoPipelineService:
         self.capcut_drafts_dir = Path(local_appdata) / "CapCut" / "User Data" / "Projects" / "com.lveditor.draft"
         self.capcut_drafts_dir.mkdir(parents=True, exist_ok=True)
 
-        self.audio_output_dir = self.root_dir / "outputs" / "novel_audio"
+        try:
+            from capcut_api.cloud.gdrive_manager import get_gdrive_manager
+            self.audio_output_dir = get_gdrive_manager().get_outputs_dir() / "novel_audio"
+        except Exception:
+            self.audio_output_dir = self.root_dir / "data" / "outputs" / "novel_audio"
         self.audio_output_dir.mkdir(parents=True, exist_ok=True)
 
-        self.client = OpenAI(base_url="http://localhost:20128/v1", api_key="sk-d13e798ca7a8589d-jfr5u9-d6a964f4", max_retries=0, timeout=2.5)
+        self.client = OpenAI(base_url="http://127.0.0.1:20128/v1", api_key="sk-d13e798ca7a8589d-jfr5u9-d6a964f4", max_retries=1, timeout=60.0)
 
     def get_chapters_context(self, start_ch: int, end_ch: int, max_chars: int = 1200) -> str:
         texts = []
@@ -610,98 +658,341 @@ class NovelVideoPipelineService:
                     pass
         return "\n".join(texts)
 
-    def get_dynamic_novel_context(self, novel_id: str, transcript_text: str = "", prompt: Optional[str] = None, current_episode_num: int = 1, max_chars: int = 4000) -> str:
-        """Đọc bối cảnh chương truyện thông minh dựa trên từ khóa tiếng Việt/Hán Việt, prompt hoặc số tập/chương."""
+    def detect_novel_chapter_from_dialogue(self, transcript_text: str, novel_id: str = "Pham nhan tu tien", current_ep_hint: int = 0, user_prompt: Optional[str] = None) -> Dict[str, Any]:
+        """Bóc tách lời thoại từ Video/SRT (nguồn tham khảo) và đối chiếu với kho truyện để xác định CHÍNH XÁC chương tương ứng."""
+        if not transcript_text or len(transcript_text.strip()) < 10:
+            return {"success": False, "error": "Thiếu dữ liệu lời thoại hoặc phụ đề để đối chiếu."}
+
         chapters = self.repo.list_novel_chapters(novel_id)
         if not chapters:
-            return ""
+            return {"success": False, "error": f"Không tìm thấy kho chương truyện của {novel_id}."}
 
-        # Từ điển ánh xạ từ khóa tiếng Việt sang chữ Hán trong nguyên tác
-        vi_to_zh_keywords = {
-            "nam lũng hầu": "南陇",
-            "nam lũng": "南陇",
-            "lạc vân tông": "落云",
-            "lạc vân": "落云",
-            "mộ bái linh": "慕沛",
-            "mộ phải linh": "慕沛",
-            "trụy ma cốc": "坠魔",
-            "thiên tinh chân nhân": "天晶",
-            "hỏa long đồng tử": "火龙",
-            "huyết sắc thí luyện": "血色",
-            "thất huyền môn": "七玄门",
-            "mặc đại phu": "墨大夫",
-            "hoàng phong cốc": "黄枫",
-            "hư thiên điện": "虚天殿",
-            "cực âm tổ sư": "极阴",
-            "cực âm": "极阴",
-            "man hồ tử": "蛮胡子",
-            "vương lâm": "王林",
-            "thiết trụ": "铁柱",
-            "tư đồ nam": "司徒南",
-            "hằng nhạc phái": "恒岳派"
+        raw_lines = [l.strip() for l in transcript_text.splitlines() if l.strip() and not re.match(r'^\d+$', l) and '-->' not in l]
+
+        # Lấy các câu thoại tham khảo: nếu ngắn (trailer/clip) thì lấy hết, nếu dài thì lấy đoạn kết 30 câu
+        if len(raw_lines) <= 40:
+            dialogue_text = "\n".join(raw_lines)
+        else:
+            dialogue_text = "\n".join(raw_lines[-30:])
+
+        # Trích xuất các số tập / số chương tiềm năng từ user_prompt và current_ep_hint để xác định phạm vi mục lục (catalog)
+        extracted_nums = [int(n) for n in re.findall(r'\b\d+\b', user_prompt or '')] if user_prompt else []
+        
+        # Điểm mốc cơ sở của tập tham khảo:
+        base_ep = current_ep_hint if current_ep_hint and current_ep_hint > 0 else (extracted_nums[-1] if extracted_nums else 1)
+        base_ch = int(base_ep * 3.873)
+        if base_ch <= 0:
+            base_ch = 1
+
+        # Xác định phạm vi danh mục chương (Chapter Catalog) bao phủ từ trước tập tham khảo đến sau tập mục tiêu
+        max_requested_num = max(extracted_nums) if extracted_nums else base_ep
+        if max_requested_num > 500:  # người dùng chỉ định số chương trực tiếp (ví dụ 750)
+            max_target_ch = max_requested_num + 15
+        elif max_requested_num > 10:  # người dùng chỉ định số tập (ví dụ 194)
+            max_target_ch = int(max_requested_num * 3.9) + 20
+        else:
+            max_target_ch = base_ch + 60
+
+        catalog_start = max(1, base_ch - 15)
+        catalog_end = max(base_ch + 60, max_target_ch)
+
+        catalog_items = []
+        for ch in chapters:
+            c_num = ch.get("chapter_num", 0)
+            if catalog_start <= c_num <= catalog_end:
+                catalog_items.append(f"- Chương {c_num}: {ch.get('title', '')}")
+        catalog_str = "\n".join(catalog_items[:140])
+
+        # Trích xuất đoạn trích (snippets) của các chương xung quanh tập tham khảo để AI đối chiếu lời thoại chính xác
+        ref_candidate_objs = [ch for ch in chapters if (base_ch - 12) <= ch.get("chapter_num", 0) <= (base_ch + 15)]
+        if not ref_candidate_objs:
+            ref_candidate_objs = chapters[:20]
+
+        candidate_snippets = []
+        for ch in ref_candidate_objs[:20]:
+            ch_num = ch.get("chapter_num", 0)
+            t = ch.get("title", "")
+            c_res = self.repo.get_chapter_content(novel_id, ch["filename"])
+            if c_res.get("success"):
+                c_txt = c_res.get("content", "")
+                c_clean = re.sub(r'【.*?】|\[.*?\]', '', c_txt)
+                snippet = c_clean[:600] + "\n...\n" + c_clean[-600:]
+                candidate_snippets.append(f"--- CHƯƠNG {ch_num}: {t} ---\n{snippet}\n")
+            else:
+                candidate_snippets.append(f"--- CHƯƠNG {ch_num}: {t} ---\n")
+
+        system_prompt = f"""Bạn là BẬC THẦY CỐ VẤN CỐT TRUYỆN HOẠT HÌNH & TIỂU THUYẾT TIÊN HIỆP (am hiểu tường tận Phàm Nhân Tu Tiên, Tiên Nghịch...).
+
+NHIỆM VỤ CỦA BẠN LÀ 'BỘ ÓC AI THÔNG MINH' PHÂN TÍCH TOÀN DIỆN VÀ TỰ ĐỘNG LỰA CHỌN CHƯƠNG NGUYÊN TÁC:
+1. ĐỌC VÀ HIỂU SÂU SẮC YÊU CẦU TRONG PROMPT CỦA NGƯỜI DÙNG:
+   - Tự động phân tích ngôn ngữ tự nhiên của người dùng (ví dụ: 'Viết tập 194 dựa trên nội dung điểm mốc chương của tập 189', 'viết tiếp tập 190', 'tập sau 192...').
+   - Xác định:
+     * target_episode: Số tập mục tiêu người dùng muốn viết (ví dụ: 194).
+     * reference_episode: Số tập mốc tham khảo xuất phát (ví dụ: 189).
+     * QUY TẮC: target_episode là tập đang viết kịch bản. reference_episode là tập tham khảo trước đó.
+
+2. ĐỐI CHIẾU LỜI THOẠI THAM KHẢO VỚI CÁC CHƯƠNG THAM KHẢO (trong danh sách candidate_chapters_snippets):
+   - Lời thoại tham khảo dừng chính xác ở chương nào? (detected_end_chapter, detected_chapter_title).
+   - Tóm tắt phân cảnh lúc dừng lại (ending_summary).
+
+3. ĐỐI CHIẾU VỚI DANH MỤC CÁC CHƯƠNG NGUYÊN TÁC DƯỚI ĐÂY ĐỂ CHỌN DẢI CHƯƠNG CHO TẬP MỤC TIÊU:
+MỤC LỤC CHƯƠNG NGUYÊN TÁC:
+{catalog_str}
+
+QUY TẮC PHÂN TÍCH VÀ LỰA CHỌN DẢI CHƯƠNG (target_chapters) - AI TỰ DO PHÂN TÍCH THEO MẠCH PHIM, KHÔNG FIX CỨNG:
+   - BỘ ÓC AI tự do đánh giá diễn biến cốt truyện thực tế để quyết định dải chương phù hợp nhất cho tập phim:
+     * Tùy theo nhịp độ phân đoạn phim: có thể là 1 chương đàm thoại sâu sắc, 2-3 chương vừa phải, hoặc 4-5 chương nếu tình tiết lướt nhanh, di chuyển vượt ải nhiều hoặc giao tranh dồn dập.
+     * NẾU NGƯỜI DÙNG CÓ CHỈ ĐỊNH (ví dụ: 'chương 800 đến 804'): Tôn trọng 100% dải chương người dùng chỉ định.
+   - YÊU CẦU BẮT BUỘC VỀ ĐỘ CHUẨN XÁC THEO PHIM:
+     * Tình tiết phải chuẩn 100% theo đúng mạch phim và nguyên tác, không được tóm tắt qua loa làm mất các giao tiếp, đối thoại then chốt hoặc biến cố quan trọng.
+     * Phải xác định rõ điểm ngắt kết thúc (cliffhanger_point): tập phim có thể dừng dở dang ở nửa chương (ví dụ 50% chương) ngay tại nút thắt kịch tính hoặc dừng cuối chương.
+   - NẾU NHẢY CÓC TẬP (ví dụ từ tập 189 nhảy đến tập 194):
+     * Tra cứu danh mục chương để chọn dải chương chuẩn xác tương ứng với tập mục tiêu, viết 'bridge_summary' tóm lược các biến cố then chốt giữa 2 mốc tập.
+   - NẾU VIẾT TẬP LIỀN KỀ (ví dụ từ 189 viết tiếp 190): target_chapters bắt đầu ngay từ phần tiếp nối của detected_end_chapter (chọn linh hoạt từ 1 đến 5 chương tùy theo nhịp độ tình tiết).
+
+TRẢ VỀ ĐÚNG ĐỊNH DẠNG JSON:
+{{
+  "target_episode": <số nguyên của tập mục tiêu>,
+  "reference_episode": <số nguyên của tập mốc tham khảo>,
+  "user_intent_summary": "<tóm tắt yêu cầu của người dùng>",
+  "pacing_assessment": "<đánh giá nhịp độ: ví dụ 'Tình tiết nhanh/vượt ải dồn dập, chọn 4-5 chương 809-813' hoặc 'Đấu trí đàm thoại sâu sắc, chọn 1-2 chương'>",
+  "detected_end_chapter": <số chương khớp lời thoại tham khảo>,
+  "detected_chapter_title": "<tiêu đề chương khớp>",
+  "ending_dialogue_match": "<câu thoại khớp trong nguyên tác>",
+  "ending_summary": "<tóm tắt đoạn kết tập tham khảo>",
+  "start_chapter": <số chương bắt đầu tiếp nối>,
+  "start_chapter_percent": <ước lượng % vị trí bắt đầu trong chương đó, từ 0 đến 100, ví dụ 65>,
+  "start_cut_point": "<mô tả ngắn gọn điểm bắt đầu, ví dụ: 'Bắt đầu từ ~65% Chương 809 sau phân đoạn Hàn Lập phát giác dấu vết'>",
+  "end_chapter": <số chương kết thúc tập phim>,
+  "end_chapter_percent": <ước lượng % vị trí kết thúc trong chương đó, từ 0 đến 100, ví dụ 35>,
+  "end_cut_point": "<mô tả điểm dừng cliffhanger, ví dụ: 'Dừng ở ~35% Chương 811 lúc Song Vĩ Xà chuẩn bị ra tay ám sát'>",
+  "coverage_timeline": "<tóm tắt lộ trình % từng chương, ví dụ: '~65% Chương 809 ➔ 100% Chương 810 ➔ ~35% Chương 811 (Cliffhanger)'>",
+  "bridge_summary": "<tóm tắt các sự kiện cầu nối nếu có nhảy tập>",
+  "target_chapters": [<danh sách các số nguyên của chương mục tiêu, linh hoạt 1-5 chương theo phân tích AI hoặc prompt>],
+  "cliffhanger_point": "<mô tả điểm dừng kịch tính làm cliffhanger ở giữa chương hay cuối chương>",
+  "reasoning": "<giải thích lý do lựa chọn dải chương này cho tập mục tiêu>"
+}}"""
+        payload = {
+            "task": "analyze_prompt_intent_and_match_chapters",
+            "user_prompt": user_prompt or "",
+            "reference_dialogue": dialogue_text,
+            "candidate_chapters_snippets": candidate_snippets[:20]
         }
 
-        matched_idx = -1
-        search_target_text = f"{transcript_text} {prompt or ''}".lower()
+        try:
+            from capcut_api.api.gui_app import build_ai_translation_config, call_ai_json_object
+            ai_config = build_ai_translation_config({}, purpose="context")
+            res = call_ai_json_object(ai_config, system_prompt, payload, line_count=40)
+            if isinstance(res, dict) and res.get("detected_end_chapter"):
+                res["success"] = True
+                end_ch = res.get("detected_end_chapter")
+                ch_obj = next((ch for ch in chapters if ch.get("chapter_num") == end_ch), None)
+                if ch_obj and ch_obj.get("title"):
+                    raw_title = ch_obj["title"]
+                    # Ưu tiên lấy phần tiếng Việt trong ngoặc đơn nếu có
+                    vi_match = re.search(r'\(([^)]+)\)', raw_title)
+                    if vi_match:
+                        res["detected_chapter_title"] = vi_match.group(1).strip()
+                    else:
+                        clean_t = re.sub(r'[\u4e00-\u9fff]+', '', raw_title).strip(' :-_#')
+                        res["detected_chapter_title"] = clean_t or f"Chương {end_ch}"
 
-        # 1. Tìm theo từ khóa Hán Việt chuyển ngữ nếu có trong transcript hoặc prompt
-        if search_target_text.strip():
-            matched_zh_keys = []
-            for vi_k, zh_k in vi_to_zh_keywords.items():
-                if vi_k in search_target_text:
-                    matched_zh_keys.append(zh_k)
+                # Làm sạch toàn bộ chữ Hán còn sót lại và dấu ?? trong các trường tóm tắt
+                clean_fields = [
+                    "bridge_summary", "ending_summary", "user_intent_summary", "pacing_assessment", 
+                    "cliffhanger_point", "reasoning", "start_cut_point", "end_cut_point", "coverage_timeline"
+                ]
+                for key in clean_fields:
+                    if res.get(key) and isinstance(res[key], str):
+                        clean_val = re.sub(r'[\u4e00-\u9fff]+', '', res[key])
+                        clean_val = re.sub(r'\?{2,}', '', clean_val)
+                        clean_val = re.sub(r'\(\s*\)', '', clean_val)
+                        clean_val = re.sub(r'\s{2,}', ' ', clean_val).strip()
+                        res[key] = clean_val
 
-            if matched_zh_keys:
-                best_score = 0
-                for idx, ch in enumerate(chapters):
-                    score = 0
-                    title = ch.get("title", "")
-                    for zh in matched_zh_keys:
-                        if zh in title:
-                            score += 10
-                    if score > best_score:
-                        best_score = score
-                        matched_idx = idx
+                # Tính toán % chính xác của điểm dừng nếu tìm thấy câu thoại trong nguyên tác
+                if ch_obj:
+                    c_res = self.repo.get_chapter_content(novel_id, ch_obj["filename"])
+                    if c_res.get("success"):
+                        c_text = c_res.get("content", "")
+                        dial_match = res.get("ending_dialogue_match")
+                        if dial_match and len(dial_match.strip()) > 5:
+                            clean_dial = re.sub(r'[^\w\s]', '', dial_match.strip())
+                            clean_ctxt = re.sub(r'[^\w\s]', '', c_text)
+                            pos = clean_ctxt.find(clean_dial[:25])
+                            if pos >= 0 and len(clean_ctxt) > 0:
+                                res["start_chapter_percent"] = max(5, min(95, round((pos / len(clean_ctxt)) * 100)))
 
-        # 2. Hoặc tìm số chương được đề cập rõ ràng trong prompt (ví dụ: "chương 682")
-        if matched_idx == -1 and prompt:
-            m = re.search(r'(?:chương|chuong|chapter|ch)\s*(\d+)', prompt, re.IGNORECASE)
-            if m:
-                target_num = int(m.group(1))
-                for idx, ch in enumerate(chapters):
-                    if ch.get("chapter_num") == target_num or ch.get("index") == target_num:
-                        matched_idx = idx
-                        break
+                # Đồng bộ danh sách chương do AI phân tích linh hoạt (không ép cứng số lượng)
+                if res.get("target_chapters"):
+                    try:
+                        res["target_chapters"] = [int(c) for c in res["target_chapters"]]
+                    except Exception:
+                        pass
+                if res.get("next_episode_chapters"):
+                    try:
+                        res["next_episode_chapters"] = [int(c) for c in res["next_episode_chapters"]]
+                    except Exception:
+                        pass
+                if res.get("target_chapters") and not res.get("next_episode_chapters"):
+                    res["next_episode_chapters"] = res["target_chapters"]
 
-        # 3. Hoặc ước lượng mốc chương cho Anime 3D Phàm Nhân Tu Tiên
-        if matched_idx == -1:
-            if novel_id == "Pham nhan tu tien" and current_episode_num >= 180:
-                # Anime Phàm Nhân Tu Tiên tập 185-186 tương ứng với Chương 680-685 (Tái kiến Nam Lũng Hầu)
-                target_ch = 682 if current_episode_num in (185, 186) else int(current_episode_num * 3.65)
-                for idx, ch in enumerate(chapters):
-                    if ch.get("chapter_num") == target_ch or ch.get("index") == target_ch:
-                        matched_idx = idx
-                        break
-            elif current_episode_num and current_episode_num > 1:
-                for idx, ch in enumerate(chapters):
-                    if ch.get("chapter_num") == current_episode_num or ch.get("index") == current_episode_num:
-                        matched_idx = idx
-                        break
+                # Đảm bảo có đầy đủ coverage_timeline, start_cut_point và end_cut_point
+                target_chs = res.get("target_chapters") or []
+                start_pct = res.get("start_chapter_percent") or 60
+                end_pct = res.get("end_chapter_percent") or 35
 
-        if matched_idx == -1:
-            matched_idx = 0
+                if target_chs:
+                    if len(target_chs) == 1:
+                        timeline = f"Chương {target_chs[0]} (từ ~{start_pct}% đến ~{end_pct}%)"
+                    elif len(target_chs) == 2:
+                        timeline = f"Chương {target_chs[0]} (từ ~{start_pct}%) ➔ Chương {target_chs[1]} (đến ~{end_pct}% - Cliffhanger)"
+                    else:
+                        parts = [f"Chương {target_chs[0]} (từ ~{start_pct}%)"]
+                        for mid_c in target_chs[1:-1]:
+                            parts.append(f"Chương {mid_c} (100%)")
+                        parts.append(f"Chương {target_chs[-1]} (đến ~{end_pct}% - Cliffhanger)")
+                        timeline = " ➔ ".join(parts)
+                    
+                    if not res.get("coverage_timeline"):
+                        res["coverage_timeline"] = timeline
+                    if not res.get("start_cut_point"):
+                        res["start_cut_point"] = f"Bắt đầu tiếp nối từ ~{start_pct}% Chương {target_chs[0]}"
+                    if not res.get("end_cut_point"):
+                        res["end_cut_point"] = f"Dừng ở ~{end_pct}% Chương {target_chs[-1]} (Điểm ngắt kịch tính Cliffhanger)"
+                return res
+        except Exception as e:
+            logger.error(f"Lỗi AI matching chapter: {e}")
 
-        # Lấy 3 đến 5 chương kế tiếp từ điểm mốc
-        start_i = matched_idx
-        end_i = min(len(chapters), start_i + 4)
-        
-        texts = []
-        for ch in chapters[start_i:end_i]:
-            res = self.repo.get_chapter_content(novel_id, ch["filename"])
-            if res.get("success"):
-                texts.append(f"=== 【{ch['title']}】 ===\n{res.get('content', '')[:1500]}\n")
-        
-        return "\n".join(texts)
+        return {"success": False, "error": "Không thể dò tìm chương từ lời thoại tham khảo."}
+
+    def get_dynamic_novel_context(self, novel_id: str, transcript_text: str = "", prompt: Optional[str] = None, current_episode_num: int = 1, next_episode_num: int = 0, max_chars: int = 4000) -> Tuple[str, Dict[str, Any]]:
+        """Sử dụng BỘ ÓC AI để phân tích toàn diện Prompt người dùng, lời thoại video và tự động trích xuất dải chương tương ứng."""
+        chapters = self.repo.list_novel_chapters(novel_id)
+        if not chapters:
+            return "", {"error": f"Không tìm thấy kho chương truyện {novel_id}"}
+
+        # 1. Nếu người dùng chỉ định rõ ràng số chương trong prompt (ví dụ: "chương 809 đến 810", hoặc "chương 809")
+        if prompt:
+            m_range = re.search(r'(?:chương|chuong|chapter|ch)\s*(\d+)\s*(?:đến|tới|-|->)\s*(?:chương|chuong|chapter|ch)?\s*(\d+)', prompt, re.IGNORECASE)
+            m_single = re.search(r'(?:chương|chuong|chapter|ch)\s*(\d+)', prompt, re.IGNORECASE)
+            if m_range:
+                start_ch = int(m_range.group(1))
+                end_ch = int(m_range.group(2))
+                target_chapter_nums = [c for c in range(start_ch, end_ch + 1)]
+            elif m_single:
+                target_num = int(m_single.group(1))
+                # Nhịp phim 3D chuẩn: 1 tập chuyển thể 1 đến 2 chương (chương chỉ định + chương kế tiếp)
+                target_chapter_nums = [target_num, target_num + 1]
+            else:
+                target_chapter_nums = []
+
+            # Giới hạn an toàn tối đa 6 chương nếu người dùng nhập dải quá rộng (tránh tràn bộ nhớ context), còn lại tôn trọng 100% chỉ định
+            if len(target_chapter_nums) > 6:
+                target_chapter_nums = target_chapter_nums[:6]
+
+            if target_chapter_nums:
+                texts = []
+                for ch_num in target_chapter_nums:
+                    ch_obj = next((ch for ch in chapters if ch.get("chapter_num") == ch_num), None)
+                    if ch_obj:
+                        res = self.repo.get_chapter_content(novel_id, ch_obj["filename"])
+                        if res.get("success"):
+                            clean_c = re.sub(r'【.*?】|\[.*?\]', '', res.get('content', ''))
+                            texts.append(f"=== 【{ch_obj['title']}】 ===\n{clean_c[:12000]}\n")
+                if texts:
+                    start_pct = 70
+                    end_pct = 35
+                    if len(target_chapter_nums) == 1:
+                        timeline = f"Chương {target_chapter_nums[0]} (từ ~{start_pct}% đến ~{end_pct}%)"
+                    elif len(target_chapter_nums) == 2:
+                        timeline = f"Chương {target_chapter_nums[0]} (từ ~{start_pct}%) ➔ Chương {target_chapter_nums[1]} (đến ~{end_pct}% - Cliffhanger)"
+                    else:
+                        parts = [f"Chương {target_chapter_nums[0]} (từ ~{start_pct}%)"]
+                        for mid_c in target_chapter_nums[1:-1]:
+                            parts.append(f"Chương {mid_c} (100%)")
+                        parts.append(f"Chương {target_chapter_nums[-1]} (đến ~{end_pct}% - Cliffhanger)")
+                        timeline = " ➔ ".join(parts)
+
+                    return "\n".join(texts), {
+                        "success": True,
+                        "detected_end_chapter": target_chapter_nums[0],
+                        "target_chapters": target_chapter_nums,
+                        "next_episode_chapters": target_chapter_nums,
+                        "start_chapter_percent": start_pct,
+                        "end_chapter_percent": end_pct,
+                        "start_cut_point": f"Tiếp nối từ ~{start_pct}% Chương {target_chapter_nums[0]}",
+                        "end_cut_point": f"Dừng ở ~{end_pct}% Chương {target_chapter_nums[-1]} (Điểm ngắt kịch tính Cliffhanger)",
+                        "coverage_timeline": timeline,
+                        "pacing_assessment": f"Chỉ định dải {len(target_chapter_nums)} chương theo prompt",
+                        "reasoning": f"Chỉ định theo prompt: Chương {', '.join(str(c) for c in target_chapter_nums)}"
+                    }
+
+        # 2. Để BỘ ÓC AI tự động đọc hiểu Prompt và phân tích dải chương phù hợp
+        detection = self.detect_novel_chapter_from_dialogue(transcript_text, novel_id=novel_id, current_ep_hint=current_episode_num, user_prompt=prompt)
+        if detection.get("success"):
+            target_chapters = detection.get("target_chapters") or detection.get("next_episode_chapters") or []
+            detected_end_ch = detection.get("detected_end_chapter")
+
+            target_chapter_nums = []
+            for c in target_chapters:
+                try:
+                    target_chapter_nums.append(int(c))
+                except (ValueError, TypeError):
+                    pass
+
+            # Giới hạn an toàn tối đa 6 chương để tránh quá tải token, cho phép AI linh hoạt chọn từ 1 đến 5 chương theo nhịp phim
+            if len(target_chapter_nums) > 6:
+                target_chapter_nums = target_chapter_nums[:6]
+
+            # Nếu viết tập liền kề và tập trước dừng ở giữa chương, đảm bảo chương kết thúc đứng đầu làm cầu nối
+            target_ep = detection.get("target_episode", next_episode_num)
+            ref_ep = detection.get("reference_episode", current_episode_num)
+            if target_ep and ref_ep and target_ep == ref_ep + 1 and detected_end_ch:
+                if detected_end_ch not in target_chapter_nums:
+                    target_chapter_nums = [detected_end_ch] + [c for c in target_chapter_nums if c != detected_end_ch]
+
+            if not target_chapter_nums and detected_end_ch:
+                target_chapter_nums = [detected_end_ch, detected_end_ch + 1]
+
+            detection["target_chapters"] = target_chapter_nums
+            detection["next_episode_chapters"] = target_chapter_nums
+
+            # Đồng bộ lại coverage_timeline nếu target_chapter_nums thay đổi
+            start_pct = detection.get("start_chapter_percent") or 60
+            end_pct = detection.get("end_chapter_percent") or 35
+            if target_chapter_nums:
+                if len(target_chapter_nums) == 1:
+                    timeline = f"Chương {target_chapter_nums[0]} (từ ~{start_pct}% đến ~{end_pct}%)"
+                elif len(target_chapter_nums) == 2:
+                    timeline = f"Chương {target_chapter_nums[0]} (từ ~{start_pct}%) ➔ Chương {target_chapter_nums[1]} (đến ~{end_pct}% - Cliffhanger)"
+                else:
+                    parts = [f"Chương {target_chapter_nums[0]} (từ ~{start_pct}%)"]
+                    for mid_c in target_chapter_nums[1:-1]:
+                        parts.append(f"Chương {mid_c} (100%)")
+                    parts.append(f"Chương {target_chapter_nums[-1]} (đến ~{end_pct}% - Cliffhanger)")
+                    timeline = " ➔ ".join(parts)
+                detection["coverage_timeline"] = timeline
+                if not detection.get("start_cut_point"):
+                    detection["start_cut_point"] = f"Bắt đầu tiếp nối từ ~{start_pct}% Chương {target_chapter_nums[0]}"
+                if not detection.get("end_cut_point"):
+                    detection["end_cut_point"] = f"Dừng ở ~{end_pct}% Chương {target_chapter_nums[-1]} (Điểm ngắt kịch tính Cliffhanger)"
+
+            texts = []
+            for ch_num in target_chapter_nums:
+                ch_obj = next((ch for ch in chapters if ch.get("chapter_num") == ch_num), None)
+                if ch_obj:
+                    res = self.repo.get_chapter_content(novel_id, ch_obj["filename"])
+                    if res.get("success"):
+                        clean_c = re.sub(r'【.*?】|\[.*?\]', '', res.get('content', ''))
+                        texts.append(f"=== 【{ch_obj['title']}】 ===\n{clean_c[:12000]}\n")
+            if texts:
+                return "\n".join(texts), detection
+
+        return "", {"error": "Cần có video hoặc file SRT tham khảo tại Step 1-2 để AI đọc lời thoại đối chiếu!"}
+
+        # 3. Nếu không có transcript, báo lỗi rõ ràng
+        return "", {"error": "Cần có video hoặc file SRT tham khảo tại Step 1-2 để AI đọc lời thoại đối chiếu!"}
 
     def _build_storytelling_from_context(self, novel_title: str, next_ep: int, current_summary: str, next_novel_context: str) -> Dict[str, Any]:
         """Biên kịch Thuyết minh & Kể chuyện Review Anime/Truyện đỉnh cao chuẩn phong cách YouTube (đối thoại sống động, giao nhân vật, phân tích thế cục)."""
@@ -984,70 +1275,200 @@ class NovelVideoPipelineService:
                     continue
         return None
 
-    def generate_script(self, current_summary: str, next_novel_context: str, current_ep: int, next_ep: int, novel_title: str = "Phàm Nhân Tu Tiên", custom_prompt: Optional[str] = None) -> Dict[str, Any]:
-        # 1. ƯU TIÊN HÀNG ĐẦU: Tìm kiếm kịch bản review mẫu chuẩn chất lượng cao trong Downloads hoặc Kho Data
-        ref_sentences = self._find_reference_review_script(self.novel_id, next_ep)
-        if ref_sentences:
-            scenes = []
-            animations = ["Zoom In", "Zoom Out", "Pan Left", "Pan Right"]
-            for idx, s in enumerate(ref_sentences):
-                clean_s = re.sub(r'\s+', ' ', s).strip()
-                if not clean_s:
-                    continue
-                scenes.append({
-                    "scene_id": idx + 1,
-                    "voiceover": clean_s,
-                    "visual_prompt": f"Anime {novel_title}, dramatic review scene {idx + 1}, cinematic lighting",
-                    "animation": animations[idx % len(animations)]
-                })
-            if scenes:
-                return {
-                    "title": f"{novel_title} Tập {next_ep}",
-                    "opening_hook": scenes[0]["voiceover"],
-                    "scenes": scenes,
-                    "closing_outro": scenes[-1]["voiceover"]
-                }
+    def generate_script(self, current_summary: str, next_novel_context: str, current_ep: int, next_ep: int, novel_title: str = "Phàm Nhân Tu Tiên", custom_prompt: Optional[str] = None, detection_info: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Tạo Kịch Bản Thuyết Minh AI chuẩn phong cách Review hoạt hình Tiên Hiệp triệu view, độ dài khoảng 15 phút (2,200 - 3,000 từ)."""
+        
+        # 1. Phân tích prompt của người dùng để xác định phong cách & trọng tâm
+        prompt_lower = (custom_prompt or "").lower()
+        style_instruction = "Phong cách thuyết minh kể chuyện review hoạt hình 3D dí dỏm, cuốn hút, bình luận hóm hỉnh ('Hàn lão ma', 'lão ma nhà ta'), miêu tả các chiêu thức và diễn biến kịch tính, hấp dẫn."
+        if any(w in prompt_lower for w in ["hài", "dí dỏm", "vui", "cuốn hút"]):
+            style_instruction = "Phong cách dí dỏm, châm biếm sâu cay hành vi của kẻ phản bội, khen ngợi độ 'cẩn thận như quỷ' của Hàn Lập, tạo tiếng cười và tương tác sảng khoái cho người xem."
+        elif any(w in prompt_lower for w in ["đại chiến", "chiến đấu", "hoành tráng", "gay cấn"]):
+            style_instruction = "Phong cách đại chiến hoành tráng, dồn dập, miêu tả chi tiết uy lực từng thần thông pháp bảo (Tử La Cực Hỏa, Tịch Tà Thần Lôi, Phụ Linh Thuật, Song Vĩ Phỉ Thúy Xà), nhịp điệu dồn dập nghẹt thở."
+        elif any(w in prompt_lower for w in ["spoiler", "trailer"]):
+            style_instruction = "Phong cách phân tích spoiler trailer bóc tách các tình tiết then chốt, giải mã bí ẩn diễn biến sắp tới."
 
-        system_prompt = custom_prompt or f"""Bạn là Biên kịch Review/Thuyết minh Anime Tu Tiên chuyên nghiệp (Top YouTube Reviewer hàng triệu view).
-Hãy viết KỊCH BẢN THUYẾT MINH & KỂ CHUYỆN CHI TIẾT cho video tập {next_ep} dựa trên nguyên tác chương truyện được cung cấp.
+        # Nhận diện yêu cầu thời lượng / độ dài từ Prompt (hoặc để BỘ ÓC AI tự do quyết định)
+        m_dur = re.search(r'(\d+)\s*(?:phút|p|min)', prompt_lower)
+        if m_dur:
+            user_mins = int(m_dur.group(1))
+            user_words = user_mins * 160
+            duration_instruction = f"Mục tiêu thời lượng: Khoảng {user_mins} PHÚT theo đúng yêu cầu trong prompt (Tương đương ~{user_words} từ tiếng Việt)."
+        elif any(w in prompt_lower for w in ["ngắn", "tóm tắt nhanh", "cô đọng"]):
+            duration_instruction = "Mục tiêu thời lượng: Ngắn gọn, súc tích (Khoảng 8 - 10 PHÚT, tương đương 1,200 - 1,600 từ tiếng Việt)."
+        elif any(w in prompt_lower for w in ["chi tiết", "dài", "kỹ"]):
+            duration_instruction = "Mục tiêu thời lượng: Đào sâu chi tiết, đầy đủ thoại và biến cố (Khoảng 18 - 25 PHÚT, tương đương 2,800 - 3,800 từ tiếng Việt)."
+        else:
+            duration_instruction = "Mục tiêu thời lượng: Do BỘ ÓC AI TỰ DO QUYẾT ĐỊNH ĐỘ DÀI PHÙ HỢP NHẤT (số phân cảnh, số từ) dựa trên dung lượng tình tiết thực tế của các chương nguyên tác và nhịp độ phim (thường dao động tự nhiên từ 12 - 20 PHÚT, tương đương 1,800 - 3,000 từ, TUYỆT ĐỐI KHÔNG FIX CỨNG)."
 
-YÊU CẦU VĂN PHONG VÀ CẤU TRÚC:
-1. MỞ ĐẦU (opening_hook): Bắt đầu đúng mẫu: "{novel_title} tập {next_ep}. Ở cuối tập trước, [Tóm tắt ngắn gọn cao trào tập trước]. Trong tập này chúng ta cùng xem tiếp những diễn biến tiếp theo nha."
-2. THÂN BÀI (scenes): Kể lại chi tiết, lôi cuốn toàn bộ các diễn biến, đối thoại, tâm lý nhân vật, chiêu thức, âm mưu trận chiến từ nguyên tác chương truyện. Chia thành các phân đoạn kể chuyện (tối thiểu 15-25 đoạn voiceover liền mạch, mỗi đoạn 2-3 câu vừa vặn để làm phụ đề và lồng tiếng TTS).
-   Mỗi scene gồm:
-   - "scene_id": số thứ tự (1, 2, 3...)
-   - "voiceover": Lời kể chuyện tiếng Việt tự nhiên, hấp dẫn, đúng thuật ngữ tu tiên kiếm hiệp.
-   - "visual_prompt": Gợi ý cảnh phim tiếng Anh tương ứng để tìm ảnh/video.
-   - "animation": Hiệu ứng chuyển động (Zoom In, Zoom Out, Pan Left, Pan Right).
-3. KẾT BÀI (closing_outro): Kết thúc đúng mẫu: "Tới đây cũng tạm thời kết thúc nội dung của tập hôm nay rồi. Cảm ơn các bạn đã xem hết video. Nếu muốn mình ra thêm tập {next_ep + 1} thì đừng quên để lại ý kiến dưới phần bình luận nhé. Còn bây giờ xin chào và hẹn gặp lại."
+        # Xử lý trường hợp nhảy cóc tập (ví dụ 189 -> 194) hay nối tiếp liền kề (189 -> 190)
+        target_ep_val = next_ep
+        ref_ep_val = current_ep
+        bridge_info = (detection_info or {}).get("bridge_summary", "")
+        start_cut = (detection_info or {}).get("start_cut_point") or ""
+        end_cut = (detection_info or {}).get("end_cut_point") or ""
+        timeline = (detection_info or {}).get("coverage_timeline") or ""
+        is_jump = target_ep_val > (ref_ep_val + 1)
 
-Trả về ĐÚNG CẤU TRÚC JSON thuần túy:
+        if is_jump and bridge_info:
+            continuity_block = f"""1. TÌNH HUỐNG NHẢY CÓC TẬP (TỪ TẬP {ref_ep_val} NHẢY ĐẾN TẬP {target_ep_val}):
+   - Bạn được cung cấp đoạn cầu nối tóm tắt các tập trung gian đã qua:
+     "{bridge_info}"
+   - PHẠM VI TRÍCH XUẤT (% TỪNG CHƯƠNG): {timeline}
+   - ĐIỂM BẮT ĐẦU: {start_cut}
+   - ĐIỂM NGẮT CLIFFHANGER: {end_cut}
+   - MỞ ĐẦU (OPENING HOOK): Chào mừng khán giả đến với video review TẬP {target_ep_val} hôm nay (ĐÂY LÀ TẬP ĐANG REVIEW). Tận dụng đoạn cầu nối trên để tóm lược ngắn gọn 2-3 câu các biến cố trung gian then chốt đã qua, rồi bùng nổ dẫn nhập vào biến cố chính của TẬP {target_ep_val}!
+   - NỘI DUNG CỐT TRUYỆN: Tập trung 100% vào các sự kiện và nhân vật thực tế trong văn bản tiểu thuyết 'next_novel_context' của TẬP {target_ep_val} (TUYỆT ĐỐI KHÔNG quay lại miêu tả chi tiết trận chiến hay đối thoại của Tập {ref_ep_val} cũ). Hồi 1 bắt đầu ngay từ những diễn biến đầu tiên của dải chương thuộc Tập {target_ep_val}!"""
+        else:
+            continuity_block = f"""1. XÁC ĐỊNH ĐIỂM DỪNG & CẦU NỐI CHUYỂN TIẾP (BÁM SÁT 100% SỰ THẬT TẬP TRƯỚC):
+   - Đọc kỹ phần 'reference_dialogue_summary' (nơi tập trước Tập {ref_ep_val} vừa dừng lại) và phần mở đầu của Chương đầu tiên trong 'next_novel_context'.
+   - PHẠM VI TRÍCH XUẤT (% TỪNG CHƯƠNG): {timeline}
+   - ĐIỂM BẮT ĐẦU: {start_cut}
+   - ĐIỂM NGẮT CLIFFHANGER: {end_cut}
+   - TUYỆT ĐỐI KHÔNG DÙNG VĂN MẪU SÁO RỖNG HOẶC TỰ BỊA ĐẶT (như: 'sau khi tiếng chém giết rền trời của cuộc chiến tạm thời lắng xuống', 'chiến trường đẫm máu'...). Nếu tập trước là đàm đạo, tu luyện, mật đàm, họp bàn tông môn hay di chuyển, HÃY MIÊU TẢ CHÍNH XÁC không khí đàm luận, sự tính toán mưu lược hoặc bước chuyển dịch của nhân vật!
+   - BẮT BUỘC bắt đầu viết tiếp liền mạch từ chính điểm dừng đó vào đầu Chương đầu tiên của 'next_novel_context', tuyệt đối không được bịa đặt chiến trận không có thật."""
+
+        system_prompt = f"""Bạn là BẬC THẦY BIÊN KỊCH & KỂ CHUYỆN REVIEW ANIME / HOẠT HÌNH TIÊN HIỆP 3D TRIỆU VIEW (như kênh Review Phim Tu Tiên, Ghiền Hoạt Hình 3D).
+
+BẠN ĐÓNG VAI TRÒ LÀ 'BỘ ÓC AI THÔNG MINH' TỰ ĐỘNG PHÂN TÍCH VÀ BIÊN SOẠN KỊCH BẢN CHO TẬP KẾ TIẾP DỰA TRÊN NGUỒN THAM KHẢO VÀ NGUYÊN TÁC TIỂU THUYẾT.
+
+NHIỆM VỤ:
+Biên soạn toàn bộ KỊCH BẢN THUYẾT MINH REVIEW CHI TIẾT CHO VIDEO TẬP {next_ep} ({novel_title}).
+{duration_instruction}
+
+QUY TRÌNH TƯ DUY CỦA BỘ ÓC AI (BẮT BUỘC TUÂN THỦ NGHIÊM NGẶT):
+{continuity_block}
+
+2. PHÂN BỔ CỐT TRUYỆN CHUẨN XÁC THEO PHIM & NGUYÊN TÁC (LINH HOẠT TỪ 1 ĐẾN 4-5 CHƯƠNG THEO MẠCH PHIM):
+   - Văn bản 'next_novel_context' cung cấp đầy đủ nội dung các chương nguyên tác được AI phân tích nhịp độ hoặc theo người dùng chỉ định (dù là 1-2 chương hay trải dài 4-5 chương nếu tình tiết nhanh):
+     * Ví dụ: Tập phim có thể tiếp nối phần dở dang của chương trước (như 50% - 75% chương A), bao quát các chương diễn biến tiếp theo, và dừng lại ở đoạn cao trào nghẹt thở (cliffhanger) ở giữa chương hoặc cuối chương.
+   - NGUYÊN TẮC VÀNG VỀ TÌNH TIẾT (CHUẨN 100% THEO PHIM & NGUYÊN TÁC):
+     * TUYỆT ĐỐI KHÔNG BỊA ĐẶT TÌNH TIẾT: Phải bám sát chính xác 100% các sự kiện, tên nhân vật, pháp bảo, công pháp và diễn biến có thật trong 'next_novel_context'. Tuyệt đối không dùng văn mẫu sáo rỗng bịa đặt như "tiếng chém giết rền trời" khi nguyên tác không có chiến sự.
+     * GIỮ TRỌN VẸN CÁC CUỘC ĐỐI THOẠI QUAN TRỌNG: Trích dẫn trực tiếp các câu thoại đắt giá đặt trong dấu ngoặc kép ("..."), miêu tả ánh mắt, nét mặt thay đổi, biểu cảm vi mô và toan tính tâm lý của từng nhân vật để kịch bản sống động như đang xem phim hoạt hình thực thụ.
+     * KHÔNG ĐƯỢC TÓM TẮT LƯỚT BỎ RƠI CỐT TRUYỆN: Kể tuần tự, mạch lạc, phân bổ hợp lý các phân cảnh bao quát toàn bộ nội dung được cấp:
+       - Cảnh mở đầu: Tiếp nối điểm dừng và bầu không khí của tập trước, nhân vật bắt đầu hành động.
+       - Cảnh diễn biến: Tái hiện sâu sắc các cuộc gặp gỡ, đối thoại, toan tính mưu lược và tương tác giữa các nhân vật.
+       - Cảnh cao trào: Đỉnh điểm xung đột, thi triển thần thông, pháp bảo hoặc bẫy rập then chốt.
+       - Cảnh kết thúc & Cliffhanger (Các cảnh cuối): KẾT THÚC DỪNG Ở ĐÚNG ĐOẠN CAO TRÀO NGHẸT THỞ (có thể ở giữa chương như tập 189 dừng ngay lúc thả Song Vĩ Xà ám sát, hoặc cuối chương), tạo cảm giác hồi hộp tột độ và kích thích người xem mong chờ tập sau!
+     * TUYỆT ĐỐI KHÔNG CHIA MỖI CÂU LÀ MỘT CẢNH! Mỗi phân cảnh là một khối bối cảnh trọn vẹn (khoảng 3 đến 8 câu văn mạch lạc, thời lượng đọc khoảng 20 đến 35 giây).
+     * Chỉ chuyển sang phân cảnh mới khi có sự thay đổi rõ ràng về không gian, nhân vật hoặc bước ngoặt hành động.
+
+3. VĂN PHONG REVIEW:
+   - {style_instruction}
+   - Sử dụng 100% tiếng Việt thuần túy, tuyệt đối KHÔNG để sót bất kỳ chữ Hán nào.
+
+ĐỊNH DẠNG ĐẦU RA JSON BẮT BUỘC:
 {{
   "title": "{novel_title} Tập {next_ep}",
-  "opening_hook": "...",
+  "opening_hook": "Lời chào và mở đầu hấp dẫn, bám sát sự thật tập trước...",
   "scenes": [
-    {{"scene_id": 1, "voiceover": "...", "visual_prompt": "...", "animation": "Zoom In"}},
-    ...
+    {{
+      "scene_id": 1,
+      "title": "Tiêu đề phân cảnh ngắn gọn, hấp dẫn",
+      "location": "Địa điểm bối cảnh",
+      "characters": ["Nhân vật xuất hiện"],
+      "action_summary": "Tóm tắt diễn biến hình ảnh",
+      "visual_prompt": "Mô tả chi tiết hình ảnh anime 3D cho cảnh này để tìm/cắt ảnh từ phim",
+      "voiceover": "Đoạn văn thuyết minh gồm 3 đến 7 câu liền mạch, ngăn cách nhau bằng [0.2]. TUYỆT ĐỐI KHÔNG để [0.5] ở giữa cảnh.",
+      "estimated_duration_sec": 25
+    }}
   ],
-  "closing_outro": "..."
+  "closing_outro": "Lời kết review và hẹn tập sau..."
 }}"""
 
-        user_prompt = f"TẬP HIỆN TẠI (TẬP {current_ep}):\n{current_summary}\n\nDIỄN BIẾN NGUYÊN TÁC CÁC CHƯƠNG TIẾP THEO (TẬP {next_ep}):\n{next_novel_context}"
+        user_payload = {
+            "task": "generate_novel_continuation_script",
+            "novel_title": novel_title,
+            "current_ep": current_ep,
+            "next_ep": next_ep,
+            "user_prompt_instruction": custom_prompt or "",
+            "reference_dialogue_summary": current_summary,
+            "next_novel_context": next_novel_context[:65000]
+        }
         
         try:
-            resp = self.client.chat.completions.create(
-                model="ag/gemini-3.7-flash-high",
-                messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
-                response_format={"type": "json_object"},
-                temperature=0.7,
-                timeout=3.0
-            )
-            content = resp.choices[0].message.content.strip()
-            parsed = json.loads(content)
-            if parsed.get("scenes") and len(parsed.get("scenes", [])) >= 5:
-                return parsed
+            from capcut_api.api.gui_app import build_ai_translation_config, call_ai_json_object
+            ai_config = build_ai_translation_config(item_config={}, purpose="context")
+            if ai_config and ai_config.get("enabled"):
+                res = call_ai_json_object(ai_config, system_prompt, user_payload, line_count=100)
+                if isinstance(res, dict) and (res.get("scenes") or res.get("acts")):
+                    def clean_chinese_chars(text: str) -> str:
+                        replacements = {
+                            "草原": "thảo nguyên",
+                            "令牌": "lệnh bài",
+                            "大阵": "đại trận",
+                            "阵法": "trận pháp",
+                            "元婴": "Nguyên Anh",
+                            "法宝": "pháp bảo",
+                            "神识": "thần thức",
+                        }
+                        for k, v in replacements.items():
+                            text = text.replace(k, v)
+                        cleaned = re.sub(r'[\u4e00-\u9fff]+', '', text)
+                        cleaned = re.sub(r'\s{2,}', ' ', cleaned).strip()
+                        return cleaned
+
+                    parsed_scenes = []
+                    raw_scenes = res.get("scenes") or []
+                    if not raw_scenes and res.get("acts"):
+                        # Fallback nếu model trả về acts
+                        for act_idx, act in enumerate(res.get("acts", [])):
+                            lines = act.get("voiceover_lines", [])
+                            if lines:
+                                vo = "\n[0.2]\n".join(clean_chinese_chars(l) for l in lines if clean_chinese_chars(l))
+                                raw_scenes.append({
+                                    "scene_id": act_idx + 1,
+                                    "title": act.get("act_title") or f"Hồi {act_idx + 1}",
+                                    "location": "Bối cảnh phim",
+                                    "characters": ["Nhân vật"],
+                                    "visual_prompt": f"Anime 3D {novel_title}, scene {act_idx + 1}, cinematic 4k",
+                                    "voiceover": vo
+                                })
+
+                    for idx, sc in enumerate(raw_scenes):
+                        vo_raw = clean_chinese_chars(sc.get("voiceover", ""))
+                        if vo_raw:
+                            # Đảm bảo các câu bên trong dùng [0.2], không dùng [0.5]
+                            cleaned_vo = re.sub(r'\[(?:0\.[4-9]|\d+(?:\.\d+)?)\]', '[0.2]', vo_raw)
+                            parsed_scenes.append({
+                                "scene_id": idx + 1,
+                                "title": sc.get("title") or f"Phân Cảnh #{idx + 1}",
+                                "location": sc.get("location") or "Bối cảnh phim",
+                                "characters": sc.get("characters") or ["Nhân vật"],
+                                "action_summary": sc.get("action_summary") or "",
+                                "visual_prompt": sc.get("visual_prompt") or f"Anime 3D {novel_title}, scene {idx+1}, cinematic 4k",
+                                "voiceover": cleaned_vo,
+                                "estimated_duration_sec": sc.get("estimated_duration_sec") or round(len(cleaned_vo.split()) / 3.3, 1)
+                            })
+
+                    # Ghép các cảnh lại thành full_plain_text với [0.5] CHỈ GIỮA CÁC CẢNH
+                    formatted_script_parts = []
+                    opening_hook = clean_chinese_chars(res.get("opening_hook", ""))
+                    if opening_hook:
+                        formatted_script_parts.append(opening_hook)
+
+                    for sc in parsed_scenes:
+                        if sc["voiceover"]:
+                            formatted_script_parts.append(sc["voiceover"])
+
+                    closing_outro = clean_chinese_chars(res.get("closing_outro", ""))
+                    if closing_outro:
+                        formatted_script_parts.append(closing_outro)
+
+                    full_plain_text = "\n[0.5]\n".join(formatted_script_parts)
+
+                    return {
+                        "title": res.get("title") or f"{novel_title} Tập {next_ep}",
+                        "opening_hook": opening_hook,
+                        "scenes": parsed_scenes,
+                        "closing_outro": closing_outro,
+                        "full_plain_text": full_plain_text,
+                        "acts": res.get("acts", []),
+                        "total_words": sum(len(p.split()) for p in formatted_script_parts)
+                    }
             return self._build_storytelling_from_context(novel_title, next_ep, current_summary, next_novel_context)
-        except Exception:
+        except Exception as e:
+            logger.error(f"⚠️ [NOVEL SCRIPT AI ERROR]: {e}", exc_info=True)
             return self._build_storytelling_from_context(novel_title, next_ep, current_summary, next_novel_context)
 
     async def generate_tts(self, scenes: List[Dict[str, Any]], voice: str = "vi-VN-NamMinhNeural") -> List[Dict[str, Any]]:
@@ -1117,7 +1538,7 @@ Trả về ĐÚNG CẤU TRÚC JSON thuần túy:
             dur_us = int(scene.get("duration", 3.5) * 1_000_000)
             text = scene.get("voiceover", "")
             audio_path = scene.get("audio_file", "")
-            img_path = image_paths[idx] if (image_paths and idx < len(image_paths)) else scene.get("image_path", "")
+            img_path = (image_paths[idx % len(image_paths)] if image_paths else "") or scene.get("image_path", "")
 
             # Audio
             if audio_path and os.path.exists(audio_path):
@@ -1128,15 +1549,58 @@ Trả về ĐÚNG CẤU TRÚC JSON thuần túy:
             # Image/Video
             if img_path and os.path.exists(img_path):
                 vid = str(uuid.uuid4())
-                materials["videos"].append({"id": vid, "type": "photo", "path": str(Path(img_path).resolve()), "duration": dur_us, "width": width, "height": height, "material_name": f"Media_{idx+1}"})
-                video_segs.append({"id": str(uuid.uuid4()), "material_id": vid, "target_timerange": {"duration": dur_us, "start": current_time_us}, "source_timerange": {"duration": dur_us, "start": 0}, "clip": {"scale": {"x": 1.05, "y": 1.05}, "transform": {"x": 0.0, "y": 0.0}}})
+                is_video = Path(img_path).suffix.lower() in (".mp4", ".mov", ".mkv", ".avi", ".webm")
+                materials["videos"].append({
+                    "id": vid,
+                    "type": "video" if is_video else "photo",
+                    "path": str(Path(img_path).resolve()),
+                    "duration": dur_us,
+                    "width": width,
+                    "height": height,
+                    "material_name": f"Media_{idx+1}"
+                })
+                source_start = (idx * 4_000_000) if is_video else 0
+                video_segs.append({
+                    "id": str(uuid.uuid4()),
+                    "material_id": vid,
+                    "target_timerange": {"duration": dur_us, "start": current_time_us},
+                    "source_timerange": {"duration": dur_us, "start": source_start},
+                    "clip": {"scale": {"x": 1.05, "y": 1.05}, "transform": {"x": 0.0, "y": 0.0}}
+                })
 
-            # Subtitle
+            # Subtitle (Chuẩn thẩm mỹ: chữ vàng kim viền đen, font nhỏ 5.5, căn giữa ở đáy)
             if text:
                 tid = str(uuid.uuid4())
-                text_json = {"text": text, "styles": [{"fill": {"alpha": 1.0, "content": {"render_type": "solid", "solid": {"color": [1.0, 0.9, 0.2]}}}, "size": 11.0, "bold": True}]}
-                materials["texts"].append({"id": tid, "type": "subtitle", "content": json.dumps(text_json, ensure_ascii=False), "font_path": "", "font_size": 11.0, "text_color": "#FFE500", "border_color": "#000000", "border_width": 2.0})
-                text_segs.append({"id": str(uuid.uuid4()), "material_id": tid, "target_timerange": {"duration": dur_us, "start": current_time_us}, "clip": {"transform": {"x": 0.0, "y": -0.75}}})
+                text_json = {
+                    "text": text,
+                    "styles": [{
+                        "fill": {
+                            "alpha": 1.0,
+                            "content": {
+                                "render_type": "solid",
+                                "solid": {"color": [1.0, 0.92, 0.15]}
+                            }
+                        },
+                        "size": 5.5,
+                        "bold": True
+                    }]
+                }
+                materials["texts"].append({
+                    "id": tid,
+                    "type": "subtitle",
+                    "content": json.dumps(text_json, ensure_ascii=False),
+                    "font_path": "",
+                    "font_size": 5.5,
+                    "text_color": "#FFE81F",
+                    "border_color": "#000000",
+                    "border_width": 0.08
+                })
+                text_segs.append({
+                    "id": str(uuid.uuid4()),
+                    "material_id": tid,
+                    "target_timerange": {"duration": dur_us, "start": current_time_us},
+                    "clip": {"transform": {"x": 0.0, "y": -0.78}}
+                })
 
             current_time_us += dur_us
 
@@ -1150,31 +1614,25 @@ Trả về ĐÚNG CẤU TRÚC JSON thuần túy:
         return str(project_folder.resolve())
 
     def export_plain_text_script(self, script: Dict[str, Any], out_txt_path: Path) -> str:
-        """Xuất kịch bản: mỗi câu 1 dòng kèm ký hiệu khoảng nghỉ như [0.2], [0.3], [0.5]."""
+        """Xuất kịch bản: mỗi câu/cụm từ 1 dòng kèm ký hiệu khoảng nghỉ như [0.2], [0.3], [0.5]."""
+        from capcut_api.ai.subtitle_chunker import chunker as ai_chunker
         scenes = script.get("scenes", [])
         output_lines = []
 
         def split_into_sentences_with_pauses(text: str) -> List[str]:
-            raw_sents = [s.strip() for s in re.split(r'([\.\!\?…]+)', text) if s.strip()]
-            sentences = []
-            cur = ""
-            for s in raw_sents:
-                cur += s
-                if re.match(r'[\.\!\?…]+', s):
-                    sentences.append(cur.strip())
-                    cur = ""
-            if cur.strip():
-                sentences.append(cur.strip())
+            # Dùng AI Chunker tách câu dài thành các cụm 4-6 từ ngắn gọn
+            chunks = ai_chunker.chunk_text(text)
+            if not chunks:
+                return []
 
             formatted = []
-            for i, sent in enumerate(sentences):
-                clean_s = re.sub(r'\[\d+(?:\.\d+)?\]', '', sent).strip()
+            for i, chunk_s in enumerate(chunks):
+                clean_s = re.sub(r'\[\d+(?:\.\d+)?\]', '', chunk_s).strip()
                 if not clean_s:
                     continue
-                # Câu văn trên 1 dòng riêng
                 formatted.append(clean_s)
-                # Khoảng nghỉ trên 1 dòng riêng: [0.2] cho câu giữa đoạn, [0.5] cho câu kết thúc đoạn
-                pause = "[0.5]" if i == len(sentences) - 1 else "[0.2]"
+                # Khoảng nghỉ: [0.5] cho kết thúc đoạn, [0.2] cho giữa đoạn
+                pause = "[0.5]" if i == len(chunks) - 1 else "[0.2]"
                 formatted.append(pause)
             return formatted
 
@@ -1239,25 +1697,52 @@ Trả về ĐÚNG CẤU TRÚC JSON thuần túy:
         
         # BƯỚC 1: Sinh kịch bản văn bản thuần túy (.txt) hoặc dùng kịch bản người dùng đã sửa
         if user_script_text and user_script_text.strip():
-            raw_paragraphs = [p.strip() for p in user_script_text.split("\n\n") if p.strip()]
+            lines = [l.strip() for l in user_script_text.splitlines() if l.strip()]
             parsed_scenes = []
-            for idx, p in enumerate(raw_paragraphs):
-                # Lấy các dòng câu thoại bỏ qua thẻ [0.2], [0.5]
-                vo_lines = [line.strip() for line in p.splitlines() if line.strip() and not re.match(r'^\[\d+(?:\.\d+)?\]$', line.strip())]
-                clean_vo = " ".join(vo_lines).strip()
-                if clean_vo:
+            current_vo_lines = []
+
+            for l in lines:
+                if re.match(r'^\[0\.5\]$', l):
+                    if current_vo_lines:
+                        vo_text = " ".join(current_vo_lines).strip()
+                        if vo_text:
+                            parsed_scenes.append({
+                                "scene_id": len(parsed_scenes) + 1,
+                                "voiceover": vo_text,
+                                "visual_prompt": f"Anime visual for {novel_title}, scene {len(parsed_scenes)+1}",
+                                "animation": ["Zoom In", "Zoom Out", "Pan Left", "Pan Right"][len(parsed_scenes) % 4]
+                            })
+                        current_vo_lines = []
+                elif not re.match(r'^\[\d+(?:\.\d+)?\]$', l):
+                    clean_l = re.sub(r'\[\d+(?:\.\d+)?\]', '', l).strip()
+                    if clean_l:
+                        current_vo_lines.append(clean_l)
+
+            if current_vo_lines:
+                vo_text = " ".join(current_vo_lines).strip()
+                if vo_text:
                     parsed_scenes.append({
-                        "scene_id": idx + 1,
-                        "voiceover": clean_vo,
-                        "visual_prompt": f"Anime visual for {novel_title}, scene {idx+1}",
-                        "animation": ["Zoom In", "Zoom Out", "Pan Left", "Pan Right"][idx % 4]
+                        "scene_id": len(parsed_scenes) + 1,
+                        "voiceover": vo_text,
+                        "visual_prompt": f"Anime visual for {novel_title}, scene {len(parsed_scenes)+1}",
+                        "animation": ["Zoom In", "Zoom Out", "Pan Left", "Pan Right"][len(parsed_scenes) % 4]
                     })
-            if parsed_scenes:
-                raw_scenes = parsed_scenes
-                script = {"scenes": raw_scenes, "title": f"{novel_title} Tập {current_episode_num + 1}"}
-            else:
-                raw_scenes = scenes or []
-                script = {"scenes": raw_scenes, "title": f"{novel_title} Tập {current_episode_num + 1}"}
+
+            if not parsed_scenes:
+                raw_paragraphs = [p.strip() for p in user_script_text.split("\n\n") if p.strip()]
+                for idx, p in enumerate(raw_paragraphs):
+                    vo_lines = [line.strip() for line in p.splitlines() if line.strip() and not re.match(r'^\[\d+(?:\.\d+)?\]$', line.strip())]
+                    clean_vo = " ".join(vo_lines).strip()
+                    if clean_vo:
+                        parsed_scenes.append({
+                            "scene_id": idx + 1,
+                            "voiceover": clean_vo,
+                            "visual_prompt": f"Anime visual for {novel_title}, scene {idx+1}",
+                            "animation": ["Zoom In", "Zoom Out", "Pan Left", "Pan Right"][idx % 4]
+                        })
+
+            raw_scenes = parsed_scenes if parsed_scenes else (scenes or [])
+            script = {"scenes": raw_scenes, "title": f"{novel_title} Tập {current_episode_num + 1}"}
         elif not scenes:
             context = self.get_dynamic_novel_context(novel_id, transcript_text, active_prompt, current_episode_num=current_episode_num)
             curr_summary = transcript_text[:1500] if transcript_text else ""
@@ -1267,34 +1752,62 @@ Trả về ĐÚNG CẤU TRÚC JSON thuần túy:
             script = {"scenes": scenes, "title": f"{novel_title} Tập {current_episode_num + 1}"}
             raw_scenes = scenes
 
-        # BƯỚC 2: Sinh âm thanh từ TTS
-        scenes_with_audio = asyncio.run(self.generate_tts(raw_scenes, voice=voice))
-
-        # Tự động map ảnh từ Visuals Dataset nếu chưa truyền media thủ công
-        if not final_media:
-            final_media = self.visuals_mgr.match_visuals_for_scenes(scenes_with_audio, novel_id)
+        # BƯỚC 1 - B5: CHẠY QUA NOVEL VIDEO PIPELINE CHUYÊN BIỆT
+        from capcut_api.ai.novel_video_pipeline import NovelVideoPipeline
+        pipeline = NovelVideoPipeline(novel_id=novel_id)
 
         clean_novel_name = "".join(c for c in novel_title if c.isalnum() or c in (" ", "_", "-")).strip()
         project_name = f"{clean_novel_name}_Tap_{current_episode_num + 1}_ThuyetMinh"
-        draft_folder = self.build_capcut_draft(project_name, scenes_with_audio, final_media, canvas_ratio=canvas_ratio)
 
-        # Xuất file Kịch Bản Văn Bản thuần túy (.txt)
-        txt_file = Path(draft_folder) / f"{project_name}_kich_ban.txt"
+        # Tự động lấy kịch bản từ user hoặc từ AI đã sinh
         if user_script_text and user_script_text.strip():
-            txt_file.write_text(user_script_text.strip(), encoding="utf-8")
+            final_script_text = user_script_text.strip()
+        elif script and script.get("scenes"):
+            # Chuyển scenes sang text có thẻ ngắt nghỉ
+            temp_lines = []
+            for sc in script.get("scenes", []):
+                vo = sc.get("voiceover", "").strip()
+                if vo:
+                    temp_lines.append(vo)
+                    temp_lines.append("[0.5]")
+            final_script_text = "\n".join(temp_lines)
         else:
-            self.export_plain_text_script(script, txt_file)
+            final_script_text = transcript_text
 
-        # BƯỚC 3: Tính toán timestamp từ audio TTS thực tế và xuất file phụ đề chuẩn (.srt)
-        srt_file = Path(draft_folder) / f"{project_name}.srt"
-        self.export_srt_file(scenes_with_audio, srt_file)
+        # Tốc độ đọc: ưu tiên 1.2x theo yêu cầu người dùng
+        chosen_speed = float(tts_speed or 1.2)
+        if chosen_speed < 0.5 or chosen_speed > 3.0:
+            chosen_speed = 1.2
+
+        # Tên giọng đọc NghiTTS chuẩn xác
+        voice_arg = kwargs.get("voice_name") or voice or "Ngọc Huyền (mới)"
+        valid_nghitts = ["Ngọc Huyền (mới)", "Nam Miền Nam", "Nữ Miền Nam"]
+        matched_voice = next((v for v in valid_nghitts if v.lower() in voice_arg.lower()), None)
+        chosen_voice = matched_voice or "Ngọc Huyền (mới)"
+
+        # Chạy toàn bộ 5 bước của Pipeline
+        pipeline_res = pipeline.run_full_pipeline(
+            script_text=final_script_text,
+            project_name=project_name,
+            voice_name=chosen_voice,
+            speed=chosen_speed,
+            media_paths=final_media,
+            canvas_ratio=canvas_ratio,
+            auto_open_capcut=kwargs.get("auto_open_capcut", True)
+        )
+
+        txt_file = Path(pipeline_res["draft_folder"]) / f"{project_name}_kich_ban.txt"
 
         return {
             "success": True,
             "project_name": project_name,
-            "draft_folder": draft_folder,
-            "txt_file": str(txt_file.resolve()),
-            "srt_file": str(srt_file.resolve()),
+            "draft_folder": pipeline_res["draft_folder"],
+            "txt_file": str(txt_file.resolve()) if txt_file.exists() else "",
+            "srt_file": pipeline_res.get("srt_file", ""),
+            "master_mp3": pipeline_res.get("master_mp3", ""),
             "script": script,
-            "scenes": scenes_with_audio
+            "scenes_count": pipeline_res.get("scenes_count", 0),
+            "sentences_count": pipeline_res.get("sentences_count", 0),
+            "total_duration_sec": pipeline_res.get("total_duration_sec", 0.0),
+            "capcut_status": pipeline_res.get("capcut_status", {})
         }

@@ -7,10 +7,10 @@ import { ProjectDetails } from "./components/ProjectDetails";
 import { QueueAndLogs } from "./components/QueueAndLogs";
 import { SocialProvidersPage } from "./components/SocialProvidersPage";
 import { NovelsPage } from "./components/NovelsPage";
+import { CloudDataPage } from "./components/CloudDataPage";
 import { SystemSettingsModal } from "./components/SystemSettingsModal";
 import { fetchSystemStatus, testUIConnection, toggleAutoShutdown } from "./lib/api";
-import { Button } from "./components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 import { toast } from "sonner";
 import { Toaster } from "./components/ui/toaster";
@@ -113,34 +113,38 @@ export function App() {
 
           {/* Dynamic Full-Width Main Body Container */}
           <main className="flex-1 p-6 md:p-8 overflow-y-auto w-full space-y-6">
-            {selectedFolder ? (
-              <ProjectDetails
-                folder={selectedFolder}
-                onBack={() => setSelectedFolder(null)}
-                onRunSuccess={() => {
-                  setSelectedFolder(null);
-                  setCurrentRoute("queue");
-                }}
-              />
-            ) : (
-              <>
-                {currentRoute === "projects" && (
-                  <ProjectGrid onSelectProject={handleSelectProject} />
-                )}
+            <ErrorBoundary>
+              {selectedFolder ? (
+                <ProjectDetails
+                  folder={selectedFolder}
+                  onBack={() => setSelectedFolder(null)}
+                  onRunSuccess={() => {
+                    setSelectedFolder(null);
+                    setCurrentRoute("queue");
+                  }}
+                />
+              ) : (
+                <>
+                  {currentRoute === "projects" && (
+                    <ProjectGrid onSelectProject={handleSelectProject} />
+                  )}
 
-                {currentRoute === "novels" && <NovelsPage />}
+                  {currentRoute === "novels" && <NovelsPage />}
 
-                {currentRoute === "queue" && <QueueAndLogs />}
+                  {currentRoute === "cloud_data" && <CloudDataPage />}
 
-                {(currentRoute === "social_providers" || currentRoute === "ai_providers") && (
-                  <SocialProvidersPage />
-                )}
+                  {currentRoute === "queue" && <QueueAndLogs />}
 
-                {currentRoute === "system_settings" && (
-                  <SystemSettingsModal isOpen={true} onClose={() => setCurrentRoute("projects")} />
-                )}
-              </>
-            )}
+                  {(currentRoute === "social_providers" || currentRoute === "ai_providers") && (
+                    <SocialProvidersPage />
+                  )}
+
+                  {currentRoute === "system_settings" && (
+                    <SystemSettingsModal isOpen={true} onClose={() => setCurrentRoute("projects")} />
+                  )}
+                </>
+              )}
+            </ErrorBoundary>
           </main>
         </SidebarInset>
 

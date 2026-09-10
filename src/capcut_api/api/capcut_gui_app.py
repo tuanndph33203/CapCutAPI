@@ -133,9 +133,11 @@ DEFAULT_CAPCUT_DRAFTS = os.environ.get(
     "CAPCUT_DRAFTS_DIR",
     os.path.join(os.environ.get("LOCALAPPDATA", ""), "CapCut", "User Data", "Projects", "com.lveditor.draft"),
 )
-# Thư mục lưu trữ "pipeline projects" — cấu hình riêng của người dùng, KHÔNG phải CapCut folder
-PIPELINE_PROJECTS_DIR = Path(__file__).resolve().parent / "projects"
-QUEUE_CACHE_PATH = Path(__file__).with_name("queue_cache.json")
+ROOT_DIR = Path(__file__).resolve().parents[3]
+# Thư mục lưu trữ "pipeline projects" — cấu hình riêng của người dùng, lưu vào data/projects
+PIPELINE_PROJECTS_DIR = ROOT_DIR / "data" / "projects"
+PIPELINE_PROJECTS_DIR.mkdir(parents=True, exist_ok=True)
+QUEUE_CACHE_PATH = ROOT_DIR / "data" / "queue_cache.json"
 FIRST_PROJECT_FALLBACK_X = 285
 FIRST_PROJECT_FALLBACK_Y = 583
 _rpa_dir = Path(__file__).with_name("rpa_templates")
@@ -150,7 +152,6 @@ PROJECT_TITLE_MARKER_DPI = 96.0
 CAPCUT_SHORTCUT_CANDIDATES = [
     os.environ.get("CAPCUT_SHORTCUT", ""),
     os.path.join(os.environ.get("USERPROFILE", ""), "Desktop", "CapCut.lnk"),
-    r"C:\Users\PC\Desktop\CapCut.lnk",
     os.path.join(os.environ.get("PUBLIC", r"C:\Users\Public"), "Desktop", "CapCut.lnk"),
     os.path.join(os.environ.get("APPDATA", ""), "Microsoft", "Windows", "Start Menu", "Programs", "CapCut", "CapCut.lnk"),
 ]

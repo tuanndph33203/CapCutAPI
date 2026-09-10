@@ -24,7 +24,6 @@ import {
   Search,
   ArrowLeft,
   Check,
-  Sparkles,
   Tag,
   Wand2
 } from "lucide-react";

@@ -36,7 +36,7 @@ if not logger.handlers:
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
 
-    log_dir = "logs"
+    log_dir = os.path.join("data", "logs")
     os.makedirs(log_dir, exist_ok=True)
     file_handler = RotatingFileHandler(os.path.join(log_dir, "capcut_controller.log"), backupCount=5, encoding="utf-8")
     file_handler.setLevel(logging.INFO)

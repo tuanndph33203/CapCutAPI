@@ -1,20 +1,31 @@
 {
-    "ai_provider": "gemini",
-    "ai_api_key": "sk-d13e798ca7a8589d-jfr5u9-d6a964f4",
-    "ai_model": "ag/gemini-3.6-flash-high",
-    "ai_base_url": "http://127.0.0.1:20128/v1",
+    "ai_provider": "openai",
+    "ai_api_key": "",
+    "ai_model": "gpt-4o-mini",
+    "ai_base_url": "https://api.openai.com/v1",
     "ai_profiles": [
         {
-            "id": "ai-profile-2194",
-            "label": "AI Profile 2",
-            "provider": "gemini",
-            "api_key": "sk-d13e798ca7a8589d-jfr5u9-d6a964f4",
-            "model": "ag/gemini-3.6-flash-high",
-            "base_url": "http://127.0.0.1:20128/v1"
+            "id": "openai-default",
+            "label": "OpenAI Default",
+            "provider": "openai",
+            "api_key": "",
+            "model": "gpt-4o-mini",
+            "base_url": "https://api.openai.com/v1"
         }
     ],
-    "default_translation_ai_profile_id": "ai-profile-2194",
-    "default_context_ai_profile_id": "ai-profile-2194",
+    "default_translation_ai_profile_id": "openai-default",
+    "default_context_ai_profile_id": "openai-default",
     "openreel_api_key": "",
-    "openreel_reference_keys": ""
+    "openreel_reference_keys": "",
+    "database": {
+        "type": "mongodb",
+        "mongodb_uri": "",
+        "database_name": "capcut_recap_ai"
+    },
+    "cloud_storage": {
+        "provider": "gdrive",
+        "gdrive_mount_path": "G:\\My Drive",
+        "auto_cleanup_local_uploads": true,
+        "keep_recent_uploads": 1
+    }
 }

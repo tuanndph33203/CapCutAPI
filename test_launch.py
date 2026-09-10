@@ -34,22 +34,28 @@ print('Killing CapCut...')
 os.system('taskkill /im CapCut.exe /f >nul 2>&1')
 time.sleep(1.5)
 
-shortcut = r'C:\Users\PC\AppData\Roaming\Microsoft\Windows\Start Menu\Programs\CapCut\CapCut.lnk'
-print(f'Launching via explorer.exe: {shortcut}')
-subprocess.Popen(['explorer.exe', shortcut])
+userprofile = os.environ.get('USERPROFILE', r'C:\Users\admin.TRANANH')
+shortcut = os.path.join(userprofile, 'Desktop', 'CapCut.lnk')
+if not os.path.exists(shortcut):
+    shortcut = os.path.join(os.environ.get('APPDATA', ''), 'Microsoft', 'Windows', 'Start Menu', 'Programs', 'CapCut', 'CapCut.lnk')
 
-for i in range(80):
-    time.sleep(0.5)
-    elapsed = (i+1)*0.5
+print(f'Launching via os.startfile: {shortcut}', flush=True)
+try:
+    os.startfile(shortcut)
+except Exception as e:
+    print(f'os.startfile failed ({e}), falling back to direct exe launch...', flush=True)
+    exe = r'C:\Users\admin.TRANANH\AppData\Local\CapCut\Apps\CapCut.exe'
+    subprocess.Popen([exe, '--src1'])
+
+for i in range(120):
+    time.sleep(1.0)
     pids = capcut_pids()
     qt = list_qt_visible(pids)
     if qt:
-        print(f't={elapsed:.1f}s SUCCESS! CapCut window visible:')
-        for w in qt:
-            print(f'  hwnd={w[0]} cls={w[1]!r} title={w[2]!r} area={w[4]}')
-        break
-    if i % 6 == 0:
-        print(f't={elapsed:.1f}s PIDs={len(pids)}')
+        h, c, t, rect, a = qt[0]
+        print(f"t={i+1}s: PIDs={len(pids)} main_hwnd={h} rect={rect} is_visible={win32gui.IsWindowVisible(h)}", flush=True)
+    else:
+        print(f"t={i+1}s: PIDs={len(pids)} (no Qt window detected)", flush=True)
 else:
     print('TIMEOUT')
     pids = capcut_pids()

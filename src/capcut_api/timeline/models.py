@@ -12,6 +12,7 @@ class VideoSegment:
     speed: float
     target_start: int = 0
     target_duration: int = 0
+    timeline_src_start: int = 0
     flip_horizontal: bool = False
     flip_vertical: bool = False
     scale_x: float = 1.0

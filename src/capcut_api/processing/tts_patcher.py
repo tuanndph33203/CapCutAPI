@@ -34,7 +34,7 @@ def get_draft_json_paths(draft_path: str) -> List[str]:
     paths.sort(key=lambda p: (0 if ("draft_content.json" in p or p.endswith(".tmp")) else 1, p))
     return paths
 
-def cleanup_output_audio_dir(output_audio_dir: str = "output_audio") -> None:
+def cleanup_output_audio_dir(output_audio_dir: str = os.path.join("data", "audio")) -> None:
     """
     Dọn dẹp sạch toàn bộ file audio cũ (.wav, .mp3, htdemucs, etc.) trong thư mục output_audio 
     khi khởi chạy dự án mới để tiết kiệm dung lượng ổ đĩa.
@@ -205,7 +205,7 @@ def apply_copyright_safe_pitch_shift(input_wav: str, output_wav: str, pitch_fact
     return input_wav
 
 
-def extract_filtered_vocal_audio(video_path: str, output_audio_dir: str = "output_audio") -> Optional[str]:
+def extract_filtered_vocal_audio(video_path: str, output_audio_dir: str = os.path.join("data", "audio")) -> Optional[str]:
     """
     Trích xuất âm thanh từ video và lọc lấy duy nhất tiếng giọng nói (Vocal Isolation),
     bằng mô hình AI GPU Native Demucs CUDA + DeepFilterNet3 Ultra Denoising + Pitch Shift Lách Bản Quyền.
@@ -325,7 +325,7 @@ def extract_filtered_vocal_audio(video_path: str, output_audio_dir: str = "outpu
     return None
 
 
-def extract_audio_from_cut_video_segments(video_src: str, data: Dict[str, Any], output_dir: str = "output_audio") -> Optional[str]:
+def extract_audio_from_cut_video_segments(video_src: str, data: Dict[str, Any], output_dir: str = os.path.join("data", "audio")) -> Optional[str]:
     """Trích xuất và ghép chính xác luồng âm thanh từ các phân đoạn video ĐÃ CẮT (sau khi lách bản quyền)."""
     if not video_src or not os.path.isfile(video_src):
         return None
@@ -422,7 +422,7 @@ def copy_wav_to_text_reading(wav_path: str, draft_path: str, filename: str) -> s
 def patch_offline_tts_in_draft(
     draft_path: str,
     voice_name: str = "default",
-    output_audio_dir: str = "output_audio",
+    output_audio_dir: str = os.path.join("data", "audio"),
     item_config: Optional[Dict[str, Any]] = None
 ) -> bool:
     """

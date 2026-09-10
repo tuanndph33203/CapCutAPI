@@ -122,21 +122,25 @@ class Video_material:
         self.local_material_id = ""
         self.material_type = material_type
 
-        # 如果是photo类型，跳过ffprobe获取媒体信息的逻辑
+        # Nếu là photo type, lấy kích thước ảnh thực tế hoặc dùng width/height chỉ định
         if material_type == "photo":
             self.material_type = "photo"
             self.duration = 10800000000  # 静态图片默认3小时
-            # 使用imageio获取图片宽高
-            try:
-                # img = imageio.imread(self.remote_url)
-                # self.height, self.width = img.shape[:2]
-                # 使用默认宽高，在下载的时候才会获取真实宽高
-                self.width = 0
-                self.height = 0
-            except Exception as e:
-                # 如果获取失败，使用默认值
-                self.width = 1920
-                self.height = 1080
+            if width and height:
+                self.width = int(width)
+                self.height = int(height)
+            else:
+                try:
+                    from PIL import Image
+                    if self.path and os.path.exists(self.path):
+                        with Image.open(self.path) as img:
+                            self.width, self.height = img.size
+                    else:
+                        self.width = 1920
+                        self.height = 1080
+                except Exception:
+                    self.width = 1920
+                    self.height = 1080
             return
 
 

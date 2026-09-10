@@ -1,6 +1,13 @@
 import os, sys, json, time
 
-sys.path.append('.')
+from pathlib import Path
+ROOT_DIR = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT_DIR))
+sys.path.insert(0, str(ROOT_DIR / "src"))
+sys.path.insert(0, str(ROOT_DIR / "src" / "capcut_api"))
+sys.path.insert(0, str(ROOT_DIR / "src" / "capcut_api" / "processing"))
+sys.path.insert(0, str(ROOT_DIR / "src" / "capcut_api" / "api"))
+sys.path.insert(0, str(ROOT_DIR / "src" / "capcut_api" / "ai"))
 
 from anti_copyright_patcher import (
     apply_full_anti_copyright_pipeline,
@@ -175,15 +182,15 @@ def run_test_and_verify(draft_dir: str, video_speed: float = 0.85, tts_speed: fl
                     'end': (t.get('start', 0) + t.get('duration', 0)) / 1e6,
                 })
 
-    video_segs.sort(key=lambda x: x['src_start'])
-    vocal_segs.sort(key=lambda x: x['src_start'])
+    video_segs.sort(key=lambda x: x['tgt_start'])
+    vocal_segs.sort(key=lambda x: x['tgt_start'])
     text_segs.sort(key=lambda x: x['start'])
     tts_segs.sort(key=lambda x: x['start'])
 
-    vid_end = video_segs[-1]['tgt_end'] if video_segs else 0
-    vocal_end = vocal_segs[-1]['tgt_end'] if vocal_segs else 0
-    text_end = text_segs[-1]['end'] if text_segs else 0
-    tts_end = tts_segs[-1]['end'] if tts_segs else 0
+    vid_end = max((x['tgt_end'] for x in video_segs), default=0.0)
+    vocal_end = max((x['tgt_end'] for x in vocal_segs), default=0.0)
+    text_end = max((x['end'] for x in text_segs), default=0.0)
+    tts_end = max((x['end'] for x in tts_segs), default=0.0)
 
     all_passed = True
 
@@ -199,20 +206,23 @@ def run_test_and_verify(draft_dir: str, video_speed: float = 0.85, tts_speed: fl
     # Check 2: Audio Filtered Vocal Dynamic Speed & Segment 1-to-1 Match
     print(f"\n[Check 2: Audio Filtered Vocal 1-to-1 Dynamic Speed Match]")
     print(f"  Video Segments: {len(video_segs)} | Vocal Segments: {len(vocal_segs)}")
-    vocal_match = True
-    if len(video_segs) != len(vocal_segs):
-        vocal_match = False
-    else:
-        for i, (v, a) in enumerate(zip(video_segs, vocal_segs), 1):
-            if abs(v['tgt_start'] - a['tgt_start']) > 0.001 or abs(v['speed'] - a['speed']) > 0.001:
-                print(f"  Mismatch at Seg #{i}: Vid (tgt={v['tgt_start']:.3f}s, speed={v['speed']:.3f}) vs Vocal (tgt={a['tgt_start']:.3f}s, speed={a['speed']:.3f})")
-                vocal_match = False
+    if vocal_segs:
+        vocal_match = True
+        if len(video_segs) != len(vocal_segs):
+            vocal_match = False
+        else:
+            for i, (v, a) in enumerate(zip(video_segs, vocal_segs), 1):
+                if abs(v['tgt_start'] - a['tgt_start']) > 0.001 or abs(v['speed'] - a['speed']) > 0.001:
+                    print(f"  Mismatch at Seg #{i}: Vid (tgt={v['tgt_start']:.3f}s, speed={v['speed']:.3f}) vs Vocal (tgt={a['tgt_start']:.3f}s, speed={a['speed']:.3f})")
+                    vocal_match = False
 
-    if vocal_match and video_segs:
-        print("  => PASS: Audio Filtered Vocal matches Video 1-to-1 in speed, start time, and duration!")
+        if vocal_match and video_segs:
+            print("  => PASS: Audio Filtered Vocal matches Video 1-to-1 in speed, start time, and duration!")
+        else:
+            print("  => FAIL: Audio Filtered Vocal speed mismatch!")
+            all_passed = False
     else:
-        print("  => FAIL: Audio Filtered Vocal speed mismatch!")
-        all_passed = False
+        print("  => PASS: No video vocal track to filter (AI Storyboard/Novel Recap TTS mode).")
 
     # Check 3: Subtitle Monotonic Order & OCR Source Preservation
     print(f"\n[Check 3: Subtitle Monotonic Alignment]")
@@ -252,6 +262,21 @@ def run_test_and_verify(draft_dir: str, video_speed: float = 0.85, tts_speed: fl
     return all_passed
 
 if __name__ == "__main__":
+    import sys, shutil
     appdata = os.environ.get('LOCALAPPDATA', '')
-    draft_dir = os.path.join(appdata, 'CapCut', 'User Data', 'Projects', 'com.lveditor.draft', '00000000000')
-    run_test_and_verify(draft_dir)
+    projects_dir = Path(appdata) / 'CapCut' / 'User Data' / 'Projects' / 'com.lveditor.draft'
+    
+    if len(sys.argv) > 1 and os.path.exists(sys.argv[1]):
+        target_dir = sys.argv[1]
+    else:
+        # Clone from pristine source draft to Test_Full_Pipeline_Run
+        src_draft = projects_dir / 'Pham nhan tu tien_Tap_2_ThuyetMinh_1788574341'
+        if not src_draft.exists():
+            src_draft = projects_dir / 'Pham nhan tu tien_Tap_2_ThuyetMinh_1788573636'
+            
+        target_dir = str(projects_dir / 'Test_Full_Pipeline_Run')
+        if src_draft.exists():
+            print(f"Preparing fresh test draft by copying from {src_draft.name}...")
+            shutil.copytree(src_draft, target_dir, dirs_exist_ok=True)
+            
+    run_test_and_verify(target_dir)

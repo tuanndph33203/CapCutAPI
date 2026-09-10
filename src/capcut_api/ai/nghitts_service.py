@@ -21,6 +21,13 @@ try:
 except ImportError:
     VietnameseNormalizer = None
 
+try:
+    import imageio_ffmpeg
+    from pydub import AudioSegment
+    AudioSegment.converter = imageio_ffmpeg.get_ffmpeg_exe()
+except Exception:
+    pass
+
 # Global model cache to prevent reloading ONNX models into memory on every function call
 _VOICE_CACHE: Dict[str, Any] = {}
 _NORMALIZER_INSTANCE: Optional[Any] = None
@@ -137,9 +144,10 @@ def generate_nghitts(
 
     # 2. Get output filepath
     if not output_path:
-        os.makedirs(os.path.join(os.path.dirname(os.path.abspath(__file__)), "output_audio"), exist_ok=True)
+        default_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), "data", "audio")
+        os.makedirs(default_dir, exist_ok=True)
         filename = f"nghitts_{voice_name.replace(' ', '_')}_{hash(text) & 0xffffffff}.wav"
-        output_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "output_audio", filename)
+        output_path = os.path.join(default_dir, filename)
 
     output_path = os.path.abspath(output_path)
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
@@ -147,9 +155,9 @@ def generate_nghitts(
     # 3. Load voice model (cached)
     voice = get_piper_voice(voice_name)
 
-    # 4. Configure speed (always synthesize at 1.0 for VITS quality, then speed up with pydub)
+    # 4. Configure speed natively via Piper length_scale (1.0 / target_speed)
     target_speed = max(0.2, min(5.0, float(speed or 1.0)))
-    syn_config = SynthesisConfig(length_scale=1.0)
+    syn_config = SynthesisConfig(length_scale=float(1.0 / target_speed))
 
     # 5. Synthesize speech directly into WAV file
     with wave.open(output_path, "wb") as wav_file:
@@ -162,18 +170,6 @@ def generate_nghitts(
 
     if not os.path.exists(output_path) or os.path.getsize(output_path) == 0:
         raise RuntimeError(f"Failed to generate audio at {output_path}")
-
-    # 6. Apply precise linear speedup using pydub if target_speed != 1.0
-    if abs(target_speed - 1.0) > 0.01:
-        try:
-            from pydub import AudioSegment
-            from pydub.effects import speedup
-            sound = AudioSegment.from_wav(output_path)
-            fast_sound = speedup(sound, playback_speed=target_speed)
-            fast_sound.export(output_path, format="wav")
-            print(f"[NghiTTS] Applied pydub linear speedup to {output_path} at {target_speed}x")
-        except Exception as e:
-            print(f"[NghiTTS] Failed to apply pydub speedup: {e}")
 
     return output_path
 

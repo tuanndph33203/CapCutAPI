@@ -4,6 +4,7 @@ ignored
 build/
 dist/
 *.egg-info/
+node_modules/
 
 .vscode/
 .idea/
@@ -38,10 +39,31 @@ nghitts/ngoc_huyen_*.wav
 nghitts/output_*.wav
 nghitts/test_*.wav
 
-# Novel data & generated audio outputs
-data/novels/
+# Novel data, runtime data & generated outputs
+data/
+!data/database_fallback/
+!data/database_fallback/**
 outputs/
-outputs/novel_audio/
+downloads/
+debug/
+test_scenes/
+@AutomationLog.txt
+*.log
+
+# Media & large binary files (keep git repository lightweight)
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.mp3
+*.wav
+*.m4a
+*.flac
+*.zip
+*.tar.gz
+*.7z
+*.rar
+*.epub
+
 my-novels/
 novels/
-*.epub

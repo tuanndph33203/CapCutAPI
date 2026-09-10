@@ -498,6 +498,7 @@ class Script_file:
         if style_reference is None and clip_settings is None:
             raise ValueError("未提供样式参考时请提供`clip_settings`参数")
 
+        font_type = None
         if font:
             try:
                 font_type = getattr(Font_type, font)

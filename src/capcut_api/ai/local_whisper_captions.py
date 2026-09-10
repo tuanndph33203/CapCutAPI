@@ -147,7 +147,20 @@ def transcribe_video_to_segments(
         _WHISPER_MODEL_CACHE[cache_key] = loaded_model
         return loaded_model
 
-    model = load_model(device, compute_type)
+    try:
+        model = load_model(device, compute_type)
+    except Exception as e:
+        if device == "cuda":
+            fallback_msg = f"CUDA không tương thích hoặc lỗi driver ({e}), tự động chuyển sang chạy Whisper trên CPU (int8)..."
+            if progress_callback:
+                progress_callback(fallback_msg)
+            logger.warning(fallback_msg)
+            device = "cpu"
+            compute_type = "int8"
+            model = load_model(device, compute_type)
+        else:
+            raise
+
     kwargs = {
         "language": language or "zh",
         "vad_filter": True,

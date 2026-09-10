@@ -26,7 +26,7 @@ CONFIG_FILE = BASE_DIR / "config.json"
 ROOT_CONFIG_FILE = ROOT_DIR / "config.json"
 ENV_FILE = ROOT_DIR / ".env"
 
-LOGS_DIR = ROOT_DIR / "logs"
+LOGS_DIR = ROOT_DIR / "data" / "logs"
 LOGS_DIR.mkdir(parents=True, exist_ok=True)
 LOCAL_DB_FILE = LOGS_DIR / "video_logger_db.json"
 

@@ -17,7 +17,11 @@ class VisualsDatasetManager:
         if base_dir:
             self.dataset_root = Path(base_dir)
         else:
-            self.dataset_root = Path(__file__).resolve().parent.parent.parent.parent / "data" / "visuals_dataset"
+            try:
+                from capcut_api.cloud.gdrive_manager import get_gdrive_manager
+                self.dataset_root = get_gdrive_manager().get_visuals_dataset_dir()
+            except Exception:
+                self.dataset_root = Path(__file__).resolve().parent.parent.parent.parent / "data" / "visuals_dataset"
         self.dataset_root.mkdir(parents=True, exist_ok=True)
 
     def get_novel_visual_dir(self, novel_id: str) -> Path:

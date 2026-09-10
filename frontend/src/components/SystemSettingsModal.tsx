@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Settings, Save, Plus, Trash2, Edit, Bot, Key } from "lucide-react";
-import { fetchGlobalSettings, saveGlobalSettings } from "../lib/api";
+import { Settings, Save, Plus, Trash2, Edit, Bot, Key, Database, Cloud } from "lucide-react";
+import { fetchGlobalSettings, saveGlobalSettings, fetchStorageStatus, triggerCleanupCache } from "../lib/api";
 import { Button } from "./ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "./ui/dialog";
 import { Input } from "./ui/input";
@@ -29,6 +29,15 @@ export const SystemSettingsModal: React.FC<SystemSettingsModalProps> = ({ isOpen
   const [openreelRefKeys, setOpenreelRefKeys] = useState<string>("");
   const [isSaving, setIsSaving] = useState<boolean>(false);
 
+  // Database & Cloud Storage state
+  const [mongoUri, setMongoUri] = useState<string>("");
+  const [dbName, setDbName] = useState<string>("capcut_recap_ai");
+  const [gdriveMountPath, setGdriveMountPath] = useState<string>("G:\\My Drive");
+  const [autoCleanupUploads, setAutoCleanupUploads] = useState<boolean>(true);
+  const [keepRecentUploads, setKeepRecentUploads] = useState<number>(1);
+  const [storageStatus, setStorageStatus] = useState<any>(null);
+  const [isCleaning, setIsCleaning] = useState<boolean>(false);
+
   // Profile Editor Modal state
   const [isEditorOpen, setIsEditorOpen] = useState<boolean>(false);
   const [editingIndex, setEditingIndex] = useState<number>(-1);
@@ -51,6 +60,25 @@ export const SystemSettingsModal: React.FC<SystemSettingsModalProps> = ({ isOpen
       setDefaultContextId(data.default_context_ai_profile_id || (profiles[0]?.id || ""));
       setOpenreelApiKey(data.openreel_api_key || "");
       setOpenreelRefKeys(data.openreel_reference_keys || "");
+
+      // Load Database & Cloud Storage settings
+      if (data.database) {
+        setMongoUri(data.database.mongodb_uri || "");
+        setDbName(data.database.database_name || "capcut_recap_ai");
+      }
+      if (data.cloud_storage) {
+        setGdriveMountPath(data.cloud_storage.gdrive_mount_path || "G:\\My Drive");
+        setAutoCleanupUploads(data.cloud_storage.auto_cleanup_local_uploads ?? true);
+        setKeepRecentUploads(data.cloud_storage.keep_recent_uploads || 1);
+      }
+
+      // Load runtime storage status
+      try {
+        const sStatus = await fetchStorageStatus();
+        setStorageStatus(sStatus);
+      } catch {
+        // ignore
+      }
     } catch (err) {
       toast.error("Lỗi tải cấu hình Global Settings");
     }
@@ -126,6 +154,24 @@ export const SystemSettingsModal: React.FC<SystemSettingsModalProps> = ({ isOpen
     toast.info(`Đã xóa AI Profile: ${target.label}`);
   };
 
+  const handleCleanupCache = async () => {
+    setIsCleaning(true);
+    try {
+      const res = await triggerCleanupCache(keepRecentUploads, false);
+      if (res?.success) {
+        toast.success(`Đã dọn dẹp thành công! Giải phóng ${res.result?.freed_mb || 0} MB.`);
+        const sStatus = await fetchStorageStatus();
+        setStorageStatus(sStatus);
+      } else {
+        toast.error("Lỗi khi dọn dẹp cache: " + (res?.error || ""));
+      }
+    } catch (err: any) {
+      toast.error("Lỗi gọi API dọn dẹp: " + (err?.message || String(err)));
+    } finally {
+      setIsCleaning(false);
+    }
+  };
+
   const handleSaveGlobal = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -136,11 +182,27 @@ export const SystemSettingsModal: React.FC<SystemSettingsModalProps> = ({ isOpen
         default_context_ai_profile_id: defaultContextId || (aiProfiles[0]?.id || ""),
         openreel_api_key: openreelApiKey,
         openreel_reference_keys: openreelRefKeys,
+        database: {
+          type: "mongodb",
+          mongodb_uri: mongoUri.trim(),
+          database_name: dbName.trim() || "capcut_recap_ai",
+        },
+        cloud_storage: {
+          provider: "gdrive",
+          gdrive_mount_path: gdriveMountPath.trim() || "G:\\My Drive",
+          auto_cleanup_local_uploads: autoCleanupUploads,
+          keep_recent_uploads: keepRecentUploads,
+        },
       };
 
       const res = await saveGlobalSettings(payload);
       if (res.ok) {
         toast.success("Đã lưu Global Settings thành công!");
+        // Refresh storage status after saving
+        try {
+          const sStatus = await fetchStorageStatus();
+          setStorageStatus(sStatus);
+        } catch {}
         onClose();
       } else {
         toast.error("Lỗi khi lưu Global Settings", { description: res.error || "Không xác định" });
@@ -302,6 +364,125 @@ export const SystemSettingsModal: React.FC<SystemSettingsModalProps> = ({ isOpen
                     onChange={(e) => setOpenreelRefKeys(e.target.value)}
                     placeholder="ref-key-1, ref-key-2"
                   />
+                </div>
+              </div>
+            </div>
+
+            {/* Row 4: Database Settings (MongoDB Atlas) */}
+            <div className="p-4 rounded-xl bg-black/30 border border-white/10 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h4 className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                    <Database className="w-3.5 h-3.5 text-emerald-400" /> Cơ Sở Dữ Liệu (MongoDB Atlas & Local Fallback)
+                  </h4>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Lưu trữ kịch bản phân cảnh, timeline và dự án (Hỗ trợ MongoDB Atlas Free M0; tự động fallback sang Local JSON nếu để trống).
+                  </p>
+                </div>
+                <div>
+                  {storageStatus?.database?.is_connected ? (
+                    <Badge variant="outline" className="text-[10px] text-emerald-400 border-emerald-500/40 bg-emerald-500/10 whitespace-nowrap">
+                      🟢 Đã kết nối Atlas ({storageStatus.database.scripts_count} kịch bản)
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-[10px] text-amber-400 border-amber-500/40 bg-amber-500/10 whitespace-nowrap">
+                      🟡 Chế độ Local Fallback ({storageStatus?.database?.scripts_count || 0} kịch bản)
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="sm:col-span-2">
+                  <label className="block text-[11px] font-medium text-muted-foreground mb-1">
+                    MongoDB Atlas Connection URI:
+                  </label>
+                  <Input
+                    type="text"
+                    value={mongoUri}
+                    onChange={(e) => setMongoUri(e.target.value)}
+                    placeholder="mongodb+srv://admin:pass@cluster0.xxxxx.mongodb.net/?retryWrites=true&w=majority"
+                    className="font-mono text-xs text-emerald-300"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-medium text-muted-foreground mb-1">
+                    Database Name:
+                  </label>
+                  <Input
+                    type="text"
+                    value={dbName}
+                    onChange={(e) => setDbName(e.target.value)}
+                    placeholder="capcut_recap_ai"
+                    className="font-mono text-xs"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Row 5: Cloud Media Storage (Google Drive 5TB) & Auto-Cleanup */}
+            <div className="p-4 rounded-xl bg-black/30 border border-white/10 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <h4 className="text-xs font-bold text-sky-400 flex items-center gap-1.5">
+                    <Cloud className="w-3.5 h-3.5 text-sky-400" /> Lưu Trữ Đám Mây (Google Drive 5TB) & Dọn Dẹp Cache
+                  </h4>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    Chuyển video, audio nặng sang Google Drive để giải phóng ổ cứng C.
+                  </p>
+                </div>
+                <div>
+                  {storageStatus?.google_drive?.is_gdrive_active ? (
+                    <Badge variant="outline" className="text-[10px] text-sky-400 border-sky-500/40 bg-sky-500/10 whitespace-nowrap">
+                      ☁️ Google Drive Desktop ({storageStatus.google_drive.free_gb} GB trống)
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-[10px] text-muted-foreground border-white/10 bg-white/5 whitespace-nowrap">
+                      📁 Bộ nhớ máy ({storageStatus?.google_drive?.free_gb || 0} GB trống)
+                    </Badge>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-medium text-muted-foreground mb-1">
+                    Google Drive Desktop Path (Thư mục đồng bộ):
+                  </label>
+                  <Input
+                    type="text"
+                    value={gdriveMountPath}
+                    onChange={(e) => setGdriveMountPath(e.target.value)}
+                    placeholder="G:\My Drive"
+                    className="font-mono text-xs text-sky-300"
+                  />
+                </div>
+
+                <div className="flex flex-col justify-end gap-2">
+                  <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={autoCleanupUploads}
+                      onChange={(e) => setAutoCleanupUploads(e.target.checked)}
+                      className="rounded border-white/20 text-cyan-500 focus:ring-0"
+                    />
+                    <span>Tự động dọn dẹp video upload sau khi phân tích</span>
+                  </label>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCleanupCache}
+                      disabled={isCleaning}
+                      className="h-8 text-xs border-amber-500/40 text-amber-300 bg-amber-500/10 hover:bg-amber-500/20"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 mr-1" />
+                      {isCleaning
+                        ? "Đang dọn dẹp..."
+                        : `Dọn dẹp ổ đĩa ngay (Có thể giải phóng ${storageStatus?.local_cache?.total_cleanable_mb || 0} MB)`}
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>

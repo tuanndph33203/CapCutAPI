@@ -26,6 +26,7 @@ subdirs = [
     pkg_dir / "publisher",
     pkg_dir / "bot",
     pkg_dir / "core",
+    pkg_dir / "cloud",
 ]
 for d in subdirs:
     d_str = str(d)

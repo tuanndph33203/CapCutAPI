@@ -7,20 +7,21 @@ def _is_main_video_track(track: dict, materials: dict) -> bool:
     if track.get("type") != "video":
         return False
     tr_name = str(track.get("name", "")).lower()
-    if any(ext in tr_name for ext in [".gif", ".png", ".jpg", ".jpeg", ".webp", "sticker", "overlay", "logo"]):
+    if any(kw in tr_name for kw in ["sticker", "overlay", "logo", "watermark", "branding"]):
         return False
     
     mat_map = {m.get("id"): str(m.get("path") or m.get("material_name") or "").lower() for m in materials.get("videos", []) if isinstance(m, dict)}
-    has_valid_video = False
-    for seg in track.get("segments", []):
+    segments = track.get("segments", [])
+    if not segments:
+        return False
+
+    for seg in segments:
         mat_id = seg.get("material_id")
         path = mat_map.get(mat_id, "").lower()
-        if any(path.endswith(ext) or (ext in path) for ext in [".gif", ".png", ".jpg", ".jpeg", ".webp", ".bmp"]):
+        if any(kw in path for kw in ["sticker", "overlay", "logo", "watermark", "brand_overlays"]):
             return False
-        if any(path.endswith(ext) or (ext in path) for ext in [".mp4", ".mov", ".mkv", ".avi", ".webm", ".flv", ".m4v", ".ts"]):
-            has_valid_video = True
             
-    return has_valid_video
+    return True
 
 def _get_segment_speed(segment: dict, speed_map: dict) -> Tuple[float, Optional[str]]:
     speed_id = None
