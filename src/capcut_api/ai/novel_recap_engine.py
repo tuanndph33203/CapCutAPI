@@ -1792,7 +1792,10 @@ QUY TRÌNH TƯ DUY CỦA BỘ ÓC AI (BẮT BUỘC TUÂN THỦ NGHIÊM NGẶT):
             speed=chosen_speed,
             media_paths=final_media,
             canvas_ratio=canvas_ratio,
-            auto_open_capcut=kwargs.get("auto_open_capcut", True)
+            auto_open_capcut=kwargs.get("auto_open_capcut", True),
+            bgm_path=kwargs.get("bgm_path"),
+            bgm_volume=float(kwargs.get("bgm_volume", 0.15)),
+            enable_dynamic_pacing=kwargs.get("enable_dynamic_pacing", True)
         )
 
         txt_file = Path(pipeline_res["draft_folder"]) / f"{project_name}_kich_ban.txt"

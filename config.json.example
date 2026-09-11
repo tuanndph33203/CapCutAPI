@@ -32,6 +32,18 @@
       "voice": "Ngọc Huyền (mới)",
       "rate": "+5%",
       "pitch": "+0Hz"
+    },
+    "bgm": {
+      "enabled": true,
+      "default_bgm_path": "",
+      "volume": 0.15,
+      "ducking": true
+    },
+    "dynamic_pacing": {
+      "enabled": true,
+      "combat_speed": 1.30,
+      "normal_speed": 1.20,
+      "emotional_slow_speed": 1.10
     }
   },
   "is_capcut_env": true,

@@ -41,11 +41,21 @@ from capcut_api.ai.visuals_dataset_manager import VisualsDatasetManager
 
 
 class SpeechSentence:
-    def __init__(self, index: int, text: str, pause_sec: float = 0.25, is_scene_break: bool = False):
+    def __init__(
+        self,
+        index: int,
+        text: str,
+        pause_sec: float = 0.25,
+        is_scene_break: bool = False,
+        speed: float = 1.2,
+        pacing_type: str = "normal"
+    ):
         self.index = index
         self.text = text.strip()
         self.pause_sec = pause_sec
         self.is_scene_break = is_scene_break
+        self.speed = speed
+        self.pacing_type = pacing_type
         self.audio_path: Optional[str] = None
         self.duration_sec: float = 0.0
         self.start_sec: float = 0.0
@@ -57,11 +67,118 @@ class SpeechSentence:
             "text": self.text,
             "pause_sec": self.pause_sec,
             "is_scene_break": self.is_scene_break,
+            "speed": round(self.speed, 2),
+            "pacing_type": self.pacing_type,
             "audio_path": self.audio_path,
             "duration_sec": round(self.duration_sec, 3),
             "start_sec": round(self.start_sec, 3),
             "end_sec": round(self.end_sec, 3)
         }
+
+
+def analyze_sentence_pacing(
+    text: str,
+    base_speed: float = 1.20,
+    is_scene_break: bool = False,
+    config: Optional[Dict[str, Any]] = None
+) -> Tuple[float, float, str]:
+    """
+    Phân tích cảm xúc, ngữ cảnh và kịch tính của câu để tự động điều chỉnh tốc độ đọc (TTS Dynamic Pacing):
+    - Chiến đấu / Nguy cấp / Kịch chiến: Tốc độ tăng 1.28x - 1.35x, ngắt nghỉ nhanh (0.15s - 0.20s).
+    - Hồi tưởng / Tâm lý / Trầm ngâm / U buồn: Tốc độ hạ 1.08x - 1.12x, ngắt nghỉ sâu (0.40s - 0.60s).
+    - Thoại nhân vật ("..."): Tốc độ tự nhiên 1.16x - 1.20x.
+    - Dẫn truyện thông thường: base_speed (mặc định 1.20x).
+    """
+    t_lower = text.lower()
+
+    # 1. Từ khóa chiến đấu / hành động / dồn dập / nguy cấp
+    combat_keywords = [
+        "giao chiến", "đại chiến", "tấn công", "xuất chiêu", "vung kiếm", "bạt kiếm",
+        "tung chiêu", "hét lớn", "quát", "gầm lên", "bùng nổ", "sát khí", "uy áp",
+        "kinh hãi", "biến sắc", "chạy trốn", "đuổi theo", "nhanh như chớp", "chớp mắt",
+        "ầm ầm", "vỡ vụn", "phun máu", "thảm thiết", "kịch chiến", "quyết đấu",
+        "nguy cấp", "nguy hiểm", "lập tức", "ngay tức khắc", "tử chiến", "huyết chiến",
+        "hung hăng", "cuồng bạo", "phá vỡ", "đánh văng", "va chạm", "chấn động"
+    ]
+
+    # 2. Từ khóa tâm lý / hồi tưởng / trầm lắng / bí ẩn
+    emotional_keywords = [
+        "thầm nghĩ", "trong lòng", "trầm ngâm", "nhìn lại", "hồi tưởng", "năm xưa",
+        "quá khứ", "thở dài", "buồn bã", "cô độc", "vắng lặng", "u ám", "mênh mông",
+        "xa xăm", "tĩnh lặng", "lặng lẽ", "bùi ngùi", "xót xa", "tiếc nuối", "bí ẩn",
+        "kỳ lạ", "không ngờ", "suy nghĩ", "tự nhủ", "trầm mặc", "lạnh lẽo", "chậm rãi"
+    ]
+
+    # Kiểm tra cấu hình tùy chỉnh nếu có
+    pacing_cfg = (config or {}).get("dynamic_pacing", {})
+    speed_combat = float(pacing_cfg.get("combat_speed", 1.30))
+    speed_slow = float(pacing_cfg.get("emotional_slow_speed", 1.10))
+    speed_normal = float(pacing_cfg.get("normal_speed", base_speed))
+
+    is_combat = any(kw in t_lower for kw in combat_keywords)
+    is_emotional = any(kw in t_lower for kw in emotional_keywords)
+    is_dialogue = ('"' in text or '“' in text or '”' in text or "nói:" in t_lower or "hỏi:" in t_lower)
+
+    if is_combat:
+        pacing_type = "combat_fast"
+        calc_speed = speed_combat
+        pause = 0.20 if is_scene_break else 0.15
+    elif is_emotional:
+        pacing_type = "emotional_slow"
+        calc_speed = speed_slow
+        pause = 0.60 if is_scene_break else 0.40
+    elif is_dialogue:
+        pacing_type = "dialogue"
+        calc_speed = round((speed_normal + speed_slow) / 2.0, 2)
+        pause = 0.30 if is_scene_break else 0.22
+    else:
+        pacing_type = "normal"
+        calc_speed = speed_normal
+        pause = 0.50 if is_scene_break else 0.25
+
+    return calc_speed, pause, pacing_type
+
+
+def resolve_bgm_path(bgm_input: Optional[str] = None, config_path: Optional[str] = None) -> Optional[str]:
+    """
+    Tự động tìm kiếm file nhạc nền (BGM):
+    1. Nếu người dùng chỉ định đường dẫn cụ thể -> kiểm tra tồn tại và trả về.
+    2. Nếu cấu hình 'novel_pipeline.bgm.default_bgm_path' trong config.json có file -> trả về.
+    3. Quét tìm file .mp3 hoặc .wav trong data/resources/bgm/ hoặc data/bgm/.
+    4. Nếu không có file nào, trả về None (không chèn BGM, không gây lỗi).
+    """
+    from pathlib import Path
+    import json
+
+    if bgm_input and os.path.exists(bgm_input):
+        return str(Path(bgm_input).resolve())
+
+    root = Path(__file__).resolve().parents[3]
+
+    # 2. Kiểm tra config.json
+    try:
+        cfg_f = Path(config_path) if config_path else root / "config.json"
+        if cfg_f.exists():
+            data = json.loads(cfg_f.read_text(encoding="utf-8"))
+            cfg_bgm = data.get("novel_pipeline", {}).get("bgm", {}).get("default_bgm_path")
+            if cfg_bgm and os.path.exists(cfg_bgm):
+                return str(Path(cfg_bgm).resolve())
+    except Exception:
+        pass
+
+    # 3. Quét thư mục data/resources/bgm
+    cand_dirs = [
+        root / "data" / "resources" / "bgm",
+        root / "data" / "bgm",
+        root / "resources" / "bgm"
+    ]
+    for c_dir in cand_dirs:
+        if c_dir.exists():
+            for f in list(c_dir.glob("*.mp3")) + list(c_dir.glob("*.wav")):
+                if f.is_file() and f.stat().st_size > 1000:
+                    return str(f.resolve())
+
+    return None
 
 
 class NovelVideoPipeline:
@@ -97,12 +214,13 @@ class NovelVideoPipeline:
         voice_name: str = "Ngọc Huyền (mới)",
         speed: float = 1.2,
         output_dir: Optional[Path] = None,
-        progress_callback: Optional[Any] = None
+        progress_callback: Optional[Any] = None,
+        enable_dynamic_pacing: bool = True
     ) -> List[SpeechSentence]:
         """
         BƯỚC 1:
         - Phân tích văn bản kịch bản thành danh sách câu kèm khoảng nghỉ [0.2], [0.5].
-        - Đọc từng câu bằng NghiTTS với tốc độ chỉ định (mặc định 1.2x).
+        - Đọc từng câu bằng NghiTTS với tốc độ chỉ định hoặc tốc độ động theo cảm xúc phân cảnh.
         - Đo đạc chính xác thời lượng của từng câu thoại.
         """
         if not output_dir:
@@ -112,7 +230,7 @@ class NovelVideoPipeline:
         from capcut_api.ai.nghitts_service import resolve_nghitts_voice
         voice_name = resolve_nghitts_voice(voice_name)
 
-        logger.info(f"🚀 [B1] Bắt đầu sinh âm thanh NghiTTS (Giọng: {voice_name}, Tốc độ: {speed}x)...")
+        logger.info(f"🚀 [B1] Bắt đầu sinh âm thanh NghiTTS (Giọng: {voice_name}, Tốc độ cơ sở: {speed}x, Dynamic Pacing: {'BẬT' if enable_dynamic_pacing else 'TẮT'})...")
 
         # 1. Tách các dòng và thẻ ngắt nghỉ
         raw_lines = [l.strip() for l in script_text.splitlines() if l.strip()]
@@ -127,11 +245,20 @@ class NovelVideoPipeline:
                 if cur_text_parts:
                     full_s = " ".join(cur_text_parts).strip()
                     if full_s:
+                        if enable_dynamic_pacing:
+                            sent_speed, auto_pause, p_type = analyze_sentence_pacing(full_s, base_speed=speed, is_scene_break=is_break)
+                            # Giữ khoảng nghỉ người dùng chỉ định nếu có
+                            actual_pause = pause_val
+                        else:
+                            sent_speed, actual_pause, p_type = speed, pause_val, "normal"
+
                         sentence_items.append(SpeechSentence(
                             index=len(sentence_items) + 1,
                             text=full_s,
-                            pause_sec=pause_val,
-                            is_scene_break=is_break
+                            pause_sec=actual_pause,
+                            is_scene_break=is_break,
+                            speed=sent_speed,
+                            pacing_type=p_type
                         ))
                     cur_text_parts = []
                 elif sentence_items:
@@ -147,11 +274,19 @@ class NovelVideoPipeline:
         if cur_text_parts:
             full_s = " ".join(cur_text_parts).strip()
             if full_s:
+                if enable_dynamic_pacing:
+                    sent_speed, auto_pause, p_type = analyze_sentence_pacing(full_s, base_speed=speed, is_scene_break=True)
+                    actual_pause = 0.5
+                else:
+                    sent_speed, actual_pause, p_type = speed, 0.5, "normal"
+
                 sentence_items.append(SpeechSentence(
                     index=len(sentence_items) + 1,
                     text=full_s,
-                    pause_sec=0.5,
-                    is_scene_break=True
+                    pause_sec=actual_pause,
+                    is_scene_break=True,
+                    speed=sent_speed,
+                    pacing_type=p_type
                 ))
 
         # Nếu không có thẻ pause, tách câu theo dấu chấm
@@ -161,29 +296,43 @@ class NovelVideoPipeline:
                 clean_c = re.sub(r'\[\d+(?:\.\d+)?\]', '', c).strip()
                 if clean_c:
                     is_end_para = (idx % 3 == 2 or idx == len(chunks) - 1)
+                    if enable_dynamic_pacing:
+                        sent_speed, auto_pause, p_type = analyze_sentence_pacing(clean_c, base_speed=speed, is_scene_break=is_end_para)
+                    else:
+                        sent_speed, auto_pause, p_type = speed, (0.5 if is_end_para else 0.25), "normal"
+
                     sentence_items.append(SpeechSentence(
                         index=idx + 1,
                         text=clean_c,
-                        pause_sec=0.5 if is_end_para else 0.25,
-                        is_scene_break=is_end_para
+                        pause_sec=auto_pause,
+                        is_scene_break=is_end_para,
+                        speed=sent_speed,
+                        pacing_type=p_type
                     ))
 
         total_sentences = len(sentence_items)
-        logger.info(f"📝 [B1] Đã phân tích {total_sentences} câu thoại từ kịch bản.")
+        if enable_dynamic_pacing:
+            combat_cnt = sum(1 for s in sentence_items if s.pacing_type == "combat_fast")
+            slow_cnt = sum(1 for s in sentence_items if s.pacing_type == "emotional_slow")
+            dlg_cnt = sum(1 for s in sentence_items if s.pacing_type == "dialogue")
+            norm_cnt = sum(1 for s in sentence_items if s.pacing_type == "normal")
+            logger.info(f"⚡ [B1] Nhịp điệu âm thanh động: {combat_cnt} câu chiến đấu dồn dập, {slow_cnt} câu suy tưởng lắng đọng, {dlg_cnt} câu thoại, {norm_cnt} câu dẫn truyện.")
+        else:
+            logger.info(f"📝 [B1] Đã phân tích {total_sentences} câu thoại từ kịch bản (tốc độ cố định {speed}x).")
 
         # 2. Sinh âm thanh từng câu bằng NghiTTS
         for i, item in enumerate(sentence_items):
             out_wav = output_dir / f"sent_{i+1:03d}.wav"
             try:
-                # Gọi generate_nghitts với speed 1.2x (tự động tối ưu bằng Piper length_scale)
-                generate_nghitts(item.text, voice_name=voice_name, output_path=str(out_wav), speed=speed)
-                
+                # Gọi generate_nghitts với item.speed động cho từng câu
+                generate_nghitts(item.text, voice_name=voice_name, output_path=str(out_wav), speed=item.speed)
+
                 # Đo độ dài file WAV
                 with wave.open(str(out_wav), 'rb') as wf:
                     frames = wf.getnframes()
                     rate = wf.getframerate()
                     dur = frames / float(rate)
-                
+
                 item.audio_path = str(out_wav.resolve())
                 item.duration_sec = dur
             except Exception as e:
@@ -194,7 +343,7 @@ class NovelVideoPipeline:
             if progress_callback:
                 progress_callback(i + 1, total_sentences, f"Đã sinh giọng đọc câu {i+1}/{total_sentences}")
 
-        logger.info(f"✅ [B1] Hoàn thành sinh âm thanh {total_sentences} câu bằng NghiTTS (tốc độ {speed}x)!")
+        logger.info(f"✅ [B1] Hoàn thành sinh âm thanh {total_sentences} câu bằng NghiTTS!")
         return sentence_items
 
     # =========================================================================
@@ -529,15 +678,18 @@ class NovelVideoPipeline:
         sentences: List[SpeechSentence],
         master_audio_path: Optional[str] = None,
         srt_file_path: Optional[str] = None,
-        canvas_ratio: str = "16:9"
+        canvas_ratio: str = "16:9",
+        bgm_path: Optional[str] = None,
+        bgm_volume: float = 0.15
     ) -> Dict[str, Any]:
         """
         BƯỚC 4:
         - Khởi tạo thư mục dự án chuẩn CapCut PC trong %LOCALAPPDATA%/CapCut/...
-        - Xây dựng draft_content.json chuẩn schema CapCut PC bằng pyJianYingDraft với 3 track:
+        - Xây dựng draft_content.json chuẩn schema CapCut PC bằng pyJianYingDraft với các track:
           1. Track Video: Cắt ghép toàn bộ ảnh phân cảnh phim 1080p sắc nét, Ken Burns zoom 1.05x.
           2. Track Audio: File Master Audio TTS tiếng đọc hoàn hảo.
-          3. Track Subtitles: Phụ đề chữ vàng hoàng kim viền đen (#FFE500) khớp từng câu từ SRT.
+          3. Track BGM: Nhạc nền cổ phong lặp lại phủ trọn video với âm lượng tiêu chuẩn (0.15) và Fade In/Out.
+          4. Track Subtitles: Phụ đề chữ vàng hoàng kim viền đen (#FFE500) khớp từng câu từ SRT.
         - Ghi draft_meta_info.json và draft_info.json.
         """
         logger.info("🚀 [B4] Đang patch tài nguyên vào cấu trúc CapCut Draft...")
@@ -598,12 +750,74 @@ class NovelVideoPipeline:
                     )
                     script.add_segment(vseg, "video")
 
-            # 2. TRACK 2: MASTER AUDIO
+            # 2. TRACK 2: MASTER AUDIO (Giọng đọc chính)
             if master_audio_path and os.path.exists(master_audio_path):
                 script.add_track(Track_type.audio, "audio")
                 amat = Audio_material(str(Path(master_audio_path).resolve()), duration=total_timeline_dur_us / 1_000_000.0)
                 aseg = Audio_segment(amat, target_timerange=Timerange(0, total_timeline_dur_us))
                 script.add_segment(aseg, "audio")
+
+            # 2B. TRACK 2B: BACKGROUND MUSIC (BGM Nhạc nền lặp lại phủ kín timeline)
+            final_bgm = resolve_bgm_path(bgm_path)
+            if final_bgm and os.path.exists(final_bgm):
+                bgm_p = Path(final_bgm).resolve()
+                bgm_dur_sec = 0.0
+                try:
+                    import imageio_ffmpeg
+                    ff_bin = imageio_ffmpeg.get_ffmpeg_exe()
+                    cmd_bgm = [ff_bin, "-i", str(bgm_p)]
+                    res_bgm = subprocess.run(cmd_bgm, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, errors="ignore")
+                    m = re.search(r"Duration:\s*(\d+):(\d+):(\d+\.\d+)", res_bgm.stderr)
+                    if m:
+                        bgm_dur_sec = int(m.group(1)) * 3600 + int(m.group(2)) * 60 + float(m.group(3))
+                except Exception as e:
+                    logger.warning(f"Không thể đo thời lượng BGM qua ffmpeg: {e}")
+
+                if bgm_dur_sec <= 0:
+                    try:
+                        from pydub import AudioSegment as PydubAudio
+                        audio_seg_tmp = PydubAudio.from_file(str(bgm_p))
+                        bgm_dur_sec = len(audio_seg_tmp) / 1000.0
+                    except Exception:
+                        bgm_dur_sec = 180.0
+
+                bgm_dur_us = int(bgm_dur_sec * 1_000_000)
+                if bgm_dur_us > 0:
+                    script.add_track(Track_type.audio, "bgm")
+                    bmat = Audio_material(str(bgm_p), duration=bgm_dur_sec)
+
+                    cur_bgm_us = 0
+                    bgm_seg_idx = 0
+                    while cur_bgm_us < total_timeline_dur_us:
+                        remaining_us = total_timeline_dur_us - cur_bgm_us
+                        seg_dur_us = min(bgm_dur_us, remaining_us)
+
+                        bseg = Audio_segment(
+                            bmat,
+                            target_timerange=Timerange(cur_bgm_us, seg_dur_us),
+                            source_timerange=Timerange(0, seg_dur_us),
+                            volume=bgm_volume
+                        )
+
+                        # Fade-In ở 2 giây đầu
+                        if cur_bgm_us == 0:
+                            try:
+                                bseg.add_fade(in_duration=2_000_000, out_duration=0)
+                            except Exception:
+                                pass
+
+                        # Fade-Out ở 3 giây cuối
+                        if cur_bgm_us + seg_dur_us >= total_timeline_dur_us:
+                            try:
+                                bseg.add_fade(in_duration=0, out_duration=3_000_000)
+                            except Exception:
+                                pass
+
+                        script.add_segment(bseg, "bgm")
+                        cur_bgm_us += seg_dur_us
+                        bgm_seg_idx += 1
+
+                    logger.info(f"🎵 [B4] Đã chèn {bgm_seg_idx} phân đoạn BGM vào Track 'bgm' (File: {bgm_p.name}, Volume: {bgm_volume}, Loop: {bgm_dur_sec:.1f}s/vòng)!")
 
             # 3. TRACK 3: SUBTITLES (Chữ vàng hoàng kim viền đen, chuẩn kích thước nhỏ gọn không tràn viền)
             if srt_file_path and os.path.exists(srt_file_path):
@@ -707,14 +921,17 @@ class NovelVideoPipeline:
         speed: float = 1.2,
         media_paths: Optional[List[str]] = None,
         canvas_ratio: str = "16:9",
-        auto_open_capcut: bool = True
+        auto_open_capcut: bool = True,
+        bgm_path: Optional[str] = None,
+        bgm_volume: float = 0.15,
+        enable_dynamic_pacing: bool = True
     ) -> Dict[str, Any]:
         """
         Thực thi toàn bộ luồng 5 bước:
-        B1: Sinh âm thanh NghiTTS 1.2x từ kịch bản
+        B1: Sinh âm thanh NghiTTS từ kịch bản (hỗ trợ Dynamic Pacing nhịp điệu phân cảnh)
         B2: Xếp âm thanh + khoảng cách câu [0.2], [0.5], sinh ra SRT & Master Audio
         B3: Dùng AI chia phân đoạn video và gán ảnh/video
-        B4: Patch vào CapCut Draft (Video + Master Audio + Phụ đề chữ vàng viền đen)
+        B4: Patch vào CapCut Draft (Video + Master Audio + BGM Looping + Phụ đề chữ vàng viền đen)
         B5: Mở CapCut PC và sẵn sàng xuất video
         """
         t0 = time.time()
@@ -728,12 +945,13 @@ class NovelVideoPipeline:
         # Lưu lại kịch bản văn bản thuần túy
         (session_dir / "kich_ban.txt").write_text(script_text, encoding="utf-8")
 
-        # BƯỚC 1: Sinh âm thanh NghiTTS 1.2x
+        # BƯỚC 1: Sinh âm thanh NghiTTS (tự động điều chỉnh tốc độ động theo cảm xúc câu nếu bật)
         sentences = self.step1_generate_audio(
             script_text=script_text,
             voice_name=voice_name,
             speed=speed,
-            output_dir=session_dir
+            output_dir=session_dir,
+            enable_dynamic_pacing=enable_dynamic_pacing
         )
 
         # BƯỚC 2: Xếp timeline, sinh Master Audio & file SRT
@@ -751,14 +969,16 @@ class NovelVideoPipeline:
             output_images_dir=session_dir / "images"
         )
 
-        # BƯỚC 4: Patch vào CapCut Draft
+        # BƯỚC 4: Patch vào CapCut Draft (kèm nhạc nền BGM lặp lại và căn chỉnh âm lượng)
         step4_res = self.step4_build_capcut_draft(
             project_name=project_name,
             scenes=scenes,
             sentences=sentences,
             master_audio_path=step2_res.get("master_mp3") or step2_res.get("master_wav"),
             srt_file_path=step2_res.get("srt_file"),
-            canvas_ratio=canvas_ratio
+            canvas_ratio=canvas_ratio,
+            bgm_path=bgm_path,
+            bgm_volume=bgm_volume
         )
 
         # Sao chép các file kết quả vào thư mục Draft để tiện theo dõi
