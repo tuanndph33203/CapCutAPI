@@ -92,6 +92,8 @@ class GDriveManager:
                 (self.mount_path / "audio").mkdir(parents=True, exist_ok=True)
                 (self.mount_path / "keyframes").mkdir(parents=True, exist_ok=True)
                 (self.mount_path / "scripts").mkdir(parents=True, exist_ok=True)
+                (self.mount_path / "tts_models").mkdir(parents=True, exist_ok=True)
+                (self.mount_path / "tts_samples").mkdir(parents=True, exist_ok=True)
             except Exception as e:
                 logger.warning(f"Không thể tạo thư mục cloud con: {e}")
 
@@ -168,6 +170,22 @@ class GDriveManager:
         if self.mode != "desktop_mount":
             self._init_storage()
         target = (self.mount_path / "scripts") if self.mount_path else (ROOT_DIR / "data" / "scripts")
+        target.mkdir(parents=True, exist_ok=True)
+        return target
+
+    def get_tts_models_dir(self) -> Path:
+        """Thư mục lưu trữ model giọng đọc TTS (.onnx, .json) trên Google Drive."""
+        if self.mode != "desktop_mount":
+            self._init_storage()
+        target = (self.mount_path / "tts_models") if self.mount_path else (ROOT_DIR / "data" / "tts_models")
+        target.mkdir(parents=True, exist_ok=True)
+        return target
+
+    def get_tts_samples_dir(self) -> Path:
+        """Thư mục lưu trữ âm thanh mẫu nghe thử giọng đọc (.wav) trên Google Drive."""
+        if self.mode != "desktop_mount":
+            self._init_storage()
+        target = (self.mount_path / "tts_samples") if self.mount_path else (ROOT_DIR / "data" / "tts_samples")
         target.mkdir(parents=True, exist_ok=True)
         return target
 

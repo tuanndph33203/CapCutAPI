@@ -23,7 +23,7 @@ import threading
 from typing import List, Dict, Any, Optional
 from pathlib import Path
 from datetime import datetime
-from flask import Flask, request, jsonify, Response, send_from_directory, render_template
+from flask import Flask, request, jsonify, Response, send_from_directory, send_file, render_template
 
 # Setup pathing
 BASE_DIR = Path(__file__).resolve().parent
@@ -355,6 +355,101 @@ def extract_master_novel_visuals():
         return jsonify(res)
     except Exception as e:
         logger.error(f"Lỗi extract visuals: {e}", exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@master_app.route('/api/tts/voices', methods=['GET'])
+@master_app.route('/api/voices', methods=['GET'])
+def get_tts_voices():
+    """Lấy danh mục các giọng đọc NghiTTS kèm thông tin giới tính, vùng miền, phong cách và câu thoại mẫu."""
+    try:
+        import urllib.parse
+        from capcut_api.ai.nghitts_service import list_available_nghitts_voices
+        raw_voices = list_available_nghitts_voices()
+        enriched_voices = {
+            name: {
+                **meta,
+                "preview_url": f"/api/tts/preview?voice={urllib.parse.quote(name)}"
+            }
+            for name, meta in raw_voices.items()
+        }
+        return jsonify({
+            "success": True,
+            "total": len(enriched_voices),
+            "voices": enriched_voices
+        })
+    except Exception as e:
+        logger.error(f"Lỗi get TTS voices: {e}", exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@master_app.route('/api/tts/preview', methods=['GET', 'POST'])
+def preview_tts_voice():
+    """Tạo hoặc phát file âm thanh mẫu (.wav) của giọng đọc NghiTTS (Preview Voice Sample)."""
+    try:
+        from capcut_api.ai.nghitts_service import get_voice_sample_audio_path, resolve_nghitts_voice
+        
+        voice_query = request.args.get("voice") or (request.get_json(silent=True) or {}).get("voice") or "Ngọc Huyền (mới)"
+        custom_text = request.args.get("text") or (request.get_json(silent=True) or {}).get("text")
+        
+        resolved_voice = resolve_nghitts_voice(voice_query)
+        sample_path = get_voice_sample_audio_path(resolved_voice, custom_text=custom_text)
+        
+        if not os.path.exists(sample_path) or os.path.getsize(sample_path) == 0:
+            return jsonify({"success": False, "error": f"Không thể tạo audio mẫu cho giọng {resolved_voice}"}), 500
+            
+        return send_file(sample_path, mimetype="audio/wav")
+    except Exception as e:
+        logger.error(f"Lỗi preview TTS voice: {e}", exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@master_app.route('/api/tts/sync_drive', methods=['POST'])
+@master_app.route('/api/tts/upload_to_drive', methods=['POST'])
+def sync_tts_voices_to_drive():
+    """Đồng bộ và sao lưu model giọng đọc (.onnx) và file âm thanh mẫu (.wav) lên Google Drive."""
+    try:
+        from capcut_api.ai.nghitts_service import sync_voices_to_gdrive
+        data = request.get_json(silent=True) or {}
+        voice = data.get("voice")
+        download_missing = bool(data.get("download_missing", False))
+        
+        target_voices = None
+        if voice and voice.lower() not in ("all", "*"):
+            target_voices = [voice]
+            
+        result = sync_voices_to_gdrive(voice_names=target_voices, download_missing=download_missing)
+        return jsonify(result)
+    except Exception as e:
+        logger.error(f"Lỗi sync TTS to Drive: {e}", exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@master_app.route('/api/tts/drive_status', methods=['GET'])
+def get_tts_drive_status():
+    """Lấy trạng thái đồng bộ kho giọng đọc trên Google Drive."""
+    try:
+        from capcut_api.cloud.gdrive_manager import get_gdrive_manager
+        from capcut_api.ai.nghitts_service import list_available_nghitts_voices
+        
+        gdrive = get_gdrive_manager()
+        voices = list_available_nghitts_voices()
+        
+        models_dir = str(gdrive.get_tts_models_dir()) if gdrive else ""
+        samples_dir = str(gdrive.get_tts_samples_dir()) if gdrive else ""
+        
+        synced_models = [name for name, v in voices.items() if v.get("is_in_drive")]
+        synced_samples = [name for name, v in voices.items() if v.get("is_sample_ready")]
+        
+        return jsonify({
+            "success": True,
+            "is_drive_active": gdrive.mode == "desktop_mount" if gdrive else False,
+            "mode": gdrive.mode if gdrive else "none",
+            "models_dir": models_dir,
+            "samples_dir": samples_dir,
+            "synced_models_count": len(synced_models),
+            "synced_samples_count": len(synced_samples),
+            "synced_models": synced_models,
+            "voices": voices
+        })
+    except Exception as e:
+        logger.error(f"Lỗi get TTS drive status: {e}", exc_info=True)
         return jsonify({"success": False, "error": str(e)}), 500
 
 @master_app.route('/api/novel/generate_script_text', methods=['POST'])

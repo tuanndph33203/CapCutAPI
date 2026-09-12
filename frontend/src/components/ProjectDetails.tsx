@@ -17,6 +17,10 @@ import {
   Wand2,
   Thermometer,
   Languages,
+  Volume2,
+  Square,
+  RefreshCw,
+  Cloud,
 } from "lucide-react";
 import {
   fetchProjectConfig,
@@ -29,6 +33,10 @@ import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Badge } from "./ui/badge";
 import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
+import { Switch } from "./ui/switch";
+import { Label } from "./ui/label";
+import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { MultiLangTranslateModal } from "./MultiLangTranslateModal";
 import { NovelImportModal } from "./NovelImportModal";
 import { ScriptReaderEditor } from "./ScriptReaderEditor";
@@ -81,6 +89,11 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
   const [novelLoading, setNovelLoading] = useState<boolean>(false);
   const [novelStepMessage, setNovelStepMessage] = useState<string>("");
   const [novelDraftResult, setNovelDraftResult] = useState<any>(null);
+  const [ttsVoices, setTtsVoices] = useState<Record<string, any>>({});
+  const [playingVoice, setPlayingVoice] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState<boolean>(false);
+  const [syncingDriveVoice, setSyncingDriveVoice] = useState<string | null>(null);
+  const audioPreviewRef = useRef<HTMLAudioElement | null>(null);
 
   const [config, setConfig] = useState<any>({
     video_path: "",
@@ -170,6 +183,17 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
           }
         } catch (e) {
           console.error("Lỗi tải danh sách tiểu thuyết:", e);
+        }
+
+        // Tải danh mục giọng đọc NghiTTS từ API
+        try {
+          const vRes = await fetch("/api/tts/voices");
+          const vData = await vRes.json();
+          if (vData.success && vData.voices) {
+            setTtsVoices(vData.voices);
+          }
+        } catch (e) {
+          console.error("Lỗi tải danh mục giọng đọc NghiTTS:", e);
         }
 
         if (pData?.novel_script_text) {
@@ -330,6 +354,77 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
     toast.success(`Đã chọn bộ truyện: ${novelObj.name}`, {
       description: "Đã lưu vào cấu hình dự án và tự động nhớ cho các lần mở sau!"
     });
+  };
+
+  const handlePlayVoiceSample = async (voiceName: string) => {
+    if (audioPreviewRef.current) {
+      audioPreviewRef.current.pause();
+      if (playingVoice === voiceName) {
+        setPlayingVoice(null);
+        setPreviewLoading(false);
+        return;
+      }
+    }
+
+    setPlayingVoice(voiceName);
+    setPreviewLoading(true);
+    try {
+      const url = `/api/tts/preview?voice=${encodeURIComponent(voiceName)}`;
+      const audio = new Audio(url);
+      audioPreviewRef.current = audio;
+
+      audio.oncanplay = () => {
+        setPreviewLoading(false);
+      };
+
+      audio.onended = () => {
+        setPlayingVoice(null);
+        setPreviewLoading(false);
+      };
+
+      audio.onerror = () => {
+        toast.error(`Không thể phát giọng mẫu cho "${voiceName}". Vui lòng thử lại.`);
+        setPlayingVoice(null);
+        setPreviewLoading(false);
+      };
+
+      await audio.play();
+    } catch (err) {
+      console.error(err);
+      toast.error(`Lỗi khi phát âm thanh mẫu: ${err}`);
+      setPlayingVoice(null);
+      setPreviewLoading(false);
+    }
+  };
+
+  const handleSyncVoiceToDrive = async (voiceName?: string) => {
+    const target = voiceName || config.novel_tts_voice || config.tts_voice || "Ngọc Huyền (mới)";
+    setSyncingDriveVoice(target);
+    try {
+      const res = await fetch("/api/tts/sync_drive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ voice: target, download_missing: false })
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(`Đã sao lưu giọng "${target}" lên Google Drive!`, {
+          description: `Thư mục lưu trữ: ${data.drive_models_dir}`
+        });
+        // Cập nhật lại danh mục giọng đọc để hiển thị icon Drive
+        const vRes = await fetch("/api/tts/voices");
+        const vData = await vRes.json();
+        if (vData.success && vData.voices) {
+          setTtsVoices(vData.voices);
+        }
+      } else {
+        toast.error("Lỗi khi sao lưu giọng lên Drive", { description: data.error });
+      }
+    } catch (err: any) {
+      toast.error("Lỗi kết nối máy chủ sao lưu Drive", { description: err?.message || String(err) });
+    } finally {
+      setSyncingDriveVoice(null);
+    }
   };
 
   const handleGenerateScriptText = async () => {
@@ -508,45 +603,26 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
         </div>
       </Card>
 
-      {/* Tabs Bar */}
-      <div className="flex items-center gap-2 p-1.5 glass-panel border-white/10 overflow-x-auto">
-        <Button
-          variant={activeTab === "video" ? "default" : "ghost"}
-          size="sm"
-          onClick={() => setActiveTab("video")}
-        >
-          <Film className="w-4 h-4 mr-1.5" /> 🎬 Video & Xử lý (Step 1–2)
-        </Button>
-        <Button
-          variant={activeTab === "sub" ? "default" : "ghost"}
-          size="sm"
-          onClick={() => setActiveTab("sub")}
-        >
-          <MessageSquare className="w-4 h-4 mr-1.5" /> 📝 Phụ đề & Whisper (Step 3, 5–7)
-        </Button>
-        <Button
-          variant={activeTab === "translate" ? "default" : "ghost"}
-          size="sm"
-          onClick={() => setActiveTab("translate")}
-        >
-          <Globe className="w-4 h-4 mr-1.5" /> 🌐 Dịch thuật & AI (Step 4)
-        </Button>
-        <Button
-          variant={activeTab === "novel" ? "default" : "ghost"}
-          size="sm"
-          onClick={() => setActiveTab("novel")}
-          className={activeTab === "novel" ? "bg-amber-500 text-zinc-950 font-bold" : "text-amber-300 hover:text-amber-200"}
-        >
-          <Sparkles className="w-4 h-4 mr-1.5 text-amber-400" /> 📖 Thuyết Minh Tiểu Thuyết (Novel AI)
-        </Button>
-        <Button
-          variant={activeTab === "all" ? "default" : "ghost"}
-          size="sm"
-          onClick={() => setActiveTab("all")}
-        >
-          <Sparkles className="w-4 h-4 mr-1.5" /> ⚡ Tất cả cài đặt
-        </Button>
-      </div>
+      {/* Tabs Bar - Shadcn Tabs */}
+      <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)} className="w-full">
+        <TabsList className="w-full justify-start h-11 p-1 bg-black/40 border border-white/10 rounded-xl overflow-x-auto gap-1">
+          <TabsTrigger value="video" className="text-xs data-[state=active]:bg-cyan-500/20 data-[state=active]:text-cyan-300">
+            <Film className="w-3.5 h-3.5 mr-1.5" /> 🎬 Video & Xử lý (Step 1–2)
+          </TabsTrigger>
+          <TabsTrigger value="sub" className="text-xs data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-300">
+            <MessageSquare className="w-3.5 h-3.5 mr-1.5" /> 📝 Phụ đề & Whisper (Step 3, 5–7)
+          </TabsTrigger>
+          <TabsTrigger value="translate" className="text-xs data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-300">
+            <Globe className="w-3.5 h-3.5 mr-1.5" /> 🌐 Dịch thuật & AI (Step 4)
+          </TabsTrigger>
+          <TabsTrigger value="novel" className="text-xs data-[state=active]:bg-amber-500/20 data-[state=active]:text-amber-300">
+            <Sparkles className="w-3.5 h-3.5 mr-1.5 text-amber-400" /> 📖 Thuyết Minh Tiểu Thuyết (Novel AI)
+          </TabsTrigger>
+          <TabsTrigger value="all" className="text-xs data-[state=active]:bg-zinc-700/40 data-[state=active]:text-zinc-200">
+            <Sparkles className="w-3.5 h-3.5 mr-1.5" /> ⚡ Tất cả cài đặt
+          </TabsTrigger>
+        </TabsList>
+      </Tabs>
 
       {/* Form Content */}
       <Card className="p-6 space-y-8">
@@ -558,9 +634,9 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
 
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-semibold text-muted-foreground">
+                <Label className="text-xs font-semibold text-muted-foreground">
                   Danh sách file Video (đường dẫn tuyệt đối từng dòng):
-                </label>
+                </Label>
                 <div className="flex items-center gap-2">
                   <input
                     type="file"
@@ -590,20 +666,20 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
                   </Button>
                 </div>
               </div>
-              <textarea
+              <Textarea
                 rows={3}
                 value={config.video_path || ""}
                 onChange={(e) => handleFieldChange("video_path", e.target.value)}
                 placeholder="C:\Videos\sample1.mp4&#10;C:\Videos\sample2.mp4"
-                className="w-full px-3 py-2 text-xs bg-black/40 border border-white/10 rounded-xl text-foreground font-mono focus:outline-none focus:border-cyan-400"
+                className="w-full px-3 py-2 text-xs bg-black/40 border border-white/10 rounded-xl text-foreground font-mono focus:outline-none focus:border-cyan-400 min-h-[75px]"
               />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                <Label className="block text-xs font-semibold text-muted-foreground mb-1">
                   Tốc độ Video:
-                </label>
+                </Label>
                 <Input
                   type="number"
                   step="0.01"
@@ -612,9 +688,9 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                <Label className="block text-xs font-semibold text-muted-foreground mb-1">
                   Khung hình (Canvas Aspect Ratio):
-                </label>
+                </Label>
                 <select
                   value={config.canvas_ratio || "16:9"}
                   onChange={(e) => handleFieldChange("canvas_ratio", e.target.value)}
@@ -629,47 +705,53 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
             </div>
 
             <div className="flex flex-wrap items-center gap-6 pt-2">
-              <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
-                <input
-                  type="checkbox"
+              <div className="flex items-center space-x-2.5">
+                <Switch
+                  id="enable_anti_copyright"
                   checked={config.enable_anti_copyright ?? true}
-                  onChange={(e) => handleFieldChange("enable_anti_copyright", e.target.checked)}
-                  className="rounded border-white/20 bg-black/40 text-cyan-400 focus:ring-0"
+                  onCheckedChange={(checked) => handleFieldChange("enable_anti_copyright", checked)}
+                  className="data-[state=checked]:bg-cyan-600"
                 />
-                <span className="flex items-center gap-1"><Shield className="w-3.5 h-3.5 text-cyan-400" /> Lách bản quyền động (Smart Defense)</span>
-              </label>
+                <Label htmlFor="enable_anti_copyright" className="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-zinc-200">
+                  <Shield className="w-3.5 h-3.5 text-cyan-400" /> Lách bản quyền động (Smart Defense)
+                </Label>
+              </div>
 
-              <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
-                <input
-                  type="checkbox"
+              <div className="flex items-center space-x-2.5">
+                <Switch
+                  id="mirror_video"
                   checked={config.mirror_video ?? false}
-                  onChange={(e) => handleFieldChange("mirror_video", e.target.checked)}
-                  className="rounded border-white/20 bg-black/40 text-cyan-400 focus:ring-0"
+                  onCheckedChange={(checked) => handleFieldChange("mirror_video", checked)}
+                  className="data-[state=checked]:bg-cyan-600"
                 />
-                <span>🪞 Mirror Video (Lật ngang)</span>
-              </label>
+                <Label htmlFor="mirror_video" className="cursor-pointer text-xs font-medium text-zinc-200">
+                  🪞 Mirror Video (Lật ngang)
+                </Label>
+              </div>
 
-              <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
-                <input
-                  type="checkbox"
+              <div className="flex items-center space-x-2.5">
+                <Switch
+                  id="hardsub_blur_enabled"
                   checked={config.hardsub_blur_enabled ?? true}
-                  onChange={(e) => handleFieldChange("hardsub_blur_enabled", e.target.checked)}
-                  className="rounded border-white/20 bg-black/40 text-cyan-400 focus:ring-0"
+                  onCheckedChange={(checked) => handleFieldChange("hardsub_blur_enabled", checked)}
+                  className="data-[state=checked]:bg-purple-600"
                 />
-                <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5 text-purple-400" /> Làm mờ Hardsub</span>
-              </label>
+                <Label htmlFor="hardsub_blur_enabled" className="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-zinc-200">
+                  <Eye className="w-3.5 h-3.5 text-purple-400" /> Làm mờ Hardsub
+                </Label>
+              </div>
 
-              <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
-                <input
-                  type="checkbox"
+              <div className="flex items-center space-x-2.5">
+                <Switch
+                  id="filter_audio"
                   checked={config.filter_audio ?? false}
-                  onChange={(e) => handleFieldChange("filter_audio", e.target.checked)}
-                  className="rounded border-white/20 bg-black/40 text-emerald-400 focus:ring-0"
+                  onCheckedChange={(checked) => handleFieldChange("filter_audio", checked)}
+                  className="data-[state=checked]:bg-emerald-600"
                 />
-                <span className="flex items-center gap-1">
+                <Label htmlFor="filter_audio" className="flex items-center gap-1.5 cursor-pointer text-xs font-medium text-zinc-200">
                   <Wand2 className="w-3.5 h-3.5 text-emerald-400" /> 🧹 Lọc âm gốc (Demucs + DeepFilter)
-                </span>
-              </label>
+                </Label>
+              </div>
             </div>
           </div>
         )}
@@ -677,51 +759,201 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
         {(activeTab === "sub" || activeTab === "all") && (
           <div className="space-y-4 pb-6 border-b border-white/10">
             <h3 className="text-sm font-bold text-purple-400 flex items-center gap-2">
-              <MessageSquare className="w-4 h-4" /> Step 3, 5-7: Phụ đề, Whisper GPU & TTS
+              <MessageSquare className="w-4 h-4" /> Step 3, 5-7: Phụ đề, Whisper GPU & Giọng đọc TTS
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                  Model Whisper:
-                </label>
-                <select
-                  value={config.whisper_model || "large-v3"}
-                  onChange={(e) => handleFieldChange("whisper_model", e.target.value)}
-                  className="w-full px-3 py-2 text-xs bg-black/40 border border-white/10 rounded-xl text-foreground"
-                >
-                  <option value="large-v3">large-v3 ★</option>
-                  <option value="large-v3-turbo">large-v3-turbo</option>
-                  <option value="medium">medium</option>
-                  <option value="small">small</option>
-                  <option value="base">base</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Cột 1: Model Whisper & Tự động mở CapCut */}
+              <div className="space-y-3">
                 <div>
                   <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                    Engine TTS:
+                    Model Whisper:
                   </label>
                   <select
-                    value={config.tts_engine || "local"}
-                    onChange={(e) => handleFieldChange("tts_engine", e.target.value)}
+                    value={config.whisper_model || "large-v3"}
+                    onChange={(e) => handleFieldChange("whisper_model", e.target.value)}
                     className="w-full px-3 py-2 text-xs bg-black/40 border border-white/10 rounded-xl text-foreground"
                   >
-                    <option value="local">NGHI-TTS (Offline Fast)</option>
-                    <option value="capcut">CapCut GUI Voice</option>
+                    <option value="large-v3">large-v3 ★</option>
+                    <option value="large-v3-turbo">large-v3-turbo</option>
+                    <option value="medium">medium</option>
+                    <option value="small">small</option>
+                    <option value="base">base</option>
                   </select>
                 </div>
-                <div>
-                  <label className="block text-xs font-semibold text-muted-foreground mb-1">
-                    Tốc độ TTS:
-                  </label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={config.tts_speed ?? 1.17}
-                    onChange={(e) => handleFieldChange("tts_speed", parseFloat(e.target.value))}
-                  />
+
+                <div className="pt-1">
+                  <div className="flex items-center space-x-2.5">
+                    <Switch
+                      id="auto_open_capcut"
+                      checked={config.auto_open_capcut ?? true}
+                      onCheckedChange={(checked) => handleFieldChange("auto_open_capcut", checked)}
+                      className="data-[state=checked]:bg-emerald-600"
+                    />
+                    <Label htmlFor="auto_open_capcut" className="cursor-pointer text-xs font-medium text-emerald-400">
+                      Khởi chạy CapCut PC ngay sau khi tạo Draft
+                    </Label>
+                  </div>
+                </div>
+              </div>
+
+              {/* Cột 2: Cấu hình TTS & Giọng đọc NghiTTS Động */}
+              <div className="space-y-3 p-3.5 rounded-xl bg-purple-950/20 border border-purple-500/30">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <Label className="block text-xs font-semibold text-muted-foreground mb-1">
+                      Engine TTS:
+                    </Label>
+                    <select
+                      value={config.tts_engine || "local"}
+                      onChange={(e) => handleFieldChange("tts_engine", e.target.value)}
+                      className="w-full px-3 py-2 text-xs bg-black/40 border border-white/10 rounded-xl text-foreground"
+                    >
+                      <option value="local">NGHI-TTS (Offline Fast)</option>
+                      <option value="capcut">CapCut GUI Voice</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Label className="block text-xs font-semibold text-muted-foreground mb-1">
+                      Tốc độ đọc (TTS Speed):
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        step="0.05"
+                        min="0.5"
+                        max="2.5"
+                        value={config.novel_tts_speed ?? config.tts_speed ?? 1.2}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          handleFieldChange("tts_speed", val);
+                          handleFieldChange("novel_tts_speed", val);
+                        }}
+                        className="h-8 text-xs font-bold font-mono bg-black/40 border-purple-500/30 text-amber-300"
+                      />
+                      <Badge className="bg-purple-500/20 text-purple-300 border-purple-500/40 text-[11px] shrink-0 font-mono">
+                        {config.novel_tts_speed ?? config.tts_speed ?? 1.2}x
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Giọng đọc NghiTTS nạp động từ API + Nút nghe thử mẫu */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label className="block text-xs font-semibold text-purple-300 flex items-center gap-1.5">
+                      <Volume2 className="w-3.5 h-3.5 text-amber-400" />
+                      Giọng Đọc NghiTTS (17 Giọng Đọc):
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      {Object.keys(ttsVoices).length > 0 && (
+                        <span className="text-[10px] text-emerald-400 font-mono">
+                          ✓ {Object.keys(ttsVoices).length} giọng
+                        </span>
+                      )}
+                      {/* Trạng thái Google Drive & Nút sao lưu lên Drive */}
+                      {ttsVoices[config.novel_tts_voice || config.tts_voice || "Ngọc Huyền (mới)"]?.is_in_drive ? (
+                        <Badge variant="outline" className="h-6 px-2 text-[10px] bg-emerald-950/40 text-emerald-300 border-emerald-500/40 gap-1 font-medium" title="Model và âm thanh mẫu đã được đồng bộ an toàn trên Google Drive">
+                          <Cloud className="w-3 h-3 text-emerald-400" />
+                          <span>Drive ✓</span>
+                        </Badge>
+                      ) : (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          disabled={syncingDriveVoice !== null}
+                          onClick={() => handleSyncVoiceToDrive(config.novel_tts_voice || config.tts_voice || "Ngọc Huyền (mới)")}
+                          className="h-6 px-2 text-[11px] gap-1 rounded-lg bg-blue-950/40 text-blue-200 border-blue-500/40 hover:bg-blue-900/50 transition-all"
+                          title="Lưu model giọng đọc (.onnx) và âm thanh mẫu (.wav) lên thư mục Google Drive (G:\My Drive\CapCutRecapAI\tts_models)"
+                        >
+                          {syncingDriveVoice === (config.novel_tts_voice || config.tts_voice || "Ngọc Huyền (mới)") ? (
+                            <>
+                              <RefreshCw className="w-3 h-3 animate-spin text-blue-300" />
+                              <span>Đang lưu...</span>
+                            </>
+                          ) : (
+                            <>
+                              <Cloud className="w-3 h-3 text-blue-400" />
+                              <span>☁️ Lưu Drive</span>
+                            </>
+                          )}
+                        </Button>
+                      )}
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handlePlayVoiceSample(config.novel_tts_voice || config.tts_voice || "Ngọc Huyền (mới)")}
+                        className={`h-6 px-2.5 text-[11px] gap-1.5 rounded-lg border transition-all ${
+                          playingVoice === (config.novel_tts_voice || config.tts_voice || "Ngọc Huyền (mới)")
+                            ? "bg-amber-500 text-zinc-950 border-amber-400 font-bold"
+                            : "bg-purple-950/40 text-purple-200 border-purple-500/40 hover:bg-purple-900/50"
+                        }`}
+                      >
+                        {previewLoading && playingVoice === (config.novel_tts_voice || config.tts_voice || "Ngọc Huyền (mới)") ? (
+                          <>
+                            <RefreshCw className="w-3 h-3 animate-spin text-zinc-950" />
+                            <span>Đang tải...</span>
+                          </>
+                        ) : playingVoice === (config.novel_tts_voice || config.tts_voice || "Ngọc Huyền (mới)") ? (
+                          <>
+                            <Square className="w-3 h-3 fill-current" />
+                            <span>Dừng nghe</span>
+                          </>
+                        ) : (
+                          <>
+                            <Volume2 className="w-3 h-3 text-amber-400" />
+                            <span>🔊 Nghe thử giọng</span>
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <select
+                    value={config.novel_tts_voice || config.tts_voice || "Ngọc Huyền (mới)"}
+                    onChange={(e) => {
+                      handleFieldChange("novel_tts_voice", e.target.value);
+                      handleFieldChange("tts_voice", e.target.value);
+                    }}
+                    className="w-full px-3 py-2 text-xs bg-black/60 border border-purple-500/40 rounded-xl text-amber-300 font-medium outline-none focus:border-purple-400"
+                  >
+                    {Object.keys(ttsVoices).length > 0 ? (
+                      Object.entries(ttsVoices).map(([vName, vMeta]: [string, any]) => (
+                        <option key={vName} value={vName}>
+                          🎙️ {vName} {vMeta.is_in_drive ? "☁️ [Drive]" : ""} - [{vMeta.region} {vMeta.gender === "female" ? "Nữ" : "Nam"}] - {vMeta.style}
+                        </option>
+                      ))
+                    ) : (
+                      <>
+                        <option value="Ngọc Huyền (mới)">🎙️ Ngọc Huyền (mới) ☁️ [Drive] - [Bắc Nữ] - Đọc truyện kiếm hiệp, truyền cảm</option>
+                        <option value="Duy Oryx">🎙️ Duy Oryx ☁️ [Drive] - [Bắc Nam] - Trầm ấm, đĩnh đạc, hiện đại</option>
+                        <option value="Mạnh Dũng">🎙️ Mạnh Dũng ☁️ [Drive] - [Bắc Nam] - Hào hùng, khí thế, chiến đấu</option>
+                        <option value="Thảo Chi">🎙️ Thảo Chi - [Bắc Nữ] - Ngọt ngào, nhẹ nhàng</option>
+                        <option value="Minh Khang">🎙️ Minh Khang - [Nam Nam] - Trẻ trung, tự nhiên, gần gũi</option>
+                        <option value="Mỹ Tâm">🎙️ Mỹ Tâm - [Trung Nữ] - Giọng miền Trung chân chất, cảm xúc</option>
+                      </>
+                    )}
+                  </select>
+
+                  {/* Hiển thị câu thoại mẫu đặc trưng của giọng đang chọn */}
+                  {ttsVoices[config.novel_tts_voice || config.tts_voice || "Ngọc Huyền (mới)"] && (
+                    <div className="p-2.5 rounded-lg bg-black/50 border border-purple-500/30 text-[11px] space-y-1">
+                      <div className="text-zinc-400 flex items-center justify-between">
+                        <span>Phong cách: <strong className="text-zinc-200">{ttsVoices[config.novel_tts_voice || config.tts_voice || "Ngọc Huyền (mới)"].style}</strong></span>
+                        <span className="font-mono text-purple-300">
+                          [{ttsVoices[config.novel_tts_voice || config.tts_voice || "Ngọc Huyền (mới)"].region} • {ttsVoices[config.novel_tts_voice || config.tts_voice || "Ngọc Huyền (mới)"].gender === "female" ? "Nữ" : "Nam"}]
+                        </span>
+                      </div>
+                      {ttsVoices[config.novel_tts_voice || config.tts_voice || "Ngọc Huyền (mới)"].sample_quote && (
+                        <div className="text-amber-300 italic flex items-start gap-1.5 pt-0.5 border-t border-purple-500/20">
+                          <span className="shrink-0 text-amber-400">💬</span>
+                          <span>"{ttsVoices[config.novel_tts_voice || config.tts_voice || "Ngọc Huyền (mới)"].sample_quote}"</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -733,7 +965,7 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11px] font-medium text-muted-foreground mb-1">Font chữ (Đường dẫn absolute):</label>
+                  <Label className="block text-[11px] font-medium text-muted-foreground mb-1">Font chữ (Đường dẫn absolute):</Label>
                   <Input
                     type="text"
                     value={config.font_name || "C:/Users/nguye/AppData/Local/CapCut/Apps/8.9.1.3802/Resources/Font/SystemFont/en.ttf"}
@@ -743,7 +975,7 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[11px] font-medium text-muted-foreground mb-1">Cỡ chữ Sub (font_size):</label>
+                    <Label className="block text-[11px] font-medium text-muted-foreground mb-1">Cỡ chữ Sub (font_size):</Label>
                     <Input
                       type="number"
                       step="0.5"
@@ -752,7 +984,7 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
                     />
                   </div>
                   <div>
-                    <label className="block text-[11px] font-medium text-muted-foreground mb-1">Màu chữ (font_color):</label>
+                    <Label className="block text-[11px] font-medium text-muted-foreground mb-1">Màu chữ (font_color):</Label>
                     <select
                       value={config.font_color || "#f0ff00"}
                       onChange={(e) => handleFieldChange("font_color", e.target.value)}
@@ -770,35 +1002,41 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
             </div>
 
             <div className="flex flex-wrap items-center gap-6 pt-2">
-              <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
-                <input
-                  type="checkbox"
+              <div className="flex items-center space-x-2.5">
+                <Switch
+                  id="use_local_whisper"
                   checked={config.use_local_whisper ?? true}
-                  onChange={(e) => handleFieldChange("use_local_whisper", e.target.checked)}
-                  className="rounded border-white/20 bg-black/40 text-purple-400 focus:ring-0"
+                  onCheckedChange={(checked) => handleFieldChange("use_local_whisper", checked)}
+                  className="data-[state=checked]:bg-purple-600"
                 />
-                <span>Whisper GPU (Local GPU khuyên dùng)</span>
-              </label>
+                <Label htmlFor="use_local_whisper" className="cursor-pointer text-xs font-medium text-zinc-200">
+                  Whisper GPU (Local GPU khuyên dùng)
+                </Label>
+              </div>
 
-              <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
-                <input
-                  type="checkbox"
+              <div className="flex items-center space-x-2.5">
+                <Switch
+                  id="use_local_ocr"
                   checked={config.use_local_ocr ?? false}
-                  onChange={(e) => handleFieldChange("use_local_ocr", e.target.checked)}
-                  className="rounded border-white/20 bg-black/40 text-purple-400 focus:ring-0"
+                  onCheckedChange={(checked) => handleFieldChange("use_local_ocr", checked)}
+                  className="data-[state=checked]:bg-purple-600"
                 />
-                <span>PaddleOCR (Quét chữ từ frame)</span>
-              </label>
+                <Label htmlFor="use_local_ocr" className="cursor-pointer text-xs font-medium text-zinc-200">
+                  PaddleOCR (Quét chữ từ frame)
+                </Label>
+              </div>
 
-              <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
-                <input
-                  type="checkbox"
+              <div className="flex items-center space-x-2.5">
+                <Switch
+                  id="whisper_vad_filter"
                   checked={config.whisper_vad_filter ?? true}
-                  onChange={(e) => handleFieldChange("whisper_vad_filter", e.target.checked)}
-                  className="rounded border-white/20 bg-black/40 text-purple-400 focus:ring-0"
+                  onCheckedChange={(checked) => handleFieldChange("whisper_vad_filter", checked)}
+                  className="data-[state=checked]:bg-purple-600"
                 />
-                <span>VAD Filter (Lọc ảo giác)</span>
-              </label>
+                <Label htmlFor="whisper_vad_filter" className="cursor-pointer text-xs font-medium text-zinc-200">
+                  VAD Filter (Lọc ảo giác)
+                </Label>
+              </div>
             </div>
           </div>
         )}
@@ -812,9 +1050,9 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
             {/* Form Row 1: Translation Method & AI Translation Profile */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                <Label className="block text-xs font-semibold text-muted-foreground mb-1">
                   Nguồn dịch (translation_method):
-                </label>
+                </Label>
                 <select
                   value={config.translation_method || "google"}
                   onChange={(e) => handleFieldChange("translation_method", e.target.value)}
@@ -826,9 +1064,9 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                <Label className="block text-xs font-semibold text-muted-foreground mb-1">
                   AI Dịch phụ đề (translation_ai_profile_id):
-                </label>
+                </Label>
                 <select
                   value={config.translation_ai_profile_id || ""}
                   onChange={(e) => handleFieldChange("translation_ai_profile_id", e.target.value)}
@@ -855,9 +1093,9 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
             {/* Form Row 2: AI Context Profile & Video Context Description */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                <Label className="block text-xs font-semibold text-muted-foreground mb-1">
                   AI Phân tích Ngữ cảnh (context_ai_profile_id):
-                </label>
+                </Label>
                 <select
                   value={config.context_ai_profile_id || ""}
                   onChange={(e) => handleFieldChange("context_ai_profile_id", e.target.value)}
@@ -881,9 +1119,9 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                <Label className="block text-xs font-semibold text-muted-foreground mb-1">
                   Mô tả Ngữ cảnh video (video_context):
-                </label>
+                </Label>
                 <Input
                   type="text"
                   value={config.video_context || "Short fantasy game online videos, MMORPG gameplay review, PvP server war"}
@@ -896,9 +1134,9 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
             {/* Form Row 3: Source, Target, Tone, Temperature */}
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1 flex items-center gap-1">
+                <Label className="block text-xs font-semibold text-muted-foreground mb-1 flex items-center gap-1">
                   <Languages className="w-3.5 h-3.5 text-amber-400" /> Ngôn ngữ gốc (source_language):
-                </label>
+                </Label>
                 <Input
                   type="text"
                   value={config.source_language || "Chinese"}
@@ -908,9 +1146,9 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1 flex items-center gap-1">
+                <Label className="block text-xs font-semibold text-muted-foreground mb-1 flex items-center gap-1">
                   <Globe className="w-3.5 h-3.5 text-amber-400" /> Ngôn ngữ đích (target_language):
-                </label>
+                </Label>
                 <Input
                   type="text"
                   value={config.target_language || "Vietnamese"}
@@ -920,9 +1158,9 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1">
+                <Label className="block text-xs font-semibold text-muted-foreground mb-1">
                   Tone dịch (ai_tone):
-                </label>
+                </Label>
                 <Input
                   type="text"
                   value={config.ai_tone || "natural and fluent"}
@@ -932,9 +1170,9 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-muted-foreground mb-1 flex items-center gap-1">
+                <Label className="block text-xs font-semibold text-muted-foreground mb-1 flex items-center gap-1">
                   <Thermometer className="w-3.5 h-3.5 text-amber-400" /> AI Temp (0–2):
-                </label>
+                </Label>
                 <Input
                   type="number"
                   step="0.1"
@@ -1093,11 +1331,11 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
                 </button>
               </div>
 
-              <textarea
+              <Textarea
                 value={config.novel_prompt || ""}
                 onChange={(e) => handleFieldChange("novel_prompt", e.target.value)}
                 rows={3}
-                className="w-full p-3 rounded-lg bg-zinc-950/80 border border-zinc-800 text-xs text-zinc-200 leading-relaxed outline-none focus:border-amber-400 resize-none font-sans"
+                className="w-full p-3 rounded-lg bg-zinc-950/80 border border-zinc-800 text-xs text-zinc-200 leading-relaxed outline-none focus:border-amber-400 resize-none font-sans min-h-[75px]"
                 placeholder="Nhập yêu cầu kịch bản... Ví dụ: 'Viết tiếp tập 190 nối tiếp kết thúc video tập 189', hoặc: 'Dựa vào trailer tập 190 để spoiler tình tiết Hàn Lập đại chiến ma nhân...', hoặc: 'Chỉ định viết từ chương 809 đến chương 810...'"
               />
               <p className="text-[11px] text-zinc-400 italic">
@@ -1175,87 +1413,101 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
               }}
               ttsSpeed={config.novel_tts_speed ? parseFloat(config.novel_tts_speed) : 1.2}
             />
-              {/* PIPELINE 5 BƯỚC: CẤU HÌNH NGHI-TTS 1.2X & CAPCUT */}
-              <div className="p-4 rounded-xl bg-gradient-to-r from-amber-950/25 via-zinc-900/60 to-zinc-900/40 border border-amber-500/30 space-y-3 shadow-sm">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-amber-400" />
-                    <h4 className="text-xs font-bold text-zinc-100">
-                      Cấu Hình Pipeline 5 Bước (NghiTTS 1.2x & CapCut Draft):
-                    </h4>
-                  </div>
-                  <Badge variant="outline" className="text-[10px] text-emerald-400 border-emerald-500/30 bg-emerald-950/20 font-mono">
-                    ✓ Chuẩn Pipeline 5 Bước
-                  </Badge>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
-                  {/* Chọn Giọng NghiTTS */}
-                  <div>
-                    <label className="block text-[11px] font-semibold text-zinc-300 mb-1">
-                      B1. Giọng Đọc (NghiTTS):
-                    </label>
-                    <select
-                      value={config.novel_tts_voice || "Ngọc Huyền (mới)"}
-                      onChange={(e) => handleFieldChange("novel_tts_voice", e.target.value)}
-                      className="w-full h-8 px-2.5 rounded-lg bg-zinc-900/90 border border-amber-500/30 text-xs text-amber-300 outline-none focus:border-amber-400"
+              {/* THANH ĐIỀU KHIỂN & KÍCH HOẠT NHANH SẢN XUẤT CAPCUT - SHADCN UI */}
+              <Card className="p-3.5 bg-zinc-900/90 border-amber-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs shadow-md">
+                <div className="flex flex-wrap items-center gap-2 text-zinc-300">
+                  <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span className="flex items-center gap-1.5 flex-wrap">
+                    Giọng đọc:
+                    <Badge variant="outline" className="text-amber-300 border-amber-500/40 bg-amber-950/20 font-semibold text-xs py-0.5 px-2">
+                      {config.novel_tts_voice || config.tts_voice || "Ngọc Huyền (mới)"}
+                    </Badge>
+                    {ttsVoices[config.novel_tts_voice || config.tts_voice || "Ngọc Huyền (mới)"]?.is_in_drive ? (
+                      <span className="text-[10px] text-emerald-400 flex items-center gap-0.5 px-1 py-0.5 rounded bg-emerald-950/30 border border-emerald-500/30" title="Model giọng đọc đã được sao lưu an toàn trên Google Drive">
+                        <Cloud className="w-3 h-3 text-emerald-400" />
+                        <span>Drive ✓</span>
+                      </span>
+                    ) : (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        disabled={syncingDriveVoice !== null}
+                        onClick={() => handleSyncVoiceToDrive(config.novel_tts_voice || config.tts_voice || "Ngọc Huyền (mới)")}
+                        className="h-6 px-1.5 text-[11px] text-blue-300 hover:text-blue-200 hover:bg-blue-500/10 gap-1 rounded-md"
+                        title="Sao lưu giọng đọc này lên Google Drive"
+                      >
+                        {syncingDriveVoice === (config.novel_tts_voice || config.tts_voice || "Ngọc Huyền (mới)") ? (
+                          <RefreshCw className="w-3 h-3 animate-spin text-blue-400" />
+                        ) : (
+                          <Cloud className="w-3 h-3 text-blue-400" />
+                        )}
+                        <span className="text-[10px]">Lưu Drive</span>
+                      </Button>
+                    )}
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handlePlayVoiceSample(config.novel_tts_voice || config.tts_voice || "Ngọc Huyền (mới)")}
+                      className="h-6 px-1.5 text-[11px] text-amber-300 hover:text-amber-200 hover:bg-amber-500/10 gap-1 rounded-md"
+                      title="Bấm để nghe thử giọng đọc mẫu"
                     >
-                      <option value="Ngọc Huyền (mới)">🎙️ Ngọc Huyền (mới) - Bắc Nữ (Khuyên dùng)</option>
-                      <option value="Nam Miền Nam">🎙️ Nam Miền Nam - Giọng Nam Ấm</option>
-                      <option value="Nữ Miền Nam">🎙️ Nữ Miền Nam - Giọng Nữ Ngọt</option>
-                      <option value="vi-VN-NamMinhNeural">🌐 Edge-TTS Nam Minh</option>
-                    </select>
-                  </div>
-
-                  {/* Tốc độ đọc (1.2x) */}
-                  <div>
-                    <label className="block text-[11px] font-semibold text-zinc-300 mb-1">
-                      B1. Tốc Độ Đọc (Speech Speed):
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <Input
-                        type="number"
-                        step="0.05"
-                        min="0.5"
-                        max="2.5"
-                        value={config.novel_tts_speed ?? 1.2}
-                        onChange={(e) => handleFieldChange("novel_tts_speed", parseFloat(e.target.value))}
-                        className="h-8 text-xs bg-zinc-900/90 border-amber-500/30 text-amber-300 font-bold"
-                      />
-                      <Badge className="bg-amber-500/20 text-amber-300 border-amber-500/40 text-[11px] shrink-0 font-mono">
-                        {config.novel_tts_speed ?? 1.2}x
-                      </Badge>
-                    </div>
-                  </div>
-
-                  {/* Tự động mở CapCut */}
-                  <div className="flex flex-col justify-center">
-                    <label className="block text-[11px] font-semibold text-zinc-300 mb-1">
-                      B5. Tự Động Mở CapCut PC:
-                    </label>
-                    <label className="flex items-center gap-2 text-xs text-zinc-300 cursor-pointer pt-1">
-                      <input
-                        type="checkbox"
-                        checked={config.auto_open_capcut ?? true}
-                        onChange={(e) => handleFieldChange("auto_open_capcut", e.target.checked)}
-                        className="rounded border-zinc-700 text-amber-500 focus:ring-amber-500 bg-zinc-900"
-                      />
-                      <span className="text-[11px] text-emerald-400 font-medium">Khởi chạy CapCut ngay sau B4</span>
-                    </label>
-                  </div>
+                      {previewLoading && playingVoice === (config.novel_tts_voice || config.tts_voice || "Ngọc Huyền (mới)") ? (
+                        <RefreshCw className="w-3 h-3 animate-spin text-amber-400" />
+                      ) : playingVoice === (config.novel_tts_voice || config.tts_voice || "Ngọc Huyền (mới)") ? (
+                        <>
+                          <Square className="w-3 h-3 fill-current text-amber-400" />
+                          <span className="text-[10px]">Dừng</span>
+                        </>
+                      ) : (
+                        <>
+                          <Volume2 className="w-3 h-3 text-amber-400" />
+                          <span className="text-[10px]">Nghe thử</span>
+                        </>
+                      )}
+                    </Button>
+                    Tốc độ:
+                    <Badge variant="outline" className="text-amber-300 border-amber-500/40 bg-amber-950/20 font-mono text-xs py-0.5 px-2">
+                      {config.novel_tts_speed ?? config.tts_speed ?? 1.2}x
+                    </Badge>
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setActiveTab("sub")}
+                    className="text-[11px] text-purple-400 hover:text-purple-300 h-6 px-2 hover:bg-purple-950/30"
+                  >
+                    (Đổi giọng & chỉnh Whisper tại tab Phụ đề)
+                  </Button>
                 </div>
 
-                {/* Tóm tắt các bước pipeline */}
-                <div className="p-2.5 rounded-lg bg-black/40 border border-zinc-800/80 text-[11px] text-zinc-400 font-mono space-y-1">
-                  <div className="text-zinc-300 font-bold text-[11px]">Luồng xử lý tự động khi bấm nút chạy:</div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-0.5 text-[10px]">
-                    <div>• <strong>B1:</strong> Sinh audio NghiTTS tốc độ {config.novel_tts_speed ?? 1.2}x từng câu.</div>
-                    <div>• <strong>B2:</strong> Xếp timeline + silence [0.2]/[0.5], sinh Master Audio & file SRT.</div>
-                    <div>• <strong>B3:</strong> Lấy ảnh cắt từ phân cảnh phim trong bộ truyện (tự động trích xuất ảnh 1080p sắc nét).</div>
-                    <div>• <strong>B4:</strong> Patch ảnh phân cảnh phim + Master Audio + Subtitle chữ vàng viền đen vào CapCut Draft.</div>
-                    <div>• <strong>B5:</strong> Tự động mở CapCut PC và sẵn sàng bấm <strong>Export</strong> xuất MP4!</div>
+                <div className="flex items-center gap-4 shrink-0">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="novel_auto_open_capcut"
+                      checked={config.auto_open_capcut ?? true}
+                      onCheckedChange={(checked) => handleFieldChange("auto_open_capcut", checked)}
+                      className="data-[state=checked]:bg-emerald-600"
+                    />
+                    <Label htmlFor="novel_auto_open_capcut" className="cursor-pointer text-[11px] font-medium text-emerald-400">
+                      Mở CapCut sau B4
+                    </Label>
                   </div>
+
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleRunNovelPipeline}
+                    disabled={novelLoading}
+                    className="bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-zinc-950 font-bold text-xs h-8 px-4 gap-1.5 shadow-md shadow-amber-500/20"
+                  >
+                    <Sparkles className="w-3.5 h-3.5 fill-current text-zinc-950" />
+                    <span>{novelLoading ? "Đang xử lý..." : "📖 Bắt đầu Tạo CapCut Draft"}</span>
+                  </Button>
                 </div>
+              </Card>
 
                 {/* Hiển thị kết quả sau khi chạy xong */}
                 {novelDraftResult && novelDraftResult.draft_folder && (
@@ -1313,12 +1565,11 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
                   </div>
                 )}
               </div>
-            </div>
           </ErrorBoundary>
         )}
 
-        {/* YouTube Auto-Publish Card */}
-        <div className="p-4 rounded-xl bg-gradient-to-r from-red-950/30 via-zinc-900/60 to-zinc-900/40 border border-red-500/20 space-y-3">
+        {/* YouTube Auto-Publish Card - Shadcn Card & Switch */}
+        <Card className="p-4 bg-gradient-to-r from-red-950/30 via-zinc-900/60 to-zinc-900/40 border border-red-500/20 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <span className="text-red-500 font-bold text-lg">▶</span>
@@ -1334,24 +1585,24 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
                 </div>
               </div>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="enable_auto_publish"
                 checked={Boolean(config.enable_auto_publish)}
-                onChange={(e) => handleFieldChange("enable_auto_publish", e.target.checked)}
-                className="sr-only peer"
+                onCheckedChange={(checked) => handleFieldChange("enable_auto_publish", checked)}
+                className="data-[state=checked]:bg-red-600"
               />
-              <div className="w-11 h-6 bg-zinc-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-zinc-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
-            </label>
+            </div>
           </div>
 
           {config.enable_auto_publish && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-zinc-800/80 animate-in fade-in-50">
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                <Label htmlFor="youtube_title" className="block text-xs font-semibold text-zinc-300 mb-1">
                   Tiêu đề YouTube (Mặc định: Tên file):
-                </label>
+                </Label>
                 <Input
+                  id="youtube_title"
                   type="text"
                   value={config.youtube_title || ""}
                   onChange={(e) => handleFieldChange("youtube_title", e.target.value)}
@@ -1360,10 +1611,11 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                <Label htmlFor="youtube_description" className="block text-xs font-semibold text-zinc-300 mb-1">
                   Mô tả & Hashtags:
-                </label>
+                </Label>
                 <Input
+                  id="youtube_description"
                   type="text"
                   value={config.youtube_description || ""}
                   onChange={(e) => handleFieldChange("youtube_description", e.target.value)}
@@ -1373,7 +1625,7 @@ export const ProjectDetails: React.FC<ProjectDetailsProps> = ({ folder, onBack, 
               </div>
             </div>
           )}
-        </div>
+        </Card>
 
         {/* Bottom Action Button */}
         <div className="pt-2 flex flex-col sm:flex-row gap-3">

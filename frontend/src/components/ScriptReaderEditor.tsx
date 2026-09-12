@@ -5,6 +5,8 @@ import {
   MapPin, Users, Image as ImageIcon, ChevronDown, ChevronUp
 } from "lucide-react";
 import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Badge } from "./ui/badge";
 import { toast } from "sonner";
 
 export interface ScriptReaderEditorProps {
@@ -291,16 +293,16 @@ export const ScriptReaderEditor: React.FC<ScriptReaderEditorProps> = ({
             </button>
           </div>
 
-          {/* BADGE THỐNG KÊ NHANH */}
+          {/* BADGE THỐNG KÊ NHANH - SHADCN UI */}
           <div className="flex items-center gap-2 text-xs font-mono">
-            <span className="text-zinc-400 flex items-center gap-1 bg-zinc-900/80 px-2 py-1 rounded-lg border border-zinc-800">
-              <Clock className="w-3 h-3 text-amber-400" />
+            <Badge variant="outline" className="text-zinc-300 border-amber-500/30 bg-zinc-900/90 gap-1.5 py-1 px-2.5 font-mono text-xs normal-case tracking-normal">
+              <Clock className="w-3.5 h-3.5 text-amber-400" />
               <strong className="text-amber-300">~{stats.durationText}</strong>
-              <span className="text-[10px] text-zinc-500">({ttsSpeed}x)</span>
-            </span>
-            <span className="text-zinc-400 bg-zinc-900/80 px-2 py-1 rounded-lg border border-zinc-800 hidden md:inline">
+              <span className="text-[10px] text-zinc-400">({ttsSpeed}x)</span>
+            </Badge>
+            <Badge variant="outline" className="text-zinc-300 border-zinc-800 bg-zinc-900/90 py-1 px-2.5 font-mono text-xs normal-case tracking-normal hidden md:inline-flex">
               {stats.words} từ
-            </span>
+            </Badge>
           </div>
         </div>
 
@@ -407,22 +409,22 @@ export const ScriptReaderEditor: React.FC<ScriptReaderEditorProps> = ({
         </div>
       </div>
 
-      {/* 2. THANH TÌM & THAY THẾ (NẾU MỞ) */}
+      {/* 2. THANH TÌM & THAY THẾ (NẾU MỞ) - SHADCN UI */}
       {showSearch && (
         <div className="p-3 rounded-xl bg-zinc-900/90 border border-amber-500/30 flex flex-col sm:flex-row items-center gap-2 animate-in fade-in slide-in-from-top-2">
-          <input
+          <Input
             type="text"
             placeholder="Tìm từ (vd: Hàn Lập, Lạc Vân Tông...)"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="flex-1 h-8 px-3 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 outline-none focus:border-amber-400"
+            className="flex-1 h-8 text-xs bg-zinc-950 border-zinc-800 text-zinc-100"
           />
-          <input
+          <Input
             type="text"
             placeholder="Thay bằng (vd: Hàn lão ma...)"
             value={replaceQuery}
             onChange={(e) => setReplaceQuery(e.target.value)}
-            className="flex-1 h-8 px-3 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-zinc-100 outline-none focus:border-amber-400"
+            className="flex-1 h-8 text-xs bg-zinc-950 border-zinc-800 text-zinc-100"
           />
           <div className="flex items-center gap-2">
             <Button

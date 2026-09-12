@@ -26,7 +26,17 @@ scratch/
 output_audio/
 models_cache/
 
-# nghitts: binary/model files (too large for git)
+# AI models and large binary weight files (never track in git)
+*.onnx
+*.onnx.json
+*.bin
+*.pt
+*.pth
+*.safetensors
+*.wasm
+**/tts-model/
+**/tts-model/**
+src/capcut_api/ai/nghitts/public/tts-model/
 nghitts/**/*.onnx
 nghitts/**/*.wasm
 nghitts/**/*.wav

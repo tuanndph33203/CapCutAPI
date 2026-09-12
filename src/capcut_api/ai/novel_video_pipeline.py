@@ -653,7 +653,8 @@ class NovelVideoPipeline:
             output_dir=output_images_dir
         )
 
-        # Gán ảnh cắt từ phân cảnh phim cho từng phân đoạn
+        # Gán ảnh cắt từ phân cảnh phim cho từng phân đoạn và sinh visual_shots (4-6s/shot)
+        total_shots = 0
         for idx, sc in enumerate(scenes):
             assigned_media = ""
             if scene_images:
@@ -665,7 +666,32 @@ class NovelVideoPipeline:
             sc["visual_type"] = "novel_scene_frame"
             sc["visual_note"] = "Ảnh cắt từ phân cảnh phim trong bộ truyện"
 
-        logger.info(f"✅ [B3] Hoàn thành gán {len(scenes)} ảnh cắt từ phân cảnh phim trong bộ truyện cho toàn bộ timeline!")
+            # Multi-shot B-roll Pacing: Chia nhỏ phân cảnh thành các visual shot 4-6s
+            scene_dur = sc["duration_sec"]
+            num_shots = max(1, round(scene_dur / 5.0))
+            shot_dur = scene_dur / num_shots
+            visual_shots = []
+            for shot_i in range(num_shots):
+                s_start = sc["start_sec"] + shot_i * shot_dur
+                s_dur = shot_dur if shot_i < num_shots - 1 else (sc["end_sec"] - s_start)
+                shot_img = assigned_media
+                if scene_images:
+                    # Luân chuyển ảnh từ scene_images để các shot liền kề có góc nhìn khác biệt
+                    shot_img_idx = (idx * 3 + shot_i) % len(scene_images)
+                    shot_img = scene_images[shot_img_idx]
+
+                visual_shots.append({
+                    "shot_id": f"{sc['scene_id']}_{shot_i + 1}",
+                    "start_sec": s_start,
+                    "end_sec": s_start + s_dur,
+                    "duration_sec": s_dur,
+                    "media_path": shot_img,
+                    "scale": 1.04 if shot_i % 2 == 0 else 1.08
+                })
+            sc["visual_shots"] = visual_shots
+            total_shots += len(visual_shots)
+
+        logger.info(f"✅ [B3] Hoàn thành gán {len(scenes)} phân cảnh ({total_shots} visual shots, nhịp 4-6s/cắt) từ {len(scene_images)} ảnh phân cảnh phim!")
         return scenes
 
     # =========================================================================
@@ -713,27 +739,43 @@ class NovelVideoPipeline:
             if start_us + dur_us > total_timeline_dur_us:
                 total_timeline_dur_us = start_us + dur_us
 
+        all_shots = []
+        for sc in scenes:
+            if sc.get("visual_shots"):
+                for sh in sc["visual_shots"]:
+                    all_shots.append(sh)
+            else:
+                all_shots.append({
+                    "shot_id": str(sc.get("scene_id", 1)),
+                    "start_sec": sc["start_sec"],
+                    "duration_sec": sc["duration_sec"],
+                    "media_path": sc.get("media_path", ""),
+                    "scale": 1.05
+                })
+
+        created_video_segments = []
         try:
             from capcut_api.core.pyJianYingDraft import (
                 Script_file, Video_material, Video_segment, Audio_material,
                 Audio_segment, Timerange, Clip_settings, Track_type,
-                Text_style, Text_border
+                Text_style, Text_border, CapCut_Transition_type
             )
             script = Script_file(width, height)
 
-            # 1. TRACK 1: VIDEO / ẢNH PHÂN CẢNH PHIM
+            # 1. TRACK 1: VIDEO / ẢNH PHÂN CẢNH PHIM (MULTI-SHOT B-ROLL 4-6s/SHOT + CHUYỂN CẢNH NATIVE)
             script.add_track(Track_type.video, "video")
-            for idx, sc in enumerate(scenes):
-                dur_us = int(sc["duration_sec"] * 1_000_000)
-                start_us = int(sc["start_sec"] * 1_000_000)
-                media_p = sc.get("media_path", "")
+            for shot_idx, sh in enumerate(all_shots):
+                dur_us = int(sh["duration_sec"] * 1_000_000)
+                start_us = int(sh["start_sec"] * 1_000_000)
+                media_p = sh.get("media_path", "")
+                scale_val = sh.get("scale", 1.05)
 
                 if media_p and os.path.exists(media_p):
-                    is_vid = sc.get("is_video", False)
+                    is_vid = sh.get("is_video", False)
                     final_media_path = str(Path(media_p).resolve())
                     if not is_vid:
                         try:
-                            dest_img = draft_images_dir / f"scene_{idx+1:03d}{Path(media_p).suffix or '.jpg'}"
+                            dest_img = draft_images_dir / f"shot_{shot_idx+1:03d}{Path(media_p).suffix or '.jpg'}"
                             if not dest_img.exists():
                                 shutil.copy2(media_p, dest_img)
                             final_media_path = str(dest_img.resolve())
@@ -746,9 +788,26 @@ class NovelVideoPipeline:
                     vseg = Video_segment(
                         vmat,
                         target_timerange=Timerange(start_us, dur_us),
-                        clip_settings=Clip_settings(scale_x=1.05, scale_y=1.05)
+                        clip_settings=Clip_settings(scale_x=scale_val, scale_y=scale_val)
                     )
-                    script.add_segment(vseg, "video")
+                    created_video_segments.append(vseg)
+
+            # Thêm chuyển cảnh Native (Dissolve / Mix) giữa các visual shot liền kề
+            for i in range(len(created_video_segments) - 1):
+                cur_seg = created_video_segments[i]
+                seg_dur_us = cur_seg.target_timerange.duration
+                trans_dur_us = min(500_000, seg_dur_us // 2)
+                if trans_dur_us >= 200_000:
+                    try:
+                        trans_type = CapCut_Transition_type.Dissolve if i % 2 == 0 else CapCut_Transition_type.Mix_1
+                        cur_seg.add_transition(trans_type, duration=trans_dur_us)
+                    except Exception as trans_err:
+                        logger.debug(f"Không thể thêm chuyển cảnh cho shot {i+1}: {trans_err}")
+
+            for vseg in created_video_segments:
+                script.add_segment(vseg, "video")
+
+            logger.info(f"🎬 [B4] Đã thêm {len(created_video_segments)} visual segments (multi-shot pacing 4-6s) kèm chuyển cảnh Native vào Track Video!")
 
             # 2. TRACK 2: MASTER AUDIO (Giọng đọc chính)
             if master_audio_path and os.path.exists(master_audio_path):
@@ -855,13 +914,50 @@ class NovelVideoPipeline:
         }
         (draft_folder / "draft_info.json").write_text(json.dumps(draft_info, ensure_ascii=False, indent=2), encoding="utf-8")
 
+        # Tự động sinh Thumbnail 3D YouTube điện ảnh cho tập phim
+        thumbnail_path = None
+        try:
+            from capcut_api.ai.thumbnail_generator import ThumbnailGenerator
+            keyframe_candidate = None
+            for sc in scenes:
+                m_p = sc.get("media_path")
+                if m_p and os.path.exists(m_p):
+                    keyframe_candidate = m_p
+                    break
+            if not keyframe_candidate and all_shots:
+                for sh in all_shots:
+                    m_p = sh.get("media_path")
+                    if m_p and os.path.exists(m_p):
+                        keyframe_candidate = m_p
+                        break
+
+            ep_match = re.search(r"(?:tap|tập|ep|episode)[\s_]*(\d+)", project_name, re.IGNORECASE)
+            ep_label = f"TẬP {ep_match.group(1)}" if ep_match else "TẬP MỚI"
+
+            thumb_gen = ThumbnailGenerator()
+            out_thumb = draft_folder / "thumbnail.jpg"
+            thumb_gen.generate_thumbnail(
+                base_image_path=keyframe_candidate,
+                novel_title=self.novel_id or "Phàm Nhân Tu Tiên",
+                episode_label=ep_label,
+                subtitle_highlight="ĐẠI CHIẾN ĐỈNH CAO",
+                output_path=str(out_thumb)
+            )
+            if out_thumb.exists():
+                thumbnail_path = str(out_thumb.resolve())
+                logger.info(f"🎨 [B4] Đã tạo thành công Thumbnail YouTube 3D: {out_thumb.name} ({out_thumb.stat().st_size / 1024:.1f} KB)")
+        except Exception as e:
+            logger.warning(f"⚠️ [B4] Không thể tạo thumbnail tự động: {e}")
+
         logger.info(f"✅ [B4] Đã tạo thành công CapCut Draft tại: {draft_folder}")
         return {
             "draft_folder": str(draft_folder.resolve()),
             "draft_id": draft_id,
             "total_duration_sec": total_timeline_dur_us / 1_000_000.0,
             "scenes_count": len(scenes),
-            "subtitles_count": len(sentences)
+            "shots_count": len(created_video_segments),
+            "subtitles_count": len(sentences),
+            "thumbnail_path": thumbnail_path
         }
 
     # =========================================================================
@@ -924,15 +1020,17 @@ class NovelVideoPipeline:
         auto_open_capcut: bool = True,
         bgm_path: Optional[str] = None,
         bgm_volume: float = 0.15,
-        enable_dynamic_pacing: bool = True
+        enable_dynamic_pacing: bool = True,
+        clean_audio_cache: bool = True
     ) -> Dict[str, Any]:
         """
         Thực thi toàn bộ luồng 5 bước:
         B1: Sinh âm thanh NghiTTS từ kịch bản (hỗ trợ Dynamic Pacing nhịp điệu phân cảnh)
         B2: Xếp âm thanh + khoảng cách câu [0.2], [0.5], sinh ra SRT & Master Audio
-        B3: Dùng AI chia phân đoạn video và gán ảnh/video
-        B4: Patch vào CapCut Draft (Video + Master Audio + BGM Looping + Phụ đề chữ vàng viền đen)
+        B3: Dùng AI chia phân đoạn video (multi-shot 4-6s) và gán ảnh/video
+        B4: Patch vào CapCut Draft (Video Multi-shot + Transition Native + Master Audio + BGM Looping + Subtitle + Auto-Thumbnail 3D)
         B5: Mở CapCut PC và sẵn sàng xuất video
+        Dọn dẹp: Tự động dọn dẹp cache âm thanh đệm từng câu sau khi đã ghép Master
         """
         t0 = time.time()
         if not project_name:
@@ -961,7 +1059,7 @@ class NovelVideoPipeline:
             master_audio_name=project_name
         )
 
-        # BƯỚC 3: Phân đoạn video & gán ảnh cắt từ phân cảnh phim trong bộ truyện
+        # BƯỚC 3: Phân đoạn video & gán ảnh cắt từ phân cảnh phim trong bộ truyện (kèm multi-shot 4-6s)
         scenes = self.step3_ai_scene_segmentation_and_visuals(
             sentences=sentences,
             media_paths=media_paths,
@@ -969,7 +1067,7 @@ class NovelVideoPipeline:
             output_images_dir=session_dir / "images"
         )
 
-        # BƯỚC 4: Patch vào CapCut Draft (kèm nhạc nền BGM lặp lại và căn chỉnh âm lượng)
+        # BƯỚC 4: Patch vào CapCut Draft (kèm chuyển cảnh Native, BGM lặp lại và sinh Thumbnail 3D)
         step4_res = self.step4_build_capcut_draft(
             project_name=project_name,
             scenes=scenes,
@@ -993,6 +1091,11 @@ class NovelVideoPipeline:
             auto_launch=auto_open_capcut
         )
 
+        # Dọn dẹp cache âm thanh đệm từng câu (giữ Master MP3, Master WAV, SRT)
+        cache_cleanup_info = None
+        if clean_audio_cache:
+            cache_cleanup_info = self.clean_session_audio_cache(session_dir)
+
         elapsed = time.time() - t0
         logger.info(f"🎉 Toàn bộ Pipeline 5 bước hoàn thành xuất sắc trong {elapsed:.2f}s!")
 
@@ -1005,6 +1108,110 @@ class NovelVideoPipeline:
             "srt_file": step2_res.get("srt_file"),
             "total_duration_sec": step2_res.get("total_duration_sec"),
             "scenes_count": len(scenes),
+            "shots_count": step4_res.get("shots_count", len(scenes)),
             "sentences_count": len(sentences),
+            "thumbnail_path": step4_res.get("thumbnail_path"),
+            "cache_cleanup": cache_cleanup_info,
             "capcut_status": step5_res
+        }
+
+    # =========================================================================
+    # DỌN DẸP CACHE ÂM THANH ĐỆM (Audio Cache Cleaner)
+    # =========================================================================
+    def clean_session_audio_cache(self, session_dir: Path, keep_master: bool = True) -> Dict[str, Any]:
+        """
+        Dọn dẹp các file âm thanh tạm/từng câu (sent_*.wav, chunk_*.wav, temp_*.wav)
+        trong thư mục phiên làm việc để giải phóng dung lượng đĩa cứng,
+        đồng thời bảo tồn nguyên vẹn Master MP3/WAV, SRT, kịch bản text và ảnh.
+        """
+        session_path = Path(session_dir)
+        if not session_path.exists() or not session_path.is_dir():
+            return {"cleaned_count": 0, "freed_bytes": 0, "freed_mb": 0.0}
+
+        cleaned_count = 0
+        freed_bytes = 0
+
+        patterns = ["sent_*.wav", "chunk_*.wav", "temp_*.wav", "test_*.wav"]
+        for pattern in patterns:
+            for f in session_path.glob(pattern):
+                # Bảo đảm tuyệt đối không xóa Master Audio
+                if "master" in f.name.lower():
+                    continue
+                try:
+                    size = f.stat().st_size
+                    f.unlink()
+                    cleaned_count += 1
+                    freed_bytes += size
+                except Exception as e:
+                    logger.debug(f"Lỗi xóa cache file {f.name}: {e}")
+
+        freed_mb = round(freed_bytes / (1024 * 1024), 2)
+        logger.info(f"🧹 [CacheCleaner] Đã dọn dẹp {cleaned_count} file âm thanh đệm ({freed_mb} MB) trong {session_path.name}, bảo tồn Master MP3 & SRT!")
+        return {
+            "cleaned_count": cleaned_count,
+            "freed_bytes": freed_bytes,
+            "freed_mb": freed_mb
+        }
+
+    # =========================================================================
+    # HÀNG ĐỢI SẢN XUẤT HÀNG LOẠT (Batch Production Queue)
+    # =========================================================================
+    def run_batch_pipeline(
+        self,
+        episodes: List[Dict[str, Any]],
+        common_config: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """
+        Hàng đợi sản xuất hàng loạt nhiều tập truyện (Batch Production Queue):
+        - Chạy tuần tự từng tập với cấu hình riêng hoặc cấu hình chung kế thừa.
+        - Tự động dọn dẹp cache sau mỗi tập để tránh đầy ổ cứng.
+        - Tổng hợp thống kê tiến độ, thời lượng và đường dẫn kết quả xuất ra.
+        """
+        common = common_config or {}
+        t_start = time.time()
+        results = []
+        logger.info(f"🚀 [BatchQueue] Bắt đầu xử lý hàng đợi {len(episodes)} tập truyện...")
+
+        for idx, ep in enumerate(episodes):
+            ep_name = ep.get("project_name") or f"{self.novel_id}_Episode_{idx+1}"
+            logger.info(f"▶️ [BatchQueue] [{idx+1}/{len(episodes)}] Đang sản xuất tập: {ep_name}...")
+
+            script_text = ep.get("script_text", "")
+            if not script_text.strip():
+                logger.warning(f"⚠️ [BatchQueue] Bỏ qua tập {ep_name} do kịch bản rỗng.")
+                results.append({"project_name": ep_name, "success": False, "error": "Kịch bản rỗng"})
+                continue
+
+            try:
+                res = self.run_full_pipeline(
+                    script_text=script_text,
+                    project_name=ep_name,
+                    voice_name=ep.get("voice_name", common.get("voice_name", "Ngọc Huyền (mới)")),
+                    speed=ep.get("speed", common.get("speed", 1.2)),
+                    media_paths=ep.get("media_paths", common.get("media_paths")),
+                    canvas_ratio=ep.get("canvas_ratio", common.get("canvas_ratio", "16:9")),
+                    auto_open_capcut=ep.get("auto_open_capcut", common.get("auto_open_capcut", False)),
+                    bgm_path=ep.get("bgm_path", common.get("bgm_path")),
+                    bgm_volume=ep.get("bgm_volume", common.get("bgm_volume", 0.15)),
+                    enable_dynamic_pacing=ep.get("enable_dynamic_pacing", common.get("enable_dynamic_pacing", True)),
+                    clean_audio_cache=ep.get("clean_audio_cache", common.get("clean_audio_cache", True))
+                )
+                results.append(res)
+            except Exception as e:
+                logger.error(f"❌ [BatchQueue] Lỗi sản xuất tập {ep_name}: {e}", exc_info=True)
+                results.append({"project_name": ep_name, "success": False, "error": str(e)})
+
+        total_elapsed = round(time.time() - t_start, 2)
+        success_count = sum(1 for r in results if r.get("success"))
+        total_dur_sec = sum(r.get("total_duration_sec", 0.0) for r in results if r.get("success"))
+
+        logger.info(f"🏁 [BatchQueue] Hoàn thành {success_count}/{len(episodes)} tập trong {total_elapsed}s (Tổng thời lượng video: {total_dur_sec:.1f}s)!")
+        return {
+            "success": success_count == len(episodes) and len(episodes) > 0,
+            "total_episodes": len(episodes),
+            "successful_count": success_count,
+            "failed_count": len(episodes) - success_count,
+            "total_duration_sec": round(total_dur_sec, 2),
+            "total_elapsed_sec": total_elapsed,
+            "results": results
         }
