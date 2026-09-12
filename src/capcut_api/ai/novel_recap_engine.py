@@ -994,184 +994,6 @@ TRẢ VỀ ĐÚNG ĐỊNH DẠNG JSON:
         # 3. Nếu không có transcript, báo lỗi rõ ràng
         return "", {"error": "Cần có video hoặc file SRT tham khảo tại Step 1-2 để AI đọc lời thoại đối chiếu!"}
 
-    def _build_storytelling_from_context(self, novel_title: str, next_ep: int, current_summary: str, next_novel_context: str) -> Dict[str, Any]:
-        """Biên kịch Thuyết minh & Kể chuyện Review Anime/Truyện đỉnh cao chuẩn phong cách YouTube (đối thoại sống động, giao nhân vật, phân tích thế cục)."""
-        import concurrent.futures
-        import urllib.parse
-
-        def translate_single(t: str) -> str:
-            if not t or not re.search(r'[\u4e00-\u9fff]', t):
-                return t
-            endpoints = [
-                "https://translate.googleapis.com/translate_a/single?client=gtx&sl=zh-CN&tl=vi&dt=t&q=",
-                "https://translate.googleapis.com/translate_a/single?client=dict-chrome-ex&sl=zh-CN&tl=vi&dt=t&q="
-            ]
-            for ep in endpoints:
-                try:
-                    url = ep + urllib.parse.quote(t)
-                    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-                    r = requests.get(url, headers=headers, timeout=6)
-                    if r.status_code == 200:
-                        res = r.json()
-                        trans = "".join(s[0] for s in res[0] if s and s[0]).strip()
-                        if trans:
-                            return trans
-                except Exception:
-                    time.sleep(0.1)
-            return t
-
-        # Tách các đoạn văn nguyên tác có độ dài phù hợp
-        raw_paragraphs = [p.strip() for p in next_novel_context.split("\n") if len(p.strip()) > 20 and not p.strip().startswith("===")]
-        if not raw_paragraphs:
-            raw_paragraphs = [
-                f"{novel_title} tiếp tục diễn biến kịch tính với những trận đối đầu cam go giữa các thế lực.",
-                f"Hàn Lập tiến vào mật thất chuẩn bị tu luyện tầng tiếp theo, linh khí xung quanh dao động dữ dội.",
-                f"Những thế lực xung quanh bắt đầu rục rịch điều động nhân mã, một trận chiến lớn sắp sửa bùng nổ."
-            ]
-
-        # Lấy tối đa 35 đoạn để đảm bảo video dài dặn 8-15 phút
-        selected_raw = raw_paragraphs[:35]
-
-        # Dịch song song siêu tốc qua ThreadPoolExecutor
-        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
-            translated_paragraphs = list(executor.map(translate_single, selected_raw))
-
-        # TỰ ĐỘNG CHUYỂN HÓA VĂN HỌC THÀNH VĂN PHONG REVIEW THUYẾT MINH CHUYÊN NGHIỆP
-        scenes = []
-
-        # Scene 1: Mở đầu Hook & Recap thông minh
-        if current_summary and len(current_summary.strip()) > 15 and "mặc định" not in current_summary.lower():
-            opening_text = f"{novel_title} tập {next_ep}. Ở cuối tập trước, {current_summary.strip()[:150]}. Trong tập này chúng ta cùng theo dõi những diễn biến tiếp theo nha."
-        else:
-            opening_text = f"{novel_title} tập {next_ep}. Chào mừng các bạn đã quay trở lại với hành trình tu tiên đầy hấp dẫn. Trong tập này chúng ta cùng xem tiếp những diễn biến tiếp theo nha."
-
-        scenes.append({
-            "scene_id": 1,
-            "voiceover": opening_text,
-            "visual_prompt": f"Cinematic anime {novel_title}, dramatic intro scene, 4k quality",
-            "animation": "Zoom In"
-        })
-
-        # Danh sách liên từ & lời dẫn chuyển cảnh mượt mà
-        transitions = [
-            "Trở lại bối cảnh lúc này,",
-            "Không ngoài dự đoán,",
-            "Thấy đối phương xuất hiện,",
-            "Ánh mắt Hàn Lập chớp động vài cái, sau khi cười thầm một tiếng bèn",
-            "Lúc này tại hiện trường,",
-            "Sau một hồi quan sát kỹ lưỡng,",
-            "Trước tình thế cấp bách,",
-            "Hàn Lập sờ sờ cằm âm thầm tự đánh giá, sau đó",
-            "Đối phương nghe vậy sắc mặt có chút biến đổi, lập tức",
-            "Cùng lúc đó, bốn phía xung quanh bắt đầu xuất hiện dao động dữ dội,"
-        ]
-
-        animations = ["Zoom In", "Zoom Out", "Pan Left", "Pan Right"]
-
-        # TỪ ĐIỂN THUẬT NGỮ KIẾM HIỆP TU TIÊN & CHUẨN HÓA DANH TỪ RIÊNG & ĐỐI THOẠI
-        tu_tien_dict = [
-            (r'\bngười [Aa]nh k[ỳy]\b', 'Nguyên Anh Kỳ'),
-            (r'\bngười [Aa]nh\b', 'Nguyên Anh'),
-            (r'\bkết đang k[ỳy]\b', 'Kết Đan Kỳ'),
-            (r'\bkết đang\b', 'Kết Đan'),
-            (r'\bthử thách đẫm máu\b', 'Huyết Sắc Thí Luyện'),
-            (r'\bvùng cấm\b', 'Cấm Địa'),
-            (r'\bchuyên gia\b', 'cao thủ'),
-            (r'\bcâu cá ở vùng nước có sóng gió\b', 'đục nước béo cò'),
-            (r'\bcụ quốc minh\b', 'Cửu Quốc Minh'),
-            (r'\bthiên đạo minh\b', 'Thiên Đạo Minh'),
-            (r'\blạc vân tông\b', 'Lạc Vân Tông'),
-            (r'\blạc vân phái\b', 'Lạc Vân Tông'),
-            (r'\bhoàng phong cốc\b', 'Hoàng Phong Cốc'),
-            (r'\b[Hh]an [Ll]i\b', 'Hàn Lập'),
-            (r'\b[Hh]àng [Ll]ập\b', 'Hàn Lập'),
-            (r'\b[Hh]àn anh\b', 'Hàn huynh'),
-            (r'\b[Hh]an anh\b', 'Hàn huynh'),
-            (r'\b[Hh]àng sư đệ\b', 'Hàn sư đệ'),
-            (r'\b[Hh]àng mỗ\b', 'Hàn mỗ'),
-            (r'\b[Hh]an [Zz]hu\b', 'Hàn Chú'),
-            (r'\b[Ee]rluzi\b', 'Nhị Lăng Tử'),
-            (r'\b[Mm]ei [Nn]ing\b', 'Mai Ngưng'),
-            (r'\b[Mm]ei tiểu thư\b', 'Mai tiểu thư'),
-            (r'\b[Tt]ử [Ll]inh\b', 'Tử Linh'),
-            (r'\bnam lũng hầu\b', 'Nam Lũng Hầu'),
-            (r'\b[Tt]rụy [Mm]a [Cc]ốc\b', 'Trụy Ma Cốc'),
-            (r'\b[Cc]huyện [Mm]a [Cc]ốc\b', 'Trụy Ma Cốc'),
-            (r'\b[Mm]u [Pp]eiling\b', 'Mộ Bái Linh'),
-            (r'\bmộ phải linh\b', 'Mộ Bái Linh'),
-            (r'\bmộ bái linh\b', 'Mộ Bái Linh'),
-            (r'\bhỏa long đồng tử\b', 'Hỏa Long Đồng Tử'),
-            (r'\bpháp sĩ xa lạ\b', 'Pháp Sĩ Mộ Lan'),
-            (r'\blữ lạc\b', 'Lữ Lạc'),
-            (r'\blữ lão\b', 'Lữ trưởng lão'),
-            (r'\blữ tiền bối\b', 'Lữ tiền bối'),
-            (r'\blam tiền bối\b', 'Lam tiền bối'),
-            (r'\blão già họ mã\b', 'lão già họ Mã'),
-            (r'\bbạc đà tử\b', 'Bạc đà tử'),
-            (r'\btrưởng lão tóc bạc trình\b', 'Trình trưởng lão tóc bạc'),
-            (r'\bthiên phong huyền ba trận\b', 'Thiên Phong Huyền Ba Trận'),
-            (r'\bhoàng long sơn\b', 'Hoàng Long Sơn'),
-            (r'\bquỳnh bàn lầu cát\b', 'Quỳnh Bàn Lâu Các'),
-            (r'\btrọc mi đại hán\b', 'Trọc Mi đại hán'),
-            (r'\blục sắc quái vụ\b', 'quái vụ màu xanh lục'),
-            (r'\bbích lục vụ hải\b', 'biển sương mù xanh biếc'),
-            (r'\bngười đẹp xiu\b', 'nữ tu'),
-            (r'\bđẹp xiu\b', 'nữ tu xinh đẹp'),
-            (r'\bvợ lẽ\b', 'thị thiếp'),
-            (r'\btây quốc\b', 'Khê Quốc'),
-            (r'\bthuốc tiên không thể được hình thành\b', 'không thể Kết Đan thành công'),
-            (r'\bhòa thượng cao cấp\b', 'tu sĩ cao cấp'),
-            (r'\bhòa thượng\b', 'tu sĩ'),
-            (r'\bHan khác với\b', 'Hàn mỗ khác với'),
-            (r'\bchạm vào đàn ông\. Là chuyện tình cảm giữa phụ nữ\b', 'vướng bận chuyện nam nữ tình trường'),
-            (r'\bcon đường trường sinh bất lão\b', 'đại đạo trường sinh'),
-            (r'\bem gái tôi\b', 'muội muội của ta'),
-            (r'\bem gái\b', 'muội muội')
-        ]
-
-        def polish_tu_tien_text(text: str) -> str:
-            t = text
-            for pat, repl in tu_tien_dict:
-                t = re.sub(pat, repl, t, flags=re.IGNORECASE)
-            return t
-
-        for idx, vi_text in enumerate(translated_paragraphs):
-            clean_p = re.sub(r'【.*?】|\[.*?\]', '', vi_text).strip()
-            if len(clean_p) < 15:
-                continue
-
-            # Chuẩn hóa lời thoại có ngoặc kép và danh xưng
-            clean_p = clean_p.replace('“', '"').replace('”', '"').replace("‘", "'").replace("’", "'")
-            clean_p = polish_tu_tien_text(clean_p)
-
-            # Gọt dũa lời dẫn chuyện review
-            lead = transitions[idx % len(transitions)] if idx > 0 and not clean_p.startswith('"') and idx % 3 == 1 else ""
-            if lead and not clean_p.lower().startswith(("khi", "lúc", "sau", "tuy", "nhưng", "đột nhiên", "trở lại")):
-                enhanced_vo = f"{lead} {clean_p[0].lower() + clean_p[1:]}"
-            else:
-                enhanced_vo = clean_p
-
-            scenes.append({
-                "scene_id": len(scenes) + 1,
-                "voiceover": enhanced_vo,
-                "visual_prompt": f"Anime fantasy cultivation battle, character dialogue, cinematic lighting, scene {idx+1}",
-                "animation": animations[idx % len(animations)]
-            })
-
-        # Scene cuối: Outro kêu gọi tương tác
-        scenes.append({
-            "scene_id": len(scenes) + 1,
-            "voiceover": f"Tới đây cũng tạm thời kết thúc nội dung của tập hôm nay rồi. Cảm ơn các bạn đã xem hết video. Nếu muốn mình ra thêm tập {next_ep + 1} thì đừng quên để lại ý kiến dưới phần bình luận nhé. Còn bây giờ xin chào và hẹn gặp lại.",
-            "visual_prompt": f"Anime outro screen with subscribe and like button, fantasy background",
-            "animation": "Zoom Out"
-        })
-
-        return {
-            "title": f"{novel_title} Tập {next_ep}",
-            "opening_hook": scenes[0]["voiceover"],
-            "scenes": scenes,
-            "closing_outro": scenes[-1]["voiceover"]
-        }
 
     def _find_reference_review_script(self, novel_id: str, next_ep: int) -> Optional[List[str]]:
         """Tìm kiếm kịch bản review mẫu chất lượng cao trong thư mục data hoặc Downloads của User."""
@@ -1277,6 +1099,8 @@ TRẢ VỀ ĐÚNG ĐỊNH DẠNG JSON:
 
     def generate_script(self, current_summary: str, next_novel_context: str, current_ep: int, next_ep: int, novel_title: str = "Phàm Nhân Tu Tiên", custom_prompt: Optional[str] = None, detection_info: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """Tạo Kịch Bản Thuyết Minh AI chuẩn phong cách Review hoạt hình Tiên Hiệp triệu view, độ dài khoảng 15 phút (2,200 - 3,000 từ)."""
+        if isinstance(next_novel_context, tuple):
+            next_novel_context = next_novel_context[0]
         
         # 1. Phân tích prompt của người dùng để xác định phong cách & trọng tâm
         prompt_lower = (custom_prompt or "").lower()
@@ -1289,8 +1113,8 @@ TRẢ VỀ ĐÚNG ĐỊNH DẠNG JSON:
             style_instruction = "Phong cách phân tích spoiler trailer bóc tách các tình tiết then chốt, giải mã bí ẩn diễn biến sắp tới."
 
         # Nhận diện yêu cầu thời lượng / độ dài từ Prompt (hoặc để BỘ ÓC AI tự do quyết định)
-        m_dur = re.search(r'(\d+)\s*(?:phút|p|min)', prompt_lower)
-        if m_dur:
+        m_dur = re.search(r'(\d+)\s*(?:phút|phut|mins?|minutes?|\bp\b)', prompt_lower)
+        if m_dur and 3 <= int(m_dur.group(1)) <= 60:
             user_mins = int(m_dur.group(1))
             user_words = user_mins * 160
             duration_instruction = f"Mục tiêu thời lượng: Khoảng {user_mins} PHÚT theo đúng yêu cầu trong prompt (Tương đương ~{user_words} từ tiếng Việt)."
@@ -1389,120 +1213,112 @@ QUY TRÌNH TƯ DUY CỦA BỘ ÓC AI (BẮT BUỘC TUÂN THỦ NGHIÊM NGẶT):
         try:
             from capcut_api.api.gui_app import build_ai_translation_config, call_ai_json_object
             ai_config = build_ai_translation_config(item_config={}, purpose="context")
-            if ai_config and ai_config.get("enabled"):
-                res = call_ai_json_object(ai_config, system_prompt, user_payload, line_count=100)
-                if isinstance(res, dict) and (res.get("scenes") or res.get("acts")):
-                    def clean_chinese_chars(text: str) -> str:
-                        replacements = {
-                            "草原": "thảo nguyên",
-                            "令牌": "lệnh bài",
-                            "大阵": "đại trận",
-                            "阵法": "trận pháp",
-                            "元婴": "Nguyên Anh",
-                            "法宝": "pháp bảo",
-                            "神识": "thần thức",
-                        }
-                        for k, v in replacements.items():
-                            text = text.replace(k, v)
-                        cleaned = re.sub(r'[\u4e00-\u9fff]+', '', text)
-                        cleaned = re.sub(r'\s{2,}', ' ', cleaned).strip()
-                        return cleaned
+            if not ai_config or not ai_config.get("enabled"):
+                raise RuntimeError(
+                    "⚠️ Chưa cấu hình AI API Key (Gemini, OpenAI, Claude). "
+                    "Hệ thống yêu cầu mô hình AI LLM để biên kịch kịch bản review hoạt hình/truyện chất lượng cao. "
+                    "Vui lòng cài đặt API Key trong Cài Đặt trước khi chạy pipeline!"
+                )
 
-                    parsed_scenes = []
-                    raw_scenes = res.get("scenes") or []
-                    if not raw_scenes and res.get("acts"):
-                        # Fallback nếu model trả về acts
-                        for act_idx, act in enumerate(res.get("acts", [])):
-                            lines = act.get("voiceover_lines", [])
-                            if lines:
-                                vo = "\n[0.2]\n".join(clean_chinese_chars(l) for l in lines if clean_chinese_chars(l))
-                                raw_scenes.append({
-                                    "scene_id": act_idx + 1,
-                                    "title": act.get("act_title") or f"Hồi {act_idx + 1}",
-                                    "location": "Bối cảnh phim",
-                                    "characters": ["Nhân vật"],
-                                    "visual_prompt": f"Anime 3D {novel_title}, scene {act_idx + 1}, cinematic 4k",
-                                    "voiceover": vo
-                                })
+            res = call_ai_json_object(ai_config, system_prompt, user_payload, line_count=100)
+            if not isinstance(res, dict) or not (res.get("scenes") or res.get("acts")):
+                raise RuntimeError(
+                    f"⚠️ Mô hình AI không trả về kịch bản hợp lệ. Phản hồi nhận được: {str(res)[:200]}"
+                )
 
-                    for idx, sc in enumerate(raw_scenes):
-                        vo_raw = clean_chinese_chars(sc.get("voiceover", ""))
-                        if vo_raw:
-                            # Đảm bảo các câu bên trong dùng [0.2], không dùng [0.5]
-                            cleaned_vo = re.sub(r'\[(?:0\.[4-9]|\d+(?:\.\d+)?)\]', '[0.2]', vo_raw)
-                            parsed_scenes.append({
-                                "scene_id": idx + 1,
-                                "title": sc.get("title") or f"Phân Cảnh #{idx + 1}",
-                                "location": sc.get("location") or "Bối cảnh phim",
-                                "characters": sc.get("characters") or ["Nhân vật"],
-                                "action_summary": sc.get("action_summary") or "",
-                                "visual_prompt": sc.get("visual_prompt") or f"Anime 3D {novel_title}, scene {idx+1}, cinematic 4k",
-                                "voiceover": cleaned_vo,
-                                "estimated_duration_sec": sc.get("estimated_duration_sec") or round(len(cleaned_vo.split()) / 3.3, 1)
-                            })
+            def clean_chinese_chars(text: str) -> str:
+                replacements = {
+                    "草原": "thảo nguyên",
+                    "令牌": "lệnh bài",
+                    "大阵": "đại trận",
+                    "阵法": "trận pháp",
+                    "元婴": "Nguyên Anh",
+                    "法宝": "pháp bảo",
+                    "神识": "thần thức",
+                }
+                for k, v in replacements.items():
+                    text = text.replace(k, v)
+                cleaned = re.sub(r'[\u4e00-\u9fff]+', '', text)
+                cleaned = re.sub(r'\s{2,}', ' ', cleaned).strip()
+                return cleaned
 
-                    # Ghép các cảnh lại thành full_plain_text với [0.5] CHỈ GIỮA CÁC CẢNH
-                    formatted_script_parts = []
-                    opening_hook = clean_chinese_chars(res.get("opening_hook", ""))
-                    if opening_hook:
-                        formatted_script_parts.append(opening_hook)
+            parsed_scenes = []
+            raw_scenes = res.get("scenes") or []
+            if not raw_scenes and res.get("acts"):
+                # Fallback nếu model trả về acts
+                for act_idx, act in enumerate(res.get("acts", [])):
+                    lines = act.get("voiceover_lines", [])
+                    if lines:
+                        vo = "\n[0.2]\n".join(clean_chinese_chars(l) for l in lines if clean_chinese_chars(l))
+                        raw_scenes.append({
+                            "scene_id": act_idx + 1,
+                            "title": act.get("act_title") or f"Hồi {act_idx + 1}",
+                            "location": "Bối cảnh phim",
+                            "characters": ["Nhân vật"],
+                            "visual_prompt": f"Anime 3D {novel_title}, scene {act_idx + 1}, cinematic 4k",
+                            "voiceover": vo
+                        })
 
-                    for sc in parsed_scenes:
-                        if sc["voiceover"]:
-                            formatted_script_parts.append(sc["voiceover"])
+            for idx, sc in enumerate(raw_scenes):
+                vo_raw = clean_chinese_chars(sc.get("voiceover", ""))
+                if vo_raw:
+                    # Đảm bảo các câu bên trong dùng [0.2], không dùng [0.5]
+                    cleaned_vo = re.sub(r'\[(?:0\.[4-9]|\d+(?:\.\d+)?)\]', '[0.2]', vo_raw)
+                    parsed_scenes.append({
+                        "scene_id": idx + 1,
+                        "title": sc.get("title") or f"Phân Cảnh #{idx + 1}",
+                        "location": sc.get("location") or "Bối cảnh phim",
+                        "characters": sc.get("characters") or ["Nhân vật"],
+                        "action_summary": sc.get("action_summary") or "",
+                        "visual_prompt": sc.get("visual_prompt") or f"Anime 3D {novel_title}, scene {idx+1}, cinematic 4k",
+                        "voiceover": cleaned_vo,
+                        "estimated_duration_sec": sc.get("estimated_duration_sec") or round(len(cleaned_vo.split()) / 3.3, 1)
+                    })
 
-                    closing_outro = clean_chinese_chars(res.get("closing_outro", ""))
-                    if closing_outro:
-                        formatted_script_parts.append(closing_outro)
+            # Ghép các cảnh lại thành full_plain_text với [0.5] CHỈ GIỮA CÁC CẢNH
+            formatted_script_parts = []
+            opening_hook = clean_chinese_chars(res.get("opening_hook", ""))
+            if opening_hook:
+                formatted_script_parts.append(opening_hook)
 
-                    full_plain_text = "\n[0.5]\n".join(formatted_script_parts)
+            for sc in parsed_scenes:
+                if sc["voiceover"]:
+                    formatted_script_parts.append(sc["voiceover"])
 
-                    return {
-                        "title": res.get("title") or f"{novel_title} Tập {next_ep}",
-                        "opening_hook": opening_hook,
-                        "scenes": parsed_scenes,
-                        "closing_outro": closing_outro,
-                        "full_plain_text": full_plain_text,
-                        "acts": res.get("acts", []),
-                        "total_words": sum(len(p.split()) for p in formatted_script_parts)
-                    }
-            return self._build_storytelling_from_context(novel_title, next_ep, current_summary, next_novel_context)
+            closing_outro = clean_chinese_chars(res.get("closing_outro", ""))
+            if closing_outro:
+                formatted_script_parts.append(closing_outro)
+
+            full_plain_text = "\n[0.5]\n".join(formatted_script_parts)
+
+            return {
+                "title": res.get("title") or f"{novel_title} Tập {next_ep}",
+                "opening_hook": opening_hook,
+                "scenes": parsed_scenes,
+                "closing_outro": closing_outro,
+                "full_plain_text": full_plain_text,
+                "acts": res.get("acts", []),
+                "total_words": sum(len(p.split()) for p in formatted_script_parts)
+            }
         except Exception as e:
             logger.error(f"⚠️ [NOVEL SCRIPT AI ERROR]: {e}", exc_info=True)
-            return self._build_storytelling_from_context(novel_title, next_ep, current_summary, next_novel_context)
+            raise
 
     async def generate_tts(self, scenes: List[Dict[str, Any]], voice: str = "vi-VN-NamMinhNeural") -> List[Dict[str, Any]]:
         import asyncio
-
-        def clean_vietnamese_text(t: str) -> str:
-            if re.search(r'[\u4e00-\u9fff]', t):
-                try:
-                    url = "https://translate.googleapis.com/translate_a/single"
-                    params = {"client": "gtx", "sl": "zh-CN", "tl": "vi", "dt": "t", "q": t}
-                    r = requests.get(url, params=params, timeout=5)
-                    if r.status_code == 200:
-                        res = r.json()
-                        trans = "".join(s[0] for s in res[0] if s and s[0]).strip()
-                        if trans:
-                            return trans
-                except Exception:
-                    pass
-            return t
 
         async def process_one_scene(idx: int, scene: Dict[str, Any]) -> Dict[str, Any]:
             raw_text = scene.get("voiceover", "").strip()
             if not raw_text:
                 return dict(scene, duration=3.0)
             
-            text = clean_vietnamese_text(raw_text)
             # Làm sạch thẻ pause [0.2] thành dấu ngắt câu tự nhiên khi đọc TTS
-            tts_text = re.sub(r'\[\d+(?:\.\d+)?\]', '...', text).strip()
+            tts_text = re.sub(r'\[\d+(?:\.\d+)?\]', '...', raw_text).strip()
             out_file = self.audio_output_dir / f"scene_{idx+1:02d}.mp3"
             dur = max(2.5, len(tts_text) * 0.08)
             
             try:
-                # Nếu text vẫn còn tiếng Trung, dùng voice tiếng Trung hoặc skip
-                cur_voice = "zh-CN-YunxiNeural" if re.search(r'[\u4e00-\u9fff]', tts_text) else voice
+                cur_voice = voice
                 comm = edge_tts.Communicate(tts_text, cur_voice, rate="+10%")
                 await comm.save(str(out_file))
                 if out_file.exists() and out_file.stat().st_size > 500:
@@ -1511,7 +1327,7 @@ QUY TRÌNH TƯ DUY CỦA BỘ ÓC AI (BẮT BUỘC TUÂN THỦ NGHIÊM NGẶT):
                 pass
             
             sc = dict(scene)
-            sc["voiceover"] = text
+            sc["voiceover"] = raw_text
             if out_file.exists() and out_file.stat().st_size > 500:
                 sc["audio_file"] = str(out_file.resolve())
             sc["duration"] = round(dur, 2)
@@ -1744,9 +1560,11 @@ QUY TRÌNH TƯ DUY CỦA BỘ ÓC AI (BẮT BUỘC TUÂN THỦ NGHIÊM NGẶT):
             raw_scenes = parsed_scenes if parsed_scenes else (scenes or [])
             script = {"scenes": raw_scenes, "title": f"{novel_title} Tập {current_episode_num + 1}"}
         elif not scenes:
-            context = self.get_dynamic_novel_context(novel_id, transcript_text, active_prompt, current_episode_num=current_episode_num)
+            res_ctx = self.get_dynamic_novel_context(novel_id, transcript_text, active_prompt, current_episode_num=current_episode_num, next_episode_num=current_episode_num + 1)
+            context = res_ctx[0] if isinstance(res_ctx, tuple) else res_ctx
+            detection_info = res_ctx[1] if isinstance(res_ctx, tuple) and len(res_ctx) > 1 else {}
             curr_summary = transcript_text[:1500] if transcript_text else ""
-            script = self.generate_script(curr_summary, context, current_episode_num, current_episode_num + 1, novel_title=novel_title, custom_prompt=active_prompt)
+            script = self.generate_script(curr_summary, context, current_episode_num, current_episode_num + 1, novel_title=novel_title, custom_prompt=active_prompt, detection_info=detection_info)
             raw_scenes = script.get("scenes", [])
         else:
             script = {"scenes": scenes, "title": f"{novel_title} Tập {current_episode_num + 1}"}

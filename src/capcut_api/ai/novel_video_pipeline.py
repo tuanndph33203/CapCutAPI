@@ -233,7 +233,8 @@ class NovelVideoPipeline:
         logger.info(f"🚀 [B1] Bắt đầu sinh âm thanh NghiTTS (Giọng: {voice_name}, Tốc độ cơ sở: {speed}x, Dynamic Pacing: {'BẬT' if enable_dynamic_pacing else 'TẮT'})...")
 
         # 1. Tách các dòng và thẻ ngắt nghỉ
-        raw_lines = [l.strip() for l in script_text.splitlines() if l.strip()]
+        norm_script = re.sub(r'\s*(\[\d+(?:\.\d+)?\])\s*', r'\n\1\n', script_text)
+        raw_lines = [l.strip() for l in norm_script.splitlines() if l.strip()]
         sentence_items: List[SpeechSentence] = []
         cur_text_parts: List[str] = []
 
@@ -378,6 +379,7 @@ class NovelVideoPipeline:
         # 1. Tính toán timeline âm thanh và sinh phụ đề thông minh chia nhỏ từng cụm từ (AI Subtitle Chunker)
         total_sub_idx = 1
         all_subtitle_items = []
+        last_sub_end_sec = 0.0
 
         for idx, s in enumerate(sentences):
             s.start_sec = current_time_sec
@@ -391,10 +393,19 @@ class NovelVideoPipeline:
             )
 
             for p in phrase_items:
-                start_str = format_srt_time(p["start"])
-                end_str = format_srt_time(p["end"])
+                p_start = max(p["start"], last_sub_end_sec + 0.01) if last_sub_end_sec > 0 else p["start"]
+                p_end = max(p_start + 0.05, p["end"])
+                last_sub_end_sec = p_end
+
+                start_str = format_srt_time(p_start)
+                end_str = format_srt_time(p_end)
                 srt_lines.append(f"{total_sub_idx}\n{start_str} --> {end_str}\n{p['text']}\n")
-                all_subtitle_items.append(p)
+                all_subtitle_items.append({
+                    "text": p["text"],
+                    "start": round(p_start, 3),
+                    "end": round(p_end, 3),
+                    "duration": round(p_end - p_start, 3)
+                })
                 total_sub_idx += 1
 
             current_time_sec = s.end_sec + s.pause_sec
@@ -948,6 +959,74 @@ class NovelVideoPipeline:
                 logger.info(f"🎨 [B4] Đã tạo thành công Thumbnail YouTube 3D: {out_thumb.name} ({out_thumb.stat().st_size / 1024:.1f} KB)")
         except Exception as e:
             logger.warning(f"⚠️ [B4] Không thể tạo thumbnail tự động: {e}")
+
+        # Tự động đăng ký project vào root_meta_info.json để hiển thị ngay đầu trang chủ CapCut PC
+        try:
+            root_meta_file = self.capcut_drafts_dir / "root_meta_info.json"
+            if root_meta_file.exists():
+                cover_p = draft_folder / "draft_cover.jpg"
+                if thumbnail_path and os.path.exists(thumbnail_path) and not cover_p.exists():
+                    try:
+                        shutil.copy2(thumbnail_path, cover_p)
+                    except Exception:
+                        pass
+
+                r_data = json.loads(root_meta_file.read_text(encoding="utf-8"))
+                d_store = r_data.get("all_draft_store", [])
+                d_store = [d for d in d_store if d.get("draft_name") != project_name and not d.get("draft_fold_path", "").replace("\\", "/").endswith("/" + draft_folder.name)]
+                
+                content_f = draft_folder / "draft_content.json"
+                content_sz = content_f.stat().st_size if content_f.exists() else 1000000
+
+                now_ms = int(time.time() * 1000)
+                now_us = int(time.time() * 1000000)
+                
+                entry = {
+                    "cloud_draft_cover": False,
+                    "cloud_draft_sync": False,
+                    "draft_cloud_last_action_download": False,
+                    "draft_cloud_purchase_info": "",
+                    "draft_cloud_template_id": "",
+                    "draft_cloud_tutorial_info": "",
+                    "draft_cloud_videocut_purchase_info": "",
+                    "draft_cover": str(cover_p if cover_p.exists() else (thumbnail_path or "")).replace("/", "\\"),
+                    "draft_fold_path": str(draft_folder).replace("\\", "/"),
+                    "draft_id": draft_id,
+                    "draft_is_ai_shorts": False,
+                    "draft_is_cloud_temp_draft": False,
+                    "draft_is_infinite_canvas_draft": False,
+                    "draft_is_invisible": False,
+                    "draft_is_pippit_draft": False,
+                    "draft_is_web_article_video": False,
+                    "draft_json_file": str(content_f).replace("/", "\\"),
+                    "draft_name": project_name,
+                    "draft_new_version": "164.0.0",
+                    "draft_root_path": str(self.capcut_drafts_dir).replace("\\", "/"),
+                    "draft_timeline_materials_size": content_sz,
+                    "draft_type": "",
+                    "draft_web_article_video_enter_from": "",
+                    "pippit_avatar_url": "",
+                    "pippit_extra_info": "",
+                    "pippit_id": "",
+                    "pippit_user_name": "",
+                    "streaming_edit_draft_ready": True,
+                    "tm_draft_cloud_completed": "",
+                    "tm_draft_cloud_entry_id": -1,
+                    "tm_draft_cloud_modified": 0,
+                    "tm_draft_cloud_parent_entry_id": -1,
+                    "tm_draft_cloud_space_id": -1,
+                    "tm_draft_cloud_user_id": -1,
+                    "tm_draft_create": now_ms,
+                    "tm_draft_modified": now_us,
+                    "tm_draft_removed": 0,
+                    "tm_duration": total_timeline_dur_us
+                }
+                d_store.insert(0, entry)
+                r_data["all_draft_store"] = d_store
+                root_meta_file.write_text(json.dumps(r_data, ensure_ascii=False, indent=2), encoding="utf-8")
+                logger.info(f"📌 [B4] Đã đăng ký project '{project_name}' vào root_meta_info.json để CapCut PC hiển thị ở đầu danh sách!")
+        except Exception as e:
+            logger.warning(f"⚠️ [B4] Không thể cập nhật root_meta_info.json: {e}")
 
         logger.info(f"✅ [B4] Đã tạo thành công CapCut Draft tại: {draft_folder}")
         return {

@@ -174,7 +174,7 @@ class AISubtitleChunker:
 
             # Cut off end slightly for inter-phrase gap on timeline
             if idx < len(phrases) - 1:
-                p_display_end = max(p_start + 0.4, p_end - gap)
+                p_display_end = min(p_end - 0.01, max(p_start + 0.05, p_end - gap))
             else:
                 p_display_end = p_end
 
